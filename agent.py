@@ -168,6 +168,24 @@ def wait_for_browser(
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
 
+def check_port_available(port: int) -> None:
+    """Check an explicitly requested port; leave automatic selection to Chrome."""
+    if port:
+        with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            probe.bind(("127.0.0.1", port))
+
+
+def auto_select_port(profile: Path, port: int = 0, timeout: float = 20) -> int:
+    """Wait for Chrome and return its port, recording fixed ports for reconnects."""
+    wait_for_browser(profile, running=True, attempts=int(timeout * 10), port=port)
+    port_file = profile / "DevToolsActivePort"
+    if port:  # Chrome writes this file itself only when launched with port=0.
+        target = urlsplit(browser_endpoint(profile, port)).path
+        port_file.write_text(f"{port}\n{target}\n")
+    return int(port_file.read_text().splitlines()[0])
+
+
 def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
     signature = inspect.signature(function)
 
@@ -250,10 +268,7 @@ class WebAgent:
     def launch(self, timeout: float = 20) -> "WebAgent":
         """Launch detached headless Chrome. Call connect() separately to control it."""
         port = self.cdp_port
-        if port:
-            with socket.socket() as probe:
-                probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                probe.bind(("127.0.0.1", port))
+        check_port_available(port)
 
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.playwright = sync_playwright().start()
@@ -270,11 +285,7 @@ class WebAgent:
                     args, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True
                 )
 
-            wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
-            if port:  # Chrome only writes this file automatically when launched with port=0.
-                target = urlsplit(browser_endpoint(self.profile, port)).path
-                (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
-            self.cdp_port = int((self.profile / "DevToolsActivePort").read_text().splitlines()[0])
+            self.cdp_port = auto_select_port(self.profile, port, timeout)
         except BaseException as error:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
