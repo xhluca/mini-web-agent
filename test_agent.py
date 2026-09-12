@@ -419,15 +419,15 @@ class BrowserTests(unittest.TestCase):
         Fixture.requests = []
         Fixture.replies = [[], []]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            with self.assertRaisesRegex(RuntimeError, "unfinished after 2"):
-                run(self.agent, "Finish", client, "test", max_steps=2)
+            result = run(self.agent, "Finish", client, "test", max_steps=2)
+            self.assertEqual(result, "Stopped after 2 model turns; the task is still unfinished.")
         self.assertEqual(len(Fixture.requests), 2)
 
     def test_step_limit(self):
         Fixture.replies = [[tool_call("wait", {"seconds": 0})]]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            with self.assertRaisesRegex(RuntimeError, "unfinished"):
-                run(self.agent, "Keep going", client, "test", max_steps=1)
+            result = run(self.agent, "Keep going", client, "test", max_steps=1)
+            self.assertEqual(result, "Stopped after 1 model turns; the task is still unfinished.")
 
 
 if __name__ == "__main__":

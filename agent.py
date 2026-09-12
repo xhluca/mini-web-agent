@@ -406,7 +406,7 @@ def run(
             if call.name == "finish" and isinstance(result, str):
                 return result
 
-    raise RuntimeError(f"Task unfinished after {max_steps} model turns")
+    return f"Stopped after {max_steps} model turns; the task is still unfinished."
 
 
 if __name__ == "__main__":
