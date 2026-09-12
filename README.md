@@ -88,8 +88,8 @@ Use `WebAgent(profile).launch().connect()` for a new browser and
 liveness. Lifecycle failures include an explicit message and retain the original exception
 as their cause; profile-file errors propagate directly.
 
-All model actions live in the `Actions` namespace before the helper functions. Its
-methods are made static by one `@namespace` decorator; no instance is needed.
+All model actions live in the plain `Actions` class before the helper functions.
+Call functions through the class, such as `Actions.click(...)`; do not instantiate it.
 Page actions take an explicit Playwright page:
 
 ```python
@@ -173,7 +173,7 @@ documents the functions. Tool schemas are derived from their signatures/docstrin
 readiness waits, URL/argument validation, and schema construction are module-level
 helpers with explicit inputs. Page actions are module-level functions too; the class
 holds browser/tab state, dispatches calls, and runs the agent loop.
-The `ACTIONS` dictionary is derived from `Actions` static methods and drives both
+The `ACTIONS` dictionary is derived from functions defined in `Actions` and drives both
 tool schemas and dispatch; seeing a
 function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 

@@ -11,14 +11,13 @@ from pathlib import Path
 import socket
 import subprocess
 import time
-from typing import Any, TypeVar
+from typing import Any
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from openai import OpenAI
 from playwright.sync_api import Browser, BrowserContext, Error, Page, Playwright, sync_playwright
 
-T = TypeVar("T")
 ActionResult = str | int | dict[str, Any] | list[dict[str, Any]] | None
 
 INSTRUCTIONS = """Complete the user's browser task using only the provided function tools.
@@ -32,15 +31,6 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 """
 
 
-def namespace(cls: type[T]) -> type[T]:
-    """Make functions in a class static so it can serve as a namespace."""
-    for name, value in list(vars(cls).items()):
-        if inspect.isfunction(value) and not name.startswith("__"):
-            setattr(cls, name, staticmethod(value))
-    return cls
-
-
-@namespace
 class Actions:
     """Model-callable actions; a namespace, never instantiated."""
 
@@ -160,8 +150,7 @@ class Actions:
 
 
 ACTIONS: dict[str, Callable[..., Any]] = {
-    name: method.__func__ for name, method in vars(Actions).items()
-    if isinstance(method, staticmethod)
+    name: function for name, function in vars(Actions).items() if inspect.isfunction(function)
 }
 
 
