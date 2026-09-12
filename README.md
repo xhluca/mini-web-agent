@@ -1,8 +1,8 @@
 # mini-web-agent
 
 A small screenshot-driven Python web agent with **predefined browser functions**.
-Only two direct dependencies: `playwright` and `openai`. The core is about 370 lines,
-including the CLI; lines are at most 100 characters. Explicit functions and argument
+Only two direct dependencies: `playwright` and `openai`. The core and CLI live in
+`agent.py`; lines are at most 100 characters. Explicit functions and argument
 validation replace the original 200-line implementation's unrestricted Python executor.
 
 Chrome runs in a detached `subprocess.Popen(..., start_new_session=True)` process.
@@ -87,8 +87,21 @@ Use `WebAgent(profile).launch().connect()` for a new browser and
 `WebAgent(profile).connect()` to reuse one. Calling `launch()` on a running profile
 raises an error; calling `connect()` on an inactive profile also raises an error.
 
-Host code can also call methods directly: `agent.click(100, 200)` or
-`agent.new_tab('https://example.com')`. The model always goes through `act(name, arguments)`.
+Page actions are standalone functions with an explicit Playwright page argument:
+
+```python
+from agent import click, double_click, hover, type_text
+
+click(agent.page, 100, 200)
+double_click(agent.page, 100, 200)
+hover(agent.page, 300, 400)
+type_text(agent.page, 'hello')
+```
+
+Navigation, keyboard, scrolling, dragging, waiting, and screenshots follow the same
+pattern. Methods such as `agent.new_tab()` retain the tab state they need. The model
+always goes through `act(name, arguments)`; the dispatcher supplies the current page,
+and the model cannot choose or override that Python object.
 These calls are synchronous and belong on one thread. `act` returns a JSON-serializable
 result or an `error` object; `run` feeds errors back to the model for recovery.
 
@@ -130,7 +143,8 @@ use `store=False` and explicit history for OpenRouter's stateless Responses endp
 The system prompt includes `Path(__file__).read_text()` so the implementation itself
 documents the functions. Tool schemas are derived from their signatures/docstrings. Endpoint discovery, browser
 readiness waits, URL/argument validation, and schema construction are module-level
-helpers with explicit inputs; the class holds browser state and browser actions.
+helpers with explicit inputs. Page actions are module-level functions too; the class
+holds browser/tab state, dispatches calls, and runs the agent loop.
 The fixed `ACTIONS` tuple is the allowlist; seeing a function in the source does not
 make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 

@@ -2,6 +2,7 @@
 
 import argparse
 import base64
+from functools import partial
 import inspect
 import json
 import math
@@ -77,9 +78,9 @@ def build_tools(agent_type):
     """Derive tool schemas from the signatures of explicitly registered functions."""
     tools = []
     for name in ACTIONS:
-        function = getattr(agent_type, name)
+        function = PAGE_ACTIONS.get(name) or getattr(agent_type, name)
         parameters = {key: p for key, p in inspect.signature(function).parameters.items()
-                      if key != "self"}
+                      if key not in ("self", "page")}
         properties = {key: {"type": "number" if p.annotation is float else "string"}
                       for key, p in parameters.items()}
         required = [key for key, p in parameters.items()
@@ -89,6 +90,101 @@ def build_tools(agent_type):
                           parameters=dict(type="object", properties=properties,
                                           required=required, additionalProperties=False)))
     return tools
+
+
+def navigate(page, url: str):
+    """Navigate the active tab to an HTTP(S) URL or about:blank."""
+    validate_url(url)
+    page.goto(url, wait_until="domcontentloaded")
+
+
+def back(page):
+    page.go_back(wait_until="commit")
+
+
+def forward(page):
+    page.go_forward(wait_until="commit")
+
+
+def reload(page):
+    page.reload(wait_until="domcontentloaded")
+
+
+def click(page, x: float, y: float):
+    page.mouse.click(x, y)
+
+
+def double_click(page, x: float, y: float):
+    page.mouse.dblclick(x, y)
+
+
+def right_click(page, x: float, y: float):
+    page.mouse.click(x, y, button="right")
+
+
+def hover(page, x: float, y: float):
+    page.mouse.move(x, y, steps=10)
+
+
+def mouse_down(page):
+    """Hold the left mouse button at the current pointer position."""
+    page.mouse.down()
+
+
+def mouse_up(page):
+    page.mouse.up()
+
+
+def drag(page, x1: float, y1: float, x2: float, y2: float):
+    hover(page, x1, y1)
+    mouse_down(page)
+    try:
+        hover(page, x2, y2)
+    finally:
+        mouse_up(page)
+
+
+def scroll(page, dx: float, dy: float):
+    """Scroll at the pointer; positive dy scrolls down, positive dx scrolls right."""
+    page.mouse.wheel(dx, dy)
+
+
+def type_text(page, text: str):
+    """Type into the focused control. Use press_key('ControlOrMeta+A') to replace text."""
+    page.keyboard.type(text)
+
+
+def press_key(page, key: str):
+    """Press a key or chord, e.g. Enter, Tab, ArrowDown, ControlOrMeta+A."""
+    page.keyboard.press(key)
+
+
+def key_down(page, key: str):
+    """Hold a key, e.g. Shift, until key_up is called (release before switching tabs)."""
+    page.keyboard.down(key)
+
+
+def key_up(page, key: str):
+    page.keyboard.up(key)
+
+
+def wait(page, seconds: float):
+    """Wait between 0 and 10 seconds while processing browser events."""
+    if not 0 <= seconds <= 10:
+        raise ValueError("seconds must be between 0 and 10")
+    page.wait_for_timeout(seconds * 1000)
+
+
+def screenshot(page):
+    """Return the active tab's viewport JPEG as a data URL; never writes files."""
+    data = page.screenshot(type="jpeg", quality=70, scale="css")
+    return "data:image/jpeg;base64," + base64.b64encode(data).decode()
+
+
+PAGE_ACTIONS = {function.__name__: function for function in (
+    navigate, back, forward, reload, click, double_click, right_click, hover,
+    mouse_down, mouse_up, drag, scroll, type_text, press_key, key_down, key_up, wait, screenshot,
+)}
 
 
 class WebAgent:
@@ -160,77 +256,6 @@ class WebAgent:
             self.disconnect()
             raise
 
-    def navigate(self, url: str):
-        """Navigate the active tab to an HTTP(S) URL or about:blank."""
-        validate_url(url)
-        self.page.goto(url, wait_until="domcontentloaded")
-
-    def back(self):
-        self.page.go_back(wait_until="commit")
-
-    def forward(self):
-        self.page.go_forward(wait_until="commit")
-
-    def reload(self):
-        self.page.reload(wait_until="domcontentloaded")
-
-    def click(self, x: float, y: float):
-        self.page.mouse.click(x, y)
-
-    def double_click(self, x: float, y: float):
-        self.page.mouse.dblclick(x, y)
-
-    def right_click(self, x: float, y: float):
-        self.page.mouse.click(x, y, button="right")
-
-    def hover(self, x: float, y: float):
-        self.page.mouse.move(x, y, steps=10)
-
-    def mouse_down(self):
-        """Hold the left mouse button at the current pointer position."""
-        self.page.mouse.down()
-
-    def mouse_up(self):
-        self.page.mouse.up()
-
-    def drag(self, x1: float, y1: float, x2: float, y2: float):
-        self.hover(x1, y1)
-        self.mouse_down()
-        try:
-            self.hover(x2, y2)
-        finally:
-            self.mouse_up()
-
-    def scroll(self, dx: float, dy: float):
-        """Scroll at the pointer; positive dy scrolls down, positive dx scrolls right."""
-        self.page.mouse.wheel(dx, dy)
-
-    def type_text(self, text: str):
-        """Type into the focused control. Use press_key('ControlOrMeta+A') to replace text."""
-        self.page.keyboard.type(text)
-
-    def press_key(self, key: str):
-        """Press a key or chord, e.g. Enter, Tab, ArrowDown, ControlOrMeta+A."""
-        self.page.keyboard.press(key)
-
-    def key_down(self, key: str):
-        """Hold a key, e.g. Shift, until key_up is called (release before switching tabs)."""
-        self.page.keyboard.down(key)
-
-    def key_up(self, key: str):
-        self.page.keyboard.up(key)
-
-    def wait(self, seconds: float):
-        """Wait between 0 and 10 seconds while processing browser events."""
-        if not 0 <= seconds <= 10:
-            raise ValueError("seconds must be between 0 and 10")
-        self.page.wait_for_timeout(seconds * 1000)
-
-    def screenshot(self):
-        """Return the active tab's viewport JPEG as a data URL; never writes files."""
-        data = self.page.screenshot(type="jpeg", quality=70, scale="css")
-        return "data:image/jpeg;base64," + base64.b64encode(data).decode()
-
     def list_tabs(self):
         """List stable IDs, titles, URLs, and active flags, including new popups."""
         for page in self.context.pages:
@@ -249,7 +274,7 @@ class WebAgent:
         """Open and activate a tab, returning its stable ID."""
         validate_url(url)
         self.page = self.context.new_page()
-        self.navigate(url)
+        navigate(self.page, url)
         return next(tab["id"] for tab in self.list_tabs() if tab["active"])
 
     def switch_tab(self, tab_id: str):
@@ -270,9 +295,10 @@ class WebAgent:
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
                 raise ValueError("Unknown action or non-object arguments")
-            function = getattr(self, name)  # Name has passed the explicit allowlist above.
-            validate_arguments(function, arguments)
             self.list_tabs()
+            function = (partial(PAGE_ACTIONS[name], self.page) if name in PAGE_ACTIONS
+                        else getattr(self, name))
+            validate_arguments(function, arguments)
             result = function(**arguments)
             return "Screenshot follows in the next observation" if name == "screenshot" else result
         except (Error, ValueError, TypeError, KeyError, OverflowError) as error:
@@ -283,7 +309,7 @@ class WebAgent:
         tabs = self.list_tabs()
         state = dict(active_tab=next(tab["id"] for tab in tabs if tab["active"]), tabs=tabs,
                      viewport={"width": 1280, "height": 800})
-        return json.dumps(state), self.screenshot()
+        return json.dumps(state), screenshot(self.page)
 
     def disconnect(self):
         """Detach Playwright and leave Chrome running."""

@@ -13,7 +13,7 @@ import unittest
 
 from openai import OpenAI
 
-from agent import WebAgent, browser_endpoint, build_tools
+from agent import WebAgent, browser_endpoint, build_tools, navigate, press_key, type_text
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -82,7 +82,7 @@ class BrowserTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="mini-web-agent-test-")
         self.agent = WebAgent(self.folder.name).launch().connect()
-        self.agent.navigate(self.url)
+        navigate(self.agent.page, self.url)
 
     def tearDown(self):
         if browser_endpoint(self.agent.profile):
@@ -184,7 +184,7 @@ class BrowserTests(unittest.TestCase):
             ("click", {"x": True, "y": 1}), ("click", {"x": "1", "y": 1}),
             ("click", {"x": float("nan"), "y": 1}), ("click", {"x": -1, "y": 1}),
             ("click", {"x": 1280, "y": 1}), ("click", {"x": 1}),
-            ("click", {"x": 1, "y": 1, "force": True}), ("click", []),
+            ("click", {"x": 1, "y": 1, "page": "forbidden"}), ("click", []),
             ("wait", {"seconds": 11}), ("wait", {"seconds": -1}),
             ("screenshot", {"path": "/tmp/forbidden.png"}), ("switch_tab", {"tab_id": "missing"}),
         ]
@@ -194,6 +194,9 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(len(self.agent.list_tabs()), 1)
         from agent import ACTIONS
         self.assertEqual({t["name"] for t in build_tools(WebAgent)}, set(ACTIONS))
+        for tool in build_tools(WebAgent):
+            self.assertNotIn("page", tool["parameters"]["properties"])
+            self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
 
     def test_launch_and_connect_are_separate(self):
@@ -245,9 +248,10 @@ class BrowserTests(unittest.TestCase):
 
     def test_browser_survives_separate_python_process(self):
         self.agent.shutdown()
-        code = ("from agent import WebAgent, browser_endpoint, build_tools; "
-                f"a=WebAgent({self.folder.name!r}).launch().connect(); a.navigate({self.url!r}); "
-                "a.press_key('Tab'); a.type_text('survived@example.com'); a.disconnect()")
+        code = ("from agent import WebAgent, navigate, press_key, type_text; "
+                f"a=WebAgent({self.folder.name!r}).launch().connect(); "
+                f"navigate(a.page, {self.url!r}); press_key(a.page, 'Tab'); "
+                "type_text(a.page, 'survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
         self.assertTrue(browser_endpoint(self.agent.profile))
