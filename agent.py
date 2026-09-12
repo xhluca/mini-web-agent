@@ -366,19 +366,18 @@ class WebAgent:
             self.browser = None
 
     def shutdown(self) -> None:
-        """Close the connected Chrome browser, then disconnect Playwright."""
+        """Close Chrome and disconnect Playwright."""
         try:
-            try:
-                self.browser.new_browser_cdp_session().send("Browser.close")
-            except Error as error:
-                if self.browser.is_connected():
-                    raise Error(f"Failed to shut down Chrome: {error}") from error
-
-            wait_for_browser(self.profile, running=False)
-            if self.process:
-                self.process.wait(timeout=5)
+            self.browser.new_browser_cdp_session().send("Browser.close")
+        except Error as error:
+            if self.browser.is_connected():
+                raise Error(f"Failed to shut down Chrome: {error}") from error
         finally:
             self.disconnect()
+
+        wait_for_browser(self.profile, running=False)
+        if self.process:
+            self.process.wait(timeout=5)
 
     def run(
         self, task: str, client: OpenAI, model: str, max_steps: int = 30,
