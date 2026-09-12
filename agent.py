@@ -144,7 +144,7 @@ ACTIONS: dict[str, Callable[..., Any]] = {
 }
 
 
-def browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
+def probe_browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
     try:
         target = ""
         if not port:
@@ -163,7 +163,7 @@ def wait_for_browser(
 ) -> None:
     """Check every 0.1 seconds until Chrome has started or stopped."""
     for _ in range(attempts):
-        if bool(browser_endpoint(profile, port)) == running:
+        if bool(probe_browser_endpoint(profile, port)) == running:
             return
         time.sleep(0.1)
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
@@ -177,7 +177,7 @@ def check_port_available(port: int) -> None:
             probe.bind(("127.0.0.1", port))
 
 
-def auto_select_port(profile: Path) -> int:
+def read_assigned_port(profile: Path) -> int:
     """Read the port Chrome assigned when launched with cdp_port=0."""
     port_file = profile / "DevToolsActivePort"
     return int(port_file.read_text().splitlines()[0])
@@ -205,7 +205,7 @@ def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) 
             raise ValueError(f"{key} is outside the viewport")
 
 
-def build_tools() -> list[dict[str, Any]]:
+def build_tool_schemas() -> list[dict[str, Any]]:
     """Derive tool schemas from the signatures of explicitly registered functions."""
     tools = []
 
@@ -286,9 +286,9 @@ class WebAgent:
 
             wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
             if port == 0:
-                self.cdp_port = auto_select_port(self.profile)
+                self.cdp_port = read_assigned_port(self.profile)
             else:
-                target = urlsplit(browser_endpoint(self.profile, port)).path
+                target = urlsplit(probe_browser_endpoint(self.profile, port)).path
                 (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
         except BaseException as error:
             if self.process and self.process.poll() is None:
@@ -392,7 +392,7 @@ class WebAgent:
             {"role": "user", "content": task},
         ]
 
-        tools = build_tools()
+        tools = build_tool_schemas()
         for step in range(max_steps):
             text, image = self.observe()
             history.append({"role": "user", "content": [

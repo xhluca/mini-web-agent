@@ -15,7 +15,7 @@ from unittest.mock import patch
 from openai import OpenAI
 from playwright.sync_api import Error
 
-from agent import Actions, WebAgent, browser_endpoint, build_tools
+from agent import Actions, WebAgent, probe_browser_endpoint, build_tool_schemas
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -87,7 +87,7 @@ class BrowserTests(unittest.TestCase):
         Actions.navigate(self.agent.page, self.url)
 
     def tearDown(self):
-        if browser_endpoint(self.agent.profile):
+        if probe_browser_endpoint(self.agent.profile):
             self.agent.connect().shutdown()
         self.folder.cleanup()
 
@@ -206,8 +206,8 @@ class BrowserTests(unittest.TestCase):
                 self.assertIn("error", self.agent.act(name, arguments))
         self.assertEqual(len(Actions.list_tabs(self.agent.page)), 1)
         from agent import ACTIONS
-        self.assertEqual({t["name"] for t in build_tools()}, set(ACTIONS))
-        for tool in build_tools():
+        self.assertEqual({t["name"] for t in build_tool_schemas()}, set(ACTIONS))
+        for tool in build_tool_schemas():
             self.assertNotIn("page", tool["parameters"]["properties"])
             self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
@@ -216,15 +216,15 @@ class BrowserTests(unittest.TestCase):
         self.agent.shutdown()
         with self.assertRaises(Error):
             self.agent.connect()
-        self.assertIsNone(browser_endpoint(self.agent.profile))
+        self.assertIsNone(probe_browser_endpoint(self.agent.profile))
         self.agent.launch()
         self.assertIsNone(self.agent.browser)
-        self.assertTrue(browser_endpoint(self.agent.profile))
+        self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.agent.connect()
         self.agent.disconnect()
-        self.assertTrue(browser_endpoint(self.agent.profile))
+        self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.agent.connect().shutdown()
-        self.assertIsNone(browser_endpoint(self.agent.profile))
+        self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
     def test_random_and_explicit_ports(self):
         from urllib.request import urlopen
@@ -237,7 +237,7 @@ class BrowserTests(unittest.TestCase):
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             chosen = probe.getsockname()[1]
-        with patch("agent.auto_select_port") as select_port:
+        with patch("agent.read_assigned_port") as select_port:
             self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch().connect()
             select_port.assert_not_called()
         self.assertEqual(self.agent.cdp_port, chosen)
@@ -245,7 +245,7 @@ class BrowserTests(unittest.TestCase):
         other = WebAgent(self.agent.profile).connect()
         try:
             self.assertEqual(other.cdp_port, chosen)
-            self.assertIn(f":{chosen}/", browser_endpoint(other.profile))
+            self.assertIn(f":{chosen}/", probe_browser_endpoint(other.profile))
         finally:
             other.shutdown()
             self.agent.process.wait(timeout=5)
@@ -257,7 +257,7 @@ class BrowserTests(unittest.TestCase):
                 WebAgent(self.folder.name, cdp_port=port)
         with self.assertRaises(OSError):
             WebAgent(self.folder.name, cdp_port=self.server.server_port).launch()
-        self.assertIsNone(browser_endpoint(self.agent.profile))
+        self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
     def test_browser_survives_separate_python_process(self):
         self.agent.shutdown()
@@ -267,12 +267,12 @@ class BrowserTests(unittest.TestCase):
                 "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
-        self.assertTrue(browser_endpoint(self.agent.profile))
+        self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.agent.connect()
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(),
                          "survived@example.com")
         self.agent.shutdown()
-        self.assertIsNone(browser_endpoint(self.agent.profile))
+        self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
     def test_responses_wire_format_and_error_recovery(self):
         Fixture.requests = []
@@ -283,7 +283,7 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Done"}, "call_3")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            with patch("agent.build_tools", wraps=build_tools) as schemas:
+            with patch("agent.build_tool_schemas", wraps=build_tool_schemas) as schemas:
                 events = []
                 result = self.agent.run(
                     "Fill the email", client, "test", max_steps=3,
