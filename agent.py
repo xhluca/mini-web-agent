@@ -382,4 +382,4 @@ if __name__ == "__main__":
                 max_steps=args.max_steps, on_action=lambda s, a, r: print(s, a, r, flush=True),
             ))
     finally:
-        agent.shutdown() if agent.process else agent.disconnect()
+        agent.shutdown() if not args.connect else agent.disconnect()
