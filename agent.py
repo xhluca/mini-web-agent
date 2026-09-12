@@ -157,7 +157,9 @@ def browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
         return None
 
 
-def wait_for_browser(profile: str | Path, running: bool, attempts: int = 50, port: int = 0) -> None:
+def wait_for_browser(
+    profile: str | Path, running: bool, attempts: int = 50, port: int = 0
+) -> None:
     """Check every 0.1 seconds until Chrome has started or stopped."""
     for _ in range(attempts):
         if bool(browser_endpoint(profile, port)) == running:
@@ -202,7 +204,8 @@ def build_tools() -> list[dict[str, Any]]:
         tools.append(dict(
             type="function", name=name, strict=False,
             description=inspect.getdoc(function) or name.replace("_", " "),
-            parameters=dict(type="object", properties=properties, required=required, additionalProperties=False),
+            parameters=dict(type="object", properties=properties, required=required,
+                            additionalProperties=False),
         ))
 
     return tools
@@ -292,7 +295,9 @@ class WebAgent:
             self.playwright = sync_playwright().start()
 
         try:
-            self.browser = self.playwright.chromium.connect_over_cdp(endpoint, timeout=timeout * 1000)
+            self.browser = self.playwright.chromium.connect_over_cdp(
+                endpoint, timeout=timeout * 1000
+            )
             self.cdp_port = int(port)
             context = self.browser.contexts[0]
             context.set_default_timeout(10_000)
@@ -303,7 +308,9 @@ class WebAgent:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
-    def act(self, name: str, arguments: dict[str, Any]) -> str | int | dict[str, Any] | list[dict[str, Any]] | None:
+    def act(
+        self, name: str, arguments: dict[str, Any],
+    ) -> str | int | dict[str, Any] | list[dict[str, Any]] | None:
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
@@ -360,7 +367,9 @@ class WebAgent:
         finally:
             self.disconnect()
 
-    def run(self, task: str, client: OpenAI, model: str, max_steps: int = 30) -> str:
+    def run(
+        self, task: str, client: OpenAI, model: str, max_steps: int = 30,
+    ) -> str:
         """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
@@ -427,7 +436,9 @@ if __name__ == "__main__":
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     args = parser.parse_args()
     if args.connect and args.cdp_port:
-        parser.error("--cdp-port applies to launch; --connect discovers the profile's existing port")
+        parser.error(
+            "--cdp-port applies to launch; --connect discovers the profile's existing port"
+        )
 
     agent = WebAgent(args.profile, cdp_port=args.cdp_port)
     if not args.connect:
@@ -437,7 +448,9 @@ if __name__ == "__main__":
 
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
-            print(agent.run(args.task, client, args.model, args.max_steps))
+            print(agent.run(
+                args.task, client, args.model, args.max_steps,
+            ))
     finally:
         if args.close:
             agent.shutdown()
