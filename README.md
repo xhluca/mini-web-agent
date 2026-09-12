@@ -60,7 +60,7 @@ agent = WebAgent('.chrome').launch().connect()
 try:
     agent.act('navigate', {'url': 'https://example.com'})
     text, screenshot_data_url = agent.observe()
-    print(text)  # Active tab ID, tab titles/URLs, viewport dimensions.
+    print(text)  # Active tab index, tab titles/URLs, viewport dimensions.
     with OpenAI(timeout=60, max_retries=1) as client:
         print(agent.run(
             'Read the page and report its heading.',
@@ -116,7 +116,7 @@ result or an `error` object; `run` feeds errors back to the model for recovery.
 | Keyboard | `type_text(text)`, `press_key(key)`, `key_down(key)`, `key_up(key)` |
 | Timing | `wait(seconds)`; between 0 and 10 seconds |
 | Observation | `screenshot()`, `list_tabs()` |
-| Tabs | `new_tab(url='about:blank')`, `switch_tab(tab_id)`, `close_tab(tab_id)` |
+| Tabs | `new_tab(url='about:blank')`, `switch_tab(index)`, `close_tab(index)` |
 
 Coordinates are CSS pixels within a 1280×800 viewport. Screenshots use the same CSS
 scale, including on high-DPI displays. Keyboard actions target the focused control.
@@ -125,12 +125,11 @@ and `ControlOrMeta+A`. Mouse down/up hold/release the left button; `right_click`
 complete right-button click. Release held keys/buttons before switching tabs.
 Visible controls inside frames are reachable by coordinates without selecting a frame.
 
-Tab IDs are strings and remain stable during a connection: closing a tab never
-renumbers surviving tabs. Reconnecting produces a fresh tab mapping; call `list_tabs()`
-to get current IDs. New tabs opened by clicks/popups are discovered automatically at
-observations/actions without changing the agent's active tab. `new_tab` activates its
-new tab. Closing the active tab selects a remaining one; closing the last creates a
-blank tab. Each observation includes the active ID and all current titles/URLs.
+Tabs use zero-based indices from Playwright's `context.pages`, with no separate
+registry or counter. Each observation includes the latest indices, titles, URLs, and
+active flag. Closing a tab shifts later indices, so use the newest list. Popups appear
+automatically without changing the agent's active tab. `new_tab` activates its new tab.
+Closing the active tab selects a remaining one; closing the last creates a blank tab.
 
 `screenshot()` returns a data URL to host callers. When called as a model tool, it
 requests the next observation's screenshot instead of returning image bytes as text.
@@ -183,7 +182,7 @@ python test_live.py  # Opt-in paid Gemini test using OPENAI_* environment variab
 
 The integration suite uses real Chromium and a local HTTP/Responses fixture. It checks
 coordinate form input, keyboard and mouse events, iframe interaction, screenshots,
-navigation, popup discovery, stable tab IDs, closing the last tab, rejected tool
+navigation, popup discovery, updated tab indices, closing the last tab, rejected tool
 names/arguments, persistence across Python processes, source self-documentation,
 Responses serialization, error recovery, and turn limits. Test code uses DOM assertions
 to verify outcomes independently; the model receives no DOM information.

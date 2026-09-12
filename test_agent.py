@@ -145,33 +145,33 @@ class BrowserTests(unittest.TestCase):
                         .issubset(events))
         self.assertEqual(events.count("mousedown"), events.count("mouseup"))
 
-    def test_tabs_popups_stable_ids_and_navigation(self):
-        first = self.act("list_tabs")[0]["id"]
-        second = self.act("new_tab", url=self.url + "/second")
-        third = self.act("new_tab", url=self.url + "/third")
-        self.act("close_tab", tab_id=second)
-        self.assertEqual([t["id"] for t in self.act("list_tabs")], [first, third])
-        self.act("switch_tab", tab_id=first)
+    def test_tabs_popups_indices_and_navigation(self):
+        self.assertEqual(self.act("list_tabs")[0]["index"], 0)
+        self.assertEqual(self.act("new_tab", url=self.url + "/second"), 1)
+        self.assertEqual(self.act("new_tab", url=self.url + "/third"), 2)
+        tabs = self.act("close_tab", index=1)
+        self.assertEqual([t["index"] for t in tabs], [0, 1])
+        self.assertTrue(tabs[1]["url"].endswith("/third"))
+        self.assertEqual(json.loads(self.agent.observe()[0])["active_tab"], 1)
+        self.act("switch_tab", index=0)
         self.act("click", **self.point(self.agent.page.get_by_text("Popup", exact=True)))
         self.act("wait", seconds=0.1)
         tabs = self.act("list_tabs")
-        popup = next(t["id"] for t in tabs if t["id"] not in (first, third))
-        self.assertEqual(next(t["id"] for t in tabs if t["active"]), first)
-        self.act("switch_tab", tab_id=popup)
+        popup = next(t["index"] for t in tabs if t["url"].endswith("/popup"))
+        self.assertEqual(next(t["index"] for t in tabs if t["active"]), 0)
+        self.act("switch_tab", index=popup)
         self.act("navigate", url=self.url + "/next")
         self.act("back")
         self.assertTrue(self.agent.page.url.endswith("/popup"))
         self.act("forward")
         self.act("reload")
         self.assertTrue(self.agent.page.url.endswith("/next"))
-        self.act("close_tab", tab_id=first)
-        self.act("close_tab", tab_id=third)
-        self.act("close_tab", tab_id=popup)
-        tabs = self.act("list_tabs")
+        for _ in range(3):
+            tabs = self.act("close_tab", index=0)
         self.assertEqual(len(tabs), 1)
-        self.assertNotIn(tabs[0]["id"], (first, second, third, popup))
+        self.assertEqual(tabs[0]["index"], 0)
         self.assertEqual(tabs[0]["url"], "about:blank")
-        self.agent.page.close()  # Simulate the active tab being closed externally.
+        self.agent.page.close()
         self.assertEqual(len(json.loads(self.agent.observe()[0])["tabs"]), 1)
 
     def test_restricted_dispatch(self):
@@ -187,7 +187,9 @@ class BrowserTests(unittest.TestCase):
             ("click", {"x": 1280, "y": 1}), ("click", {"x": 1}),
             ("click", {"x": 1, "y": 1, "page": "forbidden"}), ("click", []),
             ("wait", {"seconds": 11}), ("wait", {"seconds": -1}),
-            ("screenshot", {"path": "/tmp/forbidden.png"}), ("switch_tab", {"tab_id": "missing"}),
+            ("screenshot", {"path": "/tmp/forbidden.png"}), ("switch_tab", {"index": 99}),
+            ("switch_tab", {"index": -1}), ("switch_tab", {"index": "0"}),
+            ("switch_tab", {"index": True}),
         ]
         for name, arguments in invalid:
             with self.subTest(name=name, arguments=arguments):
