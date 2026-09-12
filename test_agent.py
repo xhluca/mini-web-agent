@@ -304,9 +304,10 @@ class BrowserTests(unittest.TestCase):
             replies.append("Robotics")
             return "Robotics"
 
+        self.agent.on_message = messages.append
+        self.agent.on_reply = reply
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            result = self.agent.run("Sign me up", client, "test", max_steps=4,
-                                    on_message=messages.append, on_reply=reply)
+            result = self.agent.run("Sign me up", client, "test", max_steps=4)
         self.assertEqual(result, "All done.")
         self.assertEqual(messages, ["Which track?", "Working on Robotics."])
         self.assertEqual(replies, ["Robotics"])
@@ -315,6 +316,22 @@ class BrowserTests(unittest.TestCase):
                    if item.get("type") == "function_call_output"]
         self.assertEqual(json.loads(outputs[-1]["output"]),
                          {"type": "user_reply", "text": "Robotics"})
+
+    def test_conversation_actions_work_without_run(self):
+        messages = []
+        agent = WebAgent(on_message=messages.append, on_reply=lambda: "Robotics")
+        agent.act("send_message", {"message": "Which track?"})
+        self.assertEqual(messages, ["Which track?"])
+        self.assertEqual(agent.act("wait_for_reply", {}),
+                         {"type": "user_reply", "text": "Robotics"})
+        self.assertIn("error", agent.act("finish", {"message": 42}))
+        self.assertFalse(agent.done)
+        agent.act("finish", {"message": "Done"})
+        self.assertTrue(agent.done)
+        self.assertEqual(agent.final_message, "Done")
+
+        agent.on_reply = lambda: None
+        self.assertIn("error", agent.act("wait_for_reply", {}))
 
     def test_invalid_finish_does_not_end_run(self):
         Fixture.replies = [

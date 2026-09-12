@@ -56,7 +56,7 @@ Both providers use `client.responses.create()`; no Chat Completions adapter is i
 from openai import OpenAI
 from agent import WebAgent
 
-agent = WebAgent('.chrome').launch().connect()
+agent = WebAgent('.chrome', on_message=print, on_reply=input).launch().connect()
 try:
     agent.act('navigate', {'url': 'https://example.com'})
     text, screenshot_data_url = agent.observe()
@@ -68,8 +68,6 @@ try:
             model='google/gemini-3.8-flash',
             max_steps=15,
             on_step=lambda step, action, result: print(step, action, result),
-            on_message=print,  # Progress messages; replace with your UI callback.
-            on_reply=input,    # Wait for user input; replace with your UI's blocking reader.
         ))
 finally:
     agent.disconnect()  # Disconnect; Chrome survives Python exit.
@@ -161,8 +159,10 @@ the website. `wait(seconds)` remains a separate browser-delay action.
 `finish(message)` ends the current run immediately and returns its final message;
 later actions in the same model response are skipped. Browser shutdown remains the
 caller's choice. Plain assistant text is displayed as a message and the loop continues
-until `finish` or the turn limit. Direct calls to these standalone functions or `act()`
-return event dictionaries; `run()` performs delivery, waiting, and termination.
+until `finish` or the turn limit. Configure `on_message` and `on_reply` on `WebAgent`.
+Calling `act()` performs these actions directly, including delivery and waiting.
+`finish` sets `agent.done` and `agent.final_message`; `run()` checks that state after
+each action. Each new run resets completion state.
 
 ## Restriction and self-documentation
 

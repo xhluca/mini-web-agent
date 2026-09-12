@@ -81,7 +81,9 @@ def build_tools():
 
     for name, function in ACTIONS.items():
         parameters = {
-            key: p for key, p in inspect.signature(function).parameters.items() if key != "page"
+            key: p
+            for key, p in inspect.signature(function).parameters.items()
+            if key not in ("page", "self")
         }
         properties = {
             key: {"type": {float: "number", int: "integer", str: "string"}[p.annotation]}
@@ -195,21 +197,6 @@ def screenshot(page):
     return "data:image/jpeg;base64," + base64.b64encode(data).decode()
 
 
-def send_message(message: str):
-    """Send a progress update to the user and continue working."""
-    return {"type": "message", "text": message}
-
-
-def finish(message: str):
-    """End this run with a final answer after verifying the task is complete."""
-    return {"type": "finish", "text": message}
-
-
-def wait_for_reply():
-    """Pause until the user replies, then continue with their response."""
-    return {"type": "wait_for_reply"}
-
-
 def active_page(page):
     """Replace a closed page if needed and use the screenshot coordinate viewport."""
     if page.is_closed():
@@ -252,11 +239,15 @@ def close_tab(page, index: int):
 
 
 class WebAgent:
-    def __init__(self, profile=".chrome", cdp_port=0):
+    def __init__(self, profile=".chrome", cdp_port=0, on_message=print, on_reply=input):
         if type(cdp_port) is not int or not 0 <= cdp_port <= 65535:
             raise ValueError("cdp_port must be an integer from 0 to 65535; 0 selects a random port")
 
         self.profile = Path(profile).expanduser().resolve()
+        self.on_message = on_message
+        self.on_reply = on_reply
+        self.done = False
+        self.final_message = None
         self.cdp_port = cdp_port
         self.playwright = self.process = self.browser = None
 
@@ -326,6 +317,24 @@ class WebAgent:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
+    def send_message(self, message: str):
+        """Send a progress update to the user and continue working."""
+        self.on_message(message)
+        return {"type": "message", "text": message}
+
+    def wait_for_reply(self):
+        """Wait for the user's response and return it to the model."""
+        reply = self.on_reply()
+        if not isinstance(reply, str):
+            raise TypeError("on_reply must return the user's reply as a string")
+        return {"type": "user_reply", "text": reply}
+
+    def finish(self, message: str):
+        """Mark the task complete and store its final answer."""
+        self.final_message = message
+        self.done = True
+        return {"type": "finish", "text": message}
+
     def act(self, name, arguments):
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
         try:
@@ -334,7 +343,7 @@ class WebAgent:
 
             action = ACTIONS[name]
             if name in ("send_message", "finish", "wait_for_reply"):
-                function = action
+                function = partial(action, self)
             else:
                 self.page = active_page(self.page)
                 function = partial(action, self.page)
@@ -387,13 +396,13 @@ class WebAgent:
         finally:
             self.disconnect()
 
-    def run(
-        self, task, client, model, max_steps=30, on_step=None, on_message=print, on_reply=input
-    ):
+    def run(self, task, client, model, max_steps=30, on_step=None):
         """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
 
+        self.done = False
+        self.final_message = None
         history = [
             {"role": "system", "content": INSTRUCTIONS + Path(__file__).read_text()},
             {"role": "user", "content": task},
@@ -426,7 +435,7 @@ class WebAgent:
             if not calls:
                 if not response.output_text:
                     raise RuntimeError("Model returned neither an action nor an answer")
-                on_message(response.output_text)
+                self.act("send_message", {"message": response.output_text})
                 continue
 
             for call in calls:
@@ -438,12 +447,6 @@ class WebAgent:
                 if on_step:
                     on_step(step, dict(name=call.name, arguments=call.arguments), result)
 
-                if isinstance(result, dict) and result.get("type") == "wait_for_reply":
-                    reply = on_reply()
-                    if not isinstance(reply, str):
-                        raise TypeError("on_reply must return the user's reply as a string")
-                    result = {"type": "user_reply", "text": reply}
-
                 history.append(
                     {
                         "type": "function_call_output",
@@ -452,10 +455,8 @@ class WebAgent:
                     }
                 )
 
-                if isinstance(result, dict) and result.get("type") == "message":
-                    on_message(result["text"])
-                if isinstance(result, dict) and result.get("type") == "finish":
-                    return result["text"]
+                if self.done:
+                    return self.final_message
 
         raise RuntimeError(f"Task unfinished after {max_steps} model turns")
 
@@ -485,9 +486,9 @@ ACTIONS = {
         new_tab,
         switch_tab,
         close_tab,
-        send_message,
-        finish,
-        wait_for_reply,
+        WebAgent.send_message,
+        WebAgent.finish,
+        WebAgent.wait_for_reply,
     )
 }
 
