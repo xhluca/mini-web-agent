@@ -306,9 +306,8 @@ class BrowserTests(unittest.TestCase):
             self.assertIn(f":{chosen}/", probe_browser_endpoint(other.profile))
         finally:
             other.shutdown()
-            self.assertTrue(probe_browser_endpoint(self.agent.profile))
-            self.agent.shutdown()
-            self.assertIsNotNone(self.agent.process.returncode)
+            self.agent.process.wait(timeout=5)
+            self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
     def test_invalid_or_occupied_port(self):
         self.agent.shutdown()
@@ -326,7 +325,7 @@ class BrowserTests(unittest.TestCase):
                 f"a=WebAgent({self.folder.name!r}, "
                 "action_space=get_action_space()).connect(); "
                 f"Actions.navigate(a.page, {self.url!r}); Actions.press_key(a.page, 'Tab'); "
-                "Actions.type_text(a.page, 'survived@example.com'); a.shutdown()")
+                "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
         self.assertTrue(probe_browser_endpoint(self.agent.profile))

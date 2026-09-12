@@ -77,7 +77,7 @@ try:
 finally:
     agent.shutdown()  # Close Chrome because this agent launched it.
 
-# Attaching does not transfer ownership; shutdown only disconnects this client.
+# Explicitly close an existing browser when that is what you intend.
 WebAgent('.chrome', action_space=get_action_space()).connect().shutdown()
 ```
 
@@ -86,8 +86,9 @@ The lifecycle is explicit:
 - `launch()` starts detached Chrome and returns the agent; it does not attach Playwright.
 - `connect()` attaches to running Chrome and returns the agent; it never launches Chrome.
 - `disconnect()` detaches Playwright and leaves Chrome running.
-- `shutdown()` stops Chrome only when this agent launched it, then disconnects.
-  It also works after `launch()` without `connect()`, or after `disconnect()`.
+- `shutdown()` closes Chrome and disconnects, including an explicitly connected browser.
+  For a browser this agent launched, it also works before connecting or after disconnecting.
+  The CLI chooses `shutdown()` for browsers it launched and `disconnect()` for attached browsers.
 
 Use `WebAgent(profile, action_space=action_space).launch().connect()` for a new browser and
 `WebAgent(profile, action_space=action_space).connect()` to reuse one. Launch/connect do not preflight browser
