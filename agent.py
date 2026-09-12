@@ -388,7 +388,7 @@ def run(
         if response.status != "completed":
             raise RuntimeError(f"Model response {response.status}: {response.error}")
 
-        history.extend(item.model_dump(exclude_none=True) for item in response.output)
+        history.extend(response.output)
         calls = [item for item in response.output if item.type == "function_call"]
 
         if not calls:
