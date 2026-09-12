@@ -31,7 +31,7 @@ Chrome profile (default `.chrome` in the working directory). `--close` shuts Chr
 down after the task; otherwise it stays running for inspection and reuse.
 
 To use an existing Chrome installation, set `CHROME_BIN` to its executable.
-Headless is the default; `--headed` requires a display such as an existing Xvfb session.
+Chrome launches with `--headless=new` hardcoded; there is no headed mode or flag override.
 Minimal Linux installations may need `playwright install-deps chromium`.
 For OpenAI itself, unset `OPENAI_BASE_URL` and use an OpenAI key and available vision model.
 Both providers use `client.responses.create()`; no Chat Completions adapter is included.

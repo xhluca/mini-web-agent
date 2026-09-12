@@ -53,7 +53,7 @@ class WebAgent:
             time.sleep(0.1)
         raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
-    def start(self, chrome=None, headless=True, timeout=20, extra_args=()):
+    def start(self, chrome=None, timeout=20):
         """Launch detached Chrome, or reconnect to this profile's running Chrome."""
         if self.playwright:
             return self
@@ -66,9 +66,7 @@ class WebAgent:
                 executable = executable or self.playwright.chromium.executable_path
                 args = [executable, f"--user-data-dir={self.profile}",
                         "--remote-debugging-port=0", "--remote-debugging-address=127.0.0.1",
-                        "--no-first-run", "--no-default-browser-check", *extra_args]
-                if headless:
-                    args.append("--headless=new")
+                        "--no-first-run", "--no-default-browser-check", "--headless=new"]
                 args.append("about:blank")
                 with (self.profile / "chrome.log").open("ab") as log:
                     process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log,
@@ -309,10 +307,9 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True)
     parser.add_argument("--profile", default=".chrome")
     parser.add_argument("--max-steps", type=int, default=30)
-    parser.add_argument("--headed", action="store_true")
     parser.add_argument("--close", action="store_true")
     args = parser.parse_args()
-    agent = WebAgent(args.profile).start(headless=not args.headed)
+    agent = WebAgent(args.profile).start()
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
             print(agent.run(args.task, client, args.model, args.max_steps,
