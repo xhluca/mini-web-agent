@@ -33,7 +33,6 @@ class Actions:
     """Model-callable actions; a namespace, never instantiated."""
 
     def navigate(page: Page, url: str) -> None:
-        """Navigate the active tab to a URL."""
         page.goto(url, wait_until="domcontentloaded")
 
     def back(page: Page) -> None:
@@ -58,7 +57,6 @@ class Actions:
         page.mouse.move(x, y, steps=10)
 
     def mouse_down(page: Page) -> None:
-        """Hold the left mouse button at the current pointer position."""
         page.mouse.down()
 
     def mouse_up(page: Page) -> None:
@@ -98,7 +96,6 @@ class Actions:
         page.wait_for_timeout(seconds * 1000)
 
     def list_tabs(page: Page) -> list[dict[str, Any]]:
-        """List current zero-based indices, titles, URLs, and the active page flag."""
         return [
             dict(index=i, title=tab.title(), url=tab.url, active=tab == page)
             for i, tab in enumerate(page.context.pages)
@@ -112,30 +109,25 @@ class Actions:
         return tab.context.pages.index(tab)
 
     def switch_tab(agent: "WebAgent", index: int) -> int:
-        """Activate a tab by its current index."""
         agent.page = prepare_page(tab_at(agent.page, index))
         agent.page.bring_to_front()
         return index
 
     def close_tab(agent: "WebAgent", index: int) -> list[dict[str, Any]]:
-        """Close a tab and return the refreshed tab list."""
         tab_at(agent.page, index).close()
         agent.page = prepare_page(agent.page)
         return Actions.list_tabs(agent.page)
 
     def send_message(agent: "WebAgent", message: str) -> None:
-        """Send a progress update to the user and continue working."""
         agent.on_message(message)
 
     def wait_for_reply(agent: "WebAgent") -> str:
-        """Wait for the user's response and return it to the model."""
         reply = agent.on_reply()
         if not isinstance(reply, str):
             raise TypeError("on_reply must return the user's reply as a string")
         return reply
 
     def finish(message: str) -> str:
-        """Return the final answer; the loop ends after this action succeeds."""
         return message
 
 
