@@ -104,22 +104,24 @@ class Actions:
             for i, tab in enumerate(page.context.pages)
         ]
 
-    def new_tab(page: Page, url: str = "about:blank") -> Page:
-        """Open a tab and return its Page; the agent activates it and returns its index."""
-        tab = page.context.new_page()
+    def new_tab(agent: "WebAgent", url: str = "about:blank") -> int:
+        """Open and activate a tab, returning its current index."""
+        tab = active_page(agent.page).context.new_page()
         Actions.navigate(tab, url)
-        return active_page(tab)
+        agent.page = active_page(tab)
+        return tab.context.pages.index(tab)
 
-    def switch_tab(page: Page, index: int) -> Page:
-        """Return the selected Page; the agent activates it and returns its index."""
-        tab = page.context.pages[index]
-        tab.bring_to_front()
-        return active_page(tab)
+    def switch_tab(agent: "WebAgent", index: int) -> int:
+        """Activate a tab by its current index."""
+        agent.page = active_page(tab_at(agent.page, index))
+        agent.page.bring_to_front()
+        return index
 
-    def close_tab(page: Page, index: int) -> Page:
-        """Close a tab and return the active Page; the agent returns the updated tab list."""
-        page.context.pages[index].close()
-        return active_page(page)
+    def close_tab(agent: "WebAgent", index: int) -> list[dict[str, Any]]:
+        """Close a tab and return the refreshed tab list."""
+        tab_at(agent.page, index).close()
+        agent.page = active_page(agent.page)
+        return Actions.list_tabs(agent.page)
 
     def send_message(agent: "WebAgent", message: str) -> None:
         """Send a progress update to the user and continue working."""
@@ -186,6 +188,12 @@ def auto_select_port(profile: Path, port: int = 0, timeout: float = 20) -> int:
     return int(port_file.read_text().splitlines()[0])
 
 
+def tab_at(page: Page, index: int) -> Page:
+    if index < 0:
+        raise ValueError("Tab index must be non-negative")
+    return active_page(page).context.pages[index]
+
+
 def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
     signature = inspect.signature(function)
 
@@ -198,11 +206,9 @@ def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) 
 
         if not valid:
             raise ValueError(f"Invalid type or non-finite value for {key}")
-        if key == "index" and value < 0:
-            raise ValueError("Tab index must be non-negative")
-        if key in ("x", "x1", "x2", "y", "y1", "y2"):
-            if not 0 <= value < (1280 if key.startswith("x") else 800):
-                raise ValueError(f"{key} is outside the viewport")
+        limit = {"x": 1280, "x1": 1280, "x2": 1280, "y": 800, "y1": 800, "y2": 800}.get(key)
+        if limit is not None and not 0 <= value < limit:
+            raise ValueError(f"{key} is outside the viewport")
 
 
 def build_tools() -> list[dict[str, Any]]:
@@ -320,29 +326,25 @@ class WebAgent:
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
     def act(
-        self, name: str, arguments: dict[str, Any],
+        self, name: str, arguments: dict[str, Any] | str,
     ) -> str | int | dict[str, Any] | list[dict[str, Any]] | None:
-        """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
+        """Decode, validate, and execute one allowlisted action; return errors for recovery."""
         try:
+            if isinstance(arguments, str):
+                arguments = json.loads(arguments)
             if name not in ACTIONS or not isinstance(arguments, dict):
                 raise ValueError("Unknown action or non-object arguments")
 
             action = ACTIONS[name]
-            if name in ("send_message", "finish", "wait_for_reply"):
-                function = partial(action, self)
-            else:
+            receiver = self
+            if "page" in inspect.signature(action).parameters:
                 self.page = active_page(self.page)
-                function = partial(action, self.page)
-
+                receiver = self.page
+            function = partial(action, receiver)
             validate_arguments(function, arguments)
-            result = function(**arguments)
-
-            if name in ("new_tab", "switch_tab", "close_tab"):
-                self.page = result
-                result = (Actions.list_tabs(self.page) if name == "close_tab"
-                          else self.page.context.pages.index(self.page))
-
-            return result
+            return function(**arguments)
+        except json.JSONDecodeError as error:
+            return {"error": f"Invalid action JSON: {error}"}
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
 
@@ -395,11 +397,10 @@ class WebAgent:
         tools = build_tools()
         for step in range(max_steps):
             text, image = self.observe()
-            content = [
+            history.append({"role": "user", "content": [
                 {"type": "input_text", "text": text},
                 {"type": "input_image", "image_url": image},
-            ]
-            history.append({"role": "user", "content": content})
+            ]})
 
             response = client.responses.create(
                 model=model, input=history, tools=tools, store=False,
@@ -419,12 +420,7 @@ class WebAgent:
                 continue
 
             for call in calls:
-                try:
-                    arguments = json.loads(call.arguments)
-                except json.JSONDecodeError as error:
-                    result = {"error": f"Invalid action JSON: {error}"}
-                else:
-                    result = self.act(call.name, arguments)
+                result = self.act(call.name, call.arguments)
 
                 if on_action:
                     on_action(step, {"name": call.name, "arguments": call.arguments}, result)

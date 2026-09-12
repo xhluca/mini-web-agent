@@ -175,6 +175,18 @@ class BrowserTests(unittest.TestCase):
         self.agent.page.close()
         self.assertEqual(len(json.loads(self.agent.observe()[0])["tabs"]), 1)
 
+    def test_direct_tab_actions_update_agent(self):
+        self.assertEqual(Actions.new_tab(self.agent, self.url + "/direct"), 1)
+        self.assertTrue(self.agent.page.url.endswith("/direct"))
+        self.assertEqual(Actions.switch_tab(self.agent, 0), 0)
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            Actions.close_tab(self.agent, -1)
+        tabs = Actions.close_tab(self.agent, 1)
+        self.assertEqual(len(tabs), 1)
+        self.assertTrue(tabs[0]["active"])
+        self.assertIsNone(self.agent.act("wait", '{"seconds": 0}'))
+        self.assertIn("Invalid action JSON", self.agent.act("wait", "{")["error"])
+
     def test_restricted_dispatch(self):
         invalid = [
             ("__getattribute__", {"name": "page"}), ("shutdown", {}), ("launch", {}),

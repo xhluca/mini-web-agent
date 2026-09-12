@@ -108,15 +108,15 @@ pattern. Tab operations use the same namespace:
 from agent import Actions
 
 Actions.list_tabs(agent.page)
-agent.page = Actions.new_tab(agent.page, 'https://example.com')
-agent.page = Actions.switch_tab(agent.page, 0)
-agent.page = Actions.close_tab(agent.page, 1)
+Actions.new_tab(agent, 'https://example.com')
+Actions.switch_tab(agent, 0)
+Actions.close_tab(agent, 1)
 ```
 
-Functions that change the active tab return a Playwright Page. The agent stores that
-page and returns an index or updated tab list to the model. All model calls go through
-`act(name, arguments)`; browser actions receive the current page, and the model cannot
-choose or override that Python object.
+Tab-changing actions take the agent, update its active page, and return an index or
+updated tab list directly. All model calls go through `act(name, arguments)`, which
+accepts an argument dictionary or JSON string. Dispatch supplies the page or agent
+according to the function signature; the model cannot override that Python object.
 These calls are synchronous and belong on one thread. `act` returns a JSON-serializable
 result or an `error` object; `run` feeds errors back to the model for recovery.
 
