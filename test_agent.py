@@ -242,7 +242,11 @@ class BrowserTests(unittest.TestCase):
             select_port.assert_not_called()
         self.assertEqual(self.agent.cdp_port, chosen)
         self.agent.disconnect()
-        other = WebAgent(self.agent.profile).connect()
+        other = WebAgent(self.agent.profile)
+        self.assertEqual(other.cdp_port, chosen)
+        with patch("agent.read_assigned_port") as read_port:
+            other.connect()
+            read_port.assert_not_called()
         try:
             self.assertEqual(other.cdp_port, chosen)
             self.assertIn(f":{chosen}/", probe_browser_endpoint(other.profile))

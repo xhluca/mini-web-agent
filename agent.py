@@ -135,7 +135,7 @@ def probe_browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
     try:
         target = ""
         if not port:
-            port, target = (Path(profile) / "DevToolsActivePort").read_text().splitlines()[:2]
+            port, target = Path(profile).joinpath("DevToolsActivePort").read_text().splitlines()[:2]
 
         endpoint = f"http://127.0.0.1:{int(port)}"
         with urlopen(endpoint + "/json/version", timeout=0.5) as response:
@@ -163,7 +163,7 @@ def check_port_available(port: int) -> None:
 
 
 def read_assigned_port(profile: Path) -> int:
-    return int((profile / "DevToolsActivePort").read_text().splitlines()[0])
+    return int(profile.joinpath("DevToolsActivePort").read_text().splitlines()[0])
 
 def tab_at(page: Page, index: int) -> Page:
     if index < 0:
@@ -241,6 +241,8 @@ class WebAgent:
         self.on_message = on_message
         self.on_reply = on_reply
         self.cdp_port = cdp_port
+        if cdp_port == 0 and self.profile.joinpath("DevToolsActivePort").exists():
+            self.cdp_port = read_assigned_port(self.profile)
         self.playwright: Playwright | None = None
         self.process: subprocess.Popen[bytes] | None = None
         self.browser: Browser | None = None
@@ -261,7 +263,7 @@ class WebAgent:
         ]
 
         try:
-            with (self.profile / "chrome.log").open("ab") as log:
+            with self.profile.joinpath("chrome.log").open("ab") as log:
                 self.process = subprocess.Popen(
                     args, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True
                 )
@@ -271,7 +273,7 @@ class WebAgent:
                 self.cdp_port = read_assigned_port(self.profile)
             else:
                 target = urlsplit(probe_browser_endpoint(self.profile, port)).path
-                (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
+                self.profile.joinpath("DevToolsActivePort").write_text(f"{port}\n{target}\n")
         except BaseException as error:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
@@ -286,8 +288,8 @@ class WebAgent:
         if self.browser:
             return self
 
-        port, target = (self.profile / "DevToolsActivePort").read_text().splitlines()[:2]
-        endpoint = f"ws://127.0.0.1:{port}{target}"
+        target = self.profile.joinpath("DevToolsActivePort").read_text().splitlines()[1]
+        endpoint = f"ws://127.0.0.1:{self.cdp_port}{target}"
         if not self.playwright:
             self.playwright = sync_playwright().start()
 
@@ -295,7 +297,6 @@ class WebAgent:
             self.browser = self.playwright.chromium.connect_over_cdp(
                 endpoint, timeout=timeout * 1000
             )
-            self.cdp_port = int(port)
             context = self.browser.contexts[0]
             context.set_default_timeout(10_000)
             self.page = context.pages[0] if context.pages else context.new_page()
