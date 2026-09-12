@@ -366,9 +366,8 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(agent.act("wait_for_reply", {}),
                          "Robotics")
         self.assertIn("error", agent.act("finish", {"message": 42}))
-        self.assertIsNone(agent.final_message)
-        agent.act("finish", {"message": "Done"})
-        self.assertEqual(agent.final_message, "Done")
+        self.assertEqual(agent.act("finish", {"message": "Done"}), "Done")
+        self.assertEqual(Actions.finish(""), "")
 
         agent.on_reply = lambda: None
         self.assertIn("error", agent.act("wait_for_reply", {}))

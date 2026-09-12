@@ -165,9 +165,10 @@ later actions in the same model response are skipped. Browser shutdown remains t
 caller's choice. Plain assistant text is displayed as a message and the loop continues
 until `finish` or the turn limit. Configure `on_message` and `on_reply` on `WebAgent`.
 Calling `act()` performs these actions directly, including delivery and waiting.
-`finish` stores `agent.final_message`; `run()` ends when it is no longer `None`,
-including an empty final string. Each new run resets it to `None`. Conversation
-actions return plain values: `None` for sending, a string for replies and completion.
+`finish(message)` simply returns its message without changing agent state.
+`run()` returns after a successful `finish` call, including an empty final string;
+invalid calls return errors and the loop continues. Conversation actions return
+plain values: `None` for sending, a string for replies and completion.
 
 ## Restriction and self-documentation
 

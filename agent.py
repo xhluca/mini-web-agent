@@ -134,9 +134,8 @@ class Actions:
             raise TypeError("on_reply must return the user's reply as a string")
         return reply
 
-    def finish(agent: "WebAgent", message: str) -> str:
-        """Mark the task complete and store its final answer."""
-        agent.final_message = message
+    def finish(message: str) -> str:
+        """Return the final answer; the loop ends after this action succeeds."""
         return message
 
 
@@ -264,7 +263,6 @@ class WebAgent:
         self.profile = Path(profile).expanduser().resolve()
         self.on_message = on_message
         self.on_reply = on_reply
-        self.final_message: str | None = None
         self.cdp_port = cdp_port
         self.playwright: Playwright | None = None
         self.process: subprocess.Popen[bytes] | None = None
@@ -336,11 +334,13 @@ class WebAgent:
                 raise ValueError("Unknown action or non-object arguments")
 
             action = ACTIONS[name]
-            receiver = self
-            if "page" in inspect.signature(action).parameters:
+            parameters = inspect.signature(action).parameters
+            function = action
+            if "page" in parameters:
                 self.page = active_page(self.page)
-                receiver = self.page
-            function = partial(action, receiver)
+                function = partial(action, self.page)
+            elif "agent" in parameters:
+                function = partial(action, self)
             validate_arguments(function, arguments)
             return function(**arguments)
         except json.JSONDecodeError as error:
@@ -387,7 +387,6 @@ class WebAgent:
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
 
-        self.final_message = None
         history = [
             {"role": "system", "content": INSTRUCTIONS + Path(__file__).read_text()},
             {"role": "user", "content": task},
@@ -429,8 +428,8 @@ class WebAgent:
                     "output": json.dumps(result),
                 })
 
-                if self.final_message is not None:
-                    return self.final_message
+                if call.name == "finish" and isinstance(result, str):
+                    return result
 
         raise RuntimeError(f"Task unfinished after {max_steps} model turns")
 
