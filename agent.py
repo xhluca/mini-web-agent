@@ -373,13 +373,13 @@ def run(
     ]
 
     tools = prepare_tools()
-    for step in range(max_steps):
-        text, image = agent.observe()
-        history.append({"role": "user", "content": [
-            {"type": "input_text", "text": text},
-            {"type": "input_image", "image_url": image},
-        ]})
+    text, image = agent.observe()
+    history.append({"role": "user", "content": [
+        {"type": "input_text", "text": text},
+        {"type": "input_image", "image_url": image},
+    ]})
 
+    for step in range(max_steps):
         response = client.responses.create(
             model=model, input=history, tools=tools, store=False,
             include=["reasoning.encrypted_content"], parallel_tool_calls=False,
@@ -404,13 +404,18 @@ def run(
             if on_action:
                 on_action(step, {"name": call.name, "arguments": call.arguments}, result)
 
-            history.append({
-                "type": "function_call_output", "call_id": call.call_id,
-                "output": json.dumps(result),
-            })
-
             if call.name == "finish" and isinstance(result, str):
                 return result
+
+            text, image = agent.observe()
+            history.append({
+                "type": "function_call_output", "call_id": call.call_id,
+                "output": [
+                    {"type": "input_text", "text": json.dumps(result)},
+                    {"type": "input_text", "text": text},
+                    {"type": "input_image", "image_url": image},
+                ],
+            })
 
     return f"Stopped after {max_steps} model turns; the task is still unfinished."
 

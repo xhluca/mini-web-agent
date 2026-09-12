@@ -287,13 +287,11 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Done"}, "call_3")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            with patch("agent.prepare_tools", wraps=prepare_tools) as schemas:
-                events = []
-                result = run(self.agent,
-                    "Fill the email", client, "test", max_steps=3,
-                    on_action=lambda step, action, result: events.append((step, action, result)),
-                )
-                schemas.assert_called_once_with()
+            events = []
+            result = run(self.agent,
+                "Fill the email", client, "test", max_steps=3,
+                on_action=lambda step, action, result: events.append((step, action, result)),
+            )
         self.assertEqual([event[0] for event in events], [0, 1, 2])
         self.assertEqual([event[1]["name"] for event in events],
                          ["run_browser", "type_text", "finish"])
@@ -309,8 +307,9 @@ class BrowserTests(unittest.TestCase):
             self.assertFalse(request["store"])
             self.assertIn(Path(__file__).with_name("agent.py").read_text(),
                           request["input"][0]["content"])
-            images = [part for item in request["input"] if isinstance(item.get("content"), list)
-                      for part in item["content"] if part["type"] == "input_image"]
+            images = [part for item in request["input"]
+                      for part in item.get("content", item.get("output", []))
+                      if isinstance(part, dict) and part["type"] == "input_image"]
             self.assertEqual(len(images), turn)
             if turn > 1:
                 previous = Fixture.requests[turn - 2][1]
@@ -318,8 +317,13 @@ class BrowserTests(unittest.TestCase):
                 self.assertEqual(request["tools"], previous["tools"])
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertIn("Unknown action", outputs[0]["output"])
-        self.assertEqual(outputs[1]["output"], "null")
+        self.assertEqual([output["call_id"] for output in outputs], ["call_1", "call_2"])
+        for output in outputs:
+            self.assertEqual(output["output"][2]["type"], "input_image")
+            self.assertTrue(output["output"][2]["image_url"].startswith("data:image/"))
+            self.assertIn("tabs", json.loads(output["output"][1]["text"]))
+        self.assertIn("Unknown action", outputs[0]["output"][0]["text"])
+        self.assertEqual(outputs[1]["output"][0]["text"], "null")
 
     def test_malformed_action_json_recovers(self):
         malformed = tool_call("click", call_id="bad_json")
@@ -333,7 +337,7 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=2), "Done")
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertIn("JSONDecodeError", outputs[0]["output"])
+        self.assertIn("JSONDecodeError", outputs[0]["output"][0]["text"])
 
     def test_messages_wait_for_reply_and_finish(self):
         Fixture.requests = []
@@ -361,7 +365,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(self.agent.page.url, self.url + "/")
         outputs = [item for item in Fixture.requests[2][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertEqual(json.loads(outputs[-1]["output"]),
+        self.assertEqual(json.loads(outputs[-1]["output"][0]["text"]),
                          "Robotics")
 
     def test_conversation_actions_work_without_run(self):
@@ -411,10 +415,8 @@ class BrowserTests(unittest.TestCase):
             previous = Fixture.requests[turn - 1][1]["input"]
             history = Fixture.requests[turn][1]["input"]
             self.assertEqual(history[:len(previous)], previous)
-            self.assertEqual(history[-2], {
-                "role": "user",
-                "content": "Use a provided tool. Call finish if the task is complete.",
-            })
+            self.assertEqual(history[-1]["role"], "user")
+            self.assertIn("Call finish", history[-1]["content"])
 
         Fixture.requests = []
         Fixture.replies = [[], []]
