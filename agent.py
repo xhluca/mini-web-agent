@@ -45,6 +45,14 @@ class WebAgent:
         except (OSError, ValueError, KeyError):
             return None
 
+    def _wait_for_browser(self, running, attempts=50):
+        """Check every 0.1 seconds until Chrome has started or stopped."""
+        for _ in range(attempts):
+            if bool(self._endpoint()) == running:
+                return
+            time.sleep(0.1)
+        raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
+
     def start(self, chrome=None, headless=True, timeout=20, extra_args=()):
         """Launch detached Chrome, or reconnect to this profile's running Chrome."""
         if self.playwright:
@@ -66,11 +74,7 @@ class WebAgent:
                     process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log,
                                                stderr=log, start_new_session=True)
                     self.process = process
-                deadline = time.monotonic() + timeout
-                while not self._endpoint():
-                    if process.poll() is not None or time.monotonic() > deadline:
-                        raise RuntimeError(f"Chrome failed to start; see {self.profile}/chrome.log")
-                    time.sleep(0.1)
+                self._wait_for_browser(running=True, attempts=int(timeout * 10))
             browser = self.playwright.chromium.connect_over_cdp(
                 self._endpoint(), timeout=timeout * 1000)
             context = browser.contexts[0]
@@ -256,11 +260,7 @@ class WebAgent:
                 except Error:
                     if browser.is_connected():
                         raise
-                deadline = time.monotonic() + 5
-                while self._endpoint():
-                    if time.monotonic() > deadline:
-                        raise TimeoutError("Chrome did not stop within 5 seconds")
-                    time.sleep(0.1)
+                self._wait_for_browser(running=False)
                 if self.process:
                     self.process.wait(timeout=5)
         finally:
