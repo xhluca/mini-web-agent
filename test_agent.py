@@ -212,6 +212,18 @@ class BrowserTests(unittest.TestCase):
             self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
 
+    def test_dispatch_rejects_invalid_names_and_argument_objects(self):
+        for name in ("unknown", None, 42, [], {}):
+            with self.subTest(name=name):
+                result = self.agent.act(name, {})
+                self.assertRegex(result["error"], r"^(KeyError|TypeError): .+")
+        for arguments in (None, [], [1], 42, True, "null", "[]", "42", '"text"'):
+            with self.subTest(arguments=arguments):
+                result = self.agent.act("finish", arguments)
+                self.assertRegex(result["error"], r"^TypeError: .+")
+        self.assertEqual(self.agent.act("finish", {"message": "Done"}), "Done")
+        self.assertEqual(self.agent.act("finish", '{"message": "Done"}'), "Done")
+
     def test_launch_and_connect_are_separate(self):
         self.agent.shutdown()
         with self.assertRaises(Error):
@@ -322,7 +334,7 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(output["output"][2]["type"], "input_image")
             self.assertTrue(output["output"][2]["image_url"].startswith("data:image/"))
             self.assertIn("tabs", json.loads(output["output"][1]["text"]))
-        self.assertIn("Unknown action", outputs[0]["output"][0]["text"])
+        self.assertIn("KeyError", outputs[0]["output"][0]["text"])
         self.assertEqual(outputs[1]["output"][0]["text"], "null")
 
     def test_one_observation_per_tool_batch(self):

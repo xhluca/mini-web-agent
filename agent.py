@@ -177,7 +177,7 @@ def tab_at(page: Page, index: int) -> Page:
     return prepare_page(page).context.pages[index]
 
 
-def validate_arguments(function: Callable, arguments: dict[str, Any]) -> None:
+def validate_arguments(function: Callable, **arguments: Any) -> None:
     signature = inspect.signature(function)
 
     for key, value in arguments.items():
@@ -314,8 +314,6 @@ class WebAgent:
         try:
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
-            if name not in ACTIONS or not isinstance(arguments, dict):
-                raise ValueError("Unknown action or non-object arguments")
 
             action = ACTIONS[name]
             parameters = inspect.signature(action).parameters
@@ -324,7 +322,7 @@ class WebAgent:
                 action = partial(action, self.page)
             elif "agent" in parameters:
                 action = partial(action, self)
-            validate_arguments(action, arguments)
+            validate_arguments(action, **arguments)
             return action(**arguments)
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
