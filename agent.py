@@ -4,6 +4,7 @@ from collections.abc import Callable
 from functools import partial
 import inspect
 import json
+import math
 from pathlib import Path
 import socket
 import subprocess
@@ -160,6 +161,11 @@ def tab_at(page: Page, index: int) -> Page:
         raise ValueError("Tab index must be non-negative")
     return prepare_page(page).context.pages[index]
 
+def check_finite_arguments(**arguments: Any) -> None:
+    for name, value in arguments.items():
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"{name} must be a finite number")
+
 def build_tool_schema(name: str, fn: Callable) -> dict[str, Any]:
     parameters = {k: p for k, p in inspect.signature(fn).parameters.items()
                   if k not in ("page", "agent")}
@@ -265,7 +271,7 @@ class WebAgent:
         try:
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
-            json.dumps(arguments, allow_nan=False)
+            check_finite_arguments(**arguments)
             action = self.action_space[name]
             parameters = inspect.signature(action).parameters
             if "page" in parameters:
