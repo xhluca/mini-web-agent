@@ -325,6 +325,35 @@ class BrowserTests(unittest.TestCase):
         self.assertIn("Unknown action", outputs[0]["output"][0]["text"])
         self.assertEqual(outputs[1]["output"][0]["text"], "null")
 
+    def test_one_observation_per_tool_batch(self):
+        Fixture.requests = []
+        self.agent.page.get_by_label("Email").focus()
+        Fixture.replies = [
+            [tool_call("type_text", {"text": "batch"}, "first"),
+             tool_call("type_text", {"text": "@example.com"}, "last")],
+            [tool_call("finish", {"message": "Done"})],
+        ]
+        observed_values = []
+        observe = self.agent.observe
+
+        def record_observation():
+            observed_values.append(self.agent.page.get_by_label("Email").input_value())
+            return observe()
+
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            with patch.object(self.agent, "observe", side_effect=record_observation):
+                self.assertEqual(run(self.agent, "Fill email", client, "test", max_steps=2),
+                                 "Done")
+        self.assertEqual(observed_values, ["", "batch@example.com"])
+        history = Fixture.requests[-1][1]["input"]
+        outputs = [item for item in history if item.get("type") == "function_call_output"]
+        self.assertEqual([item["call_id"] for item in outputs], ["first", "last"])
+        self.assertEqual([part["type"] for part in outputs[0]["output"]], ["input_text"])
+        self.assertEqual([part["type"] for part in outputs[1]["output"]],
+                         ["input_text", "input_text", "input_image"])
+        initial = Fixture.requests[0][1]["input"]
+        self.assertEqual(history[:len(initial)], initial)
+
     def test_malformed_action_json_recovers(self):
         malformed = tool_call("click", call_id="bad_json")
         malformed["arguments"] = "{"

@@ -133,7 +133,7 @@ result or an `error` object; `run` feeds errors back to the model for recovery.
 | Keyboard | `type_text(text)`, `press_key(key)`, `key_down(key)`, `key_up(key)` |
 | Timing | `wait(seconds)`; between 0 and 10 seconds |
 | Conversation | `send_message(message)`, `wait_for_reply()`, `finish(message)` |
-| Observation | `list_tabs()` (screenshots are automatic after actions) |
+| Observation | `list_tabs()` (one screenshot per action batch) |
 | Tabs | `new_tab(url='about:blank')`, `switch_tab(index)`, `close_tab(index)` |
 
 Coordinates are CSS pixels within a 1280×800 viewport. Screenshots use the same CSS
@@ -151,8 +151,9 @@ Closing the active tab selects a remaining one; closing the last creates a blank
 
 The standalone `screenshot(page)` helper returns a data URL to host callers.
 It is not a model tool; observations automatically include a screenshot.
-The initial observation is a user message. Subsequent observations accompany action results
-as image and text content in `function_call_output`. The loop only appends to history.
+The initial observation is a user message. After each batch of tool calls, one observation
+accompanies the last action result as image and text content in `function_call_output`.
+The loop only appends to history.
 Earlier screenshots, metadata, reasoning, and tool results remain unchanged to preserve
 the prompt prefix for provider KV caching. This favors cache reuse over limiting context
 growth; actual cache hits depend on the provider. Requests use `store=False` and explicit

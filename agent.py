@@ -407,15 +407,16 @@ def run(
             if call.name == "finish" and isinstance(result, str):
                 return result
 
-            text, image = agent.observe()
             history.append({
                 "type": "function_call_output", "call_id": call.call_id,
-                "output": [
-                    {"type": "input_text", "text": json.dumps(result)},
-                    {"type": "input_text", "text": text},
-                    {"type": "input_image", "image_url": image},
-                ],
+                "output": [{"type": "input_text", "text": json.dumps(result)}],
             })
+
+        text, image = agent.observe()
+        history[-1]["output"].extend([
+            {"type": "input_text", "text": text},
+            {"type": "input_image", "image_url": image},
+        ])
 
     return f"Stopped after {max_steps} model turns; the task is still unfinished."
 
