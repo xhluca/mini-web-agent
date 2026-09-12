@@ -150,7 +150,6 @@ def probe_browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
 def wait_for_browser(
     profile: str | Path, running: bool, attempts: int = 50, port: int = 0
 ) -> None:
-    """Check every 0.1 seconds until Chrome has started or stopped."""
     for _ in range(attempts):
         if bool(probe_browser_endpoint(profile, port)) == running:
             return
@@ -159,7 +158,6 @@ def wait_for_browser(
 
 
 def check_port_available(port: int) -> None:
-    """Check an explicitly requested port; leave automatic selection to Chrome."""
     if port:
         with socket.socket() as probe:
             probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -167,7 +165,6 @@ def check_port_available(port: int) -> None:
 
 
 def read_assigned_port(profile: Path) -> int:
-    """Read the port Chrome assigned when launched with cdp_port=0."""
     port_file = profile / "DevToolsActivePort"
     return int(port_file.read_text().splitlines()[0])
 
@@ -195,7 +192,6 @@ def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) 
 
 
 def build_tool_schemas() -> list[dict[str, Any]]:
-    """Derive tool schemas from the signatures of explicitly registered functions."""
     tools = []
 
     for name, function in ACTIONS.items():
@@ -355,7 +351,6 @@ class WebAgent:
             self.browser = None
 
     def shutdown(self) -> None:
-        """Close Chrome and disconnect Playwright."""
         try:
             self.browser.new_browser_cdp_session().send("Browser.close")
         except Error as error:
@@ -372,7 +367,6 @@ class WebAgent:
         self, task: str, client: OpenAI, model: str, max_steps: int = 30,
         on_action: Callable[[int, dict[str, str], Any], None] | None = None,
     ) -> str:
-        """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
 
