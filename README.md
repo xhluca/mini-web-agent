@@ -70,6 +70,8 @@ try:
             model='google/gemini-3.8-flash',
             max_steps=15,
             on_step=lambda step, action, result: print(step, action, result),
+            on_message=print,  # Progress messages; replace with your UI callback.
+            on_reply=input,    # Wait for user input; replace with your UI's blocking reader.
         ))
 finally:
     agent.disconnect()  # Disconnect; Chrome survives Python exit.
@@ -114,7 +116,7 @@ agent.page = close_tab(agent.page, 1)
 
 Functions that change the active tab return a Playwright Page. The agent stores that
 page and returns an index or updated tab list to the model. All model calls go through
-`act(name, arguments)`; the dispatcher supplies the current page, and the model cannot
+`act(name, arguments)`; browser actions receive the current page, and the model cannot
 choose or override that Python object.
 These calls are synchronous and belong on one thread. `act` returns a JSON-serializable
 result or an `error` object; `run` feeds errors back to the model for recovery.
@@ -129,6 +131,7 @@ result or an `error` object; `run` feeds errors back to the model for recovery.
 | Scrolling | `scroll(dx, dy)`; positive values scroll right/down at the pointer |
 | Keyboard | `type_text(text)`, `press_key(key)`, `key_down(key)`, `key_up(key)` |
 | Timing | `wait(seconds)`; between 0 and 10 seconds |
+| Conversation | `send_message(message)`, `wait_for_reply()`, `finish(message)` |
 | Observation | `screenshot()`, `list_tabs()` |
 | Tabs | `new_tab(url='about:blank')`, `switch_tab(index)`, `close_tab(index)` |
 
@@ -150,6 +153,17 @@ requests the next observation's screenshot instead of returning image bytes as t
 The loop captures an observation before each model turn. Only the latest image is
 sent; prior textual metadata, reasoning, and tool results stay in history. Requests
 use `store=False` and explicit history for OpenRouter's stateless Responses endpoint.
+
+`send_message(message)` calls `on_message` and the loop continues. `wait_for_reply()`
+blocks in `on_reply` until it returns a string, then supplies that reply to the model.
+In the CLI these default to `print` and `input`. Neither action clicks or types into
+the website. `wait(seconds)` remains a separate browser-delay action.
+
+`finish(message)` ends the current run immediately and returns its final message;
+later actions in the same model response are skipped. Browser shutdown remains the
+caller's choice. Plain assistant text is displayed as a message and the loop continues
+until `finish` or the turn limit. Direct calls to these standalone functions or `act()`
+return event dictionaries; `run()` performs delivery, waiting, and termination.
 
 ## Restriction and self-documentation
 
@@ -204,7 +218,7 @@ to verify outcomes independently; the model receives no DOM information.
 The live test asks Gemini 3.8 Flash to complete a signup form using the restricted tools,
 then verifies both the resulting DOM and the model's reported confirmation.
 
-Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all ten
+Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all twelve
 integration tests pass. The screenshot-only Gemini 3.8 Flash test through OpenRouter's
 Responses API also passed, using 14 predefined actions across 15 model turns. The API
 key was used only in the test process environment and was not saved in the project.

@@ -269,8 +269,7 @@ class BrowserTests(unittest.TestCase):
         Fixture.replies = [
             [tool_call("run_browser", {"code": "1 / 0"})],
             [tool_call("type_text", {"text": "model@example.com"}, "call_2")],
-            [dict(type="message", id="msg_1", role="assistant", status="completed",
-                  content=[dict(type="output_text", text="Done", annotations=[])])],
+            [tool_call("finish", {"message": "Done"}, "call_3")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
             result = self.agent.run("Fill the email", client, "test", max_steps=3)
@@ -289,6 +288,42 @@ class BrowserTests(unittest.TestCase):
                    if item.get("type") == "function_call_output"]
         self.assertIn("Unknown action", outputs[0]["output"])
         self.assertEqual(outputs[1]["output"], "null")
+
+    def test_messages_wait_for_reply_and_finish(self):
+        Fixture.requests = []
+        Fixture.replies = [
+            [tool_call("send_message", {"message": "Which track?"}, "message_1")],
+            [tool_call("wait_for_reply", call_id="wait_1")],
+            [tool_call("send_message", {"message": "Working on Robotics."}, "message_2")],
+            [tool_call("finish", {"message": "All done."}, "finish_1"),
+             tool_call("navigate", {"url": self.url + "/must-not-run"}, "late_1")],
+        ]
+        messages, replies = [], []
+
+        def reply():
+            self.assertEqual(messages, ["Which track?"])
+            replies.append("Robotics")
+            return "Robotics"
+
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            result = self.agent.run("Sign me up", client, "test", max_steps=4,
+                                    on_message=messages.append, on_reply=reply)
+        self.assertEqual(result, "All done.")
+        self.assertEqual(messages, ["Which track?", "Working on Robotics."])
+        self.assertEqual(replies, ["Robotics"])
+        self.assertEqual(self.agent.page.url, self.url + "/")
+        outputs = [item for item in Fixture.requests[2][1]["input"]
+                   if item.get("type") == "function_call_output"]
+        self.assertEqual(json.loads(outputs[-1]["output"]),
+                         {"type": "user_reply", "text": "Robotics"})
+
+    def test_invalid_finish_does_not_end_run(self):
+        Fixture.replies = [
+            [tool_call("finish", {"message": 42}, "invalid")],
+            [tool_call("finish", {"message": "Done"}, "valid")],
+        ]
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            self.assertEqual(self.agent.run("Finish", client, "test", max_steps=2), "Done")
 
     def test_step_limit(self):
         Fixture.replies = [[tool_call("wait", {"seconds": 0})]]
