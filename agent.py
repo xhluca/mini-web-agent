@@ -407,7 +407,10 @@ def run(
 
             history.append({
                 "type": "function_call_output", "call_id": call.call_id,
-                "output": [{"type": "input_text", "text": json.dumps(result)}],
+                "output": [{
+                    "type": "input_text",
+                    "text": "success" if result is None else json.dumps(result),
+                }],
             })
 
         text, image = agent.observe()

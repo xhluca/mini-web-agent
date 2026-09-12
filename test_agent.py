@@ -335,7 +335,7 @@ class BrowserTests(unittest.TestCase):
             self.assertTrue(output["output"][2]["image_url"].startswith("data:image/"))
             self.assertIn("tabs", json.loads(output["output"][1]["text"]))
         self.assertIn("KeyError", outputs[0]["output"][0]["text"])
-        self.assertEqual(outputs[1]["output"][0]["text"], "null")
+        self.assertEqual(outputs[1]["output"][0]["text"], "success")
 
     def test_one_observation_per_tool_batch(self):
         Fixture.requests = []
