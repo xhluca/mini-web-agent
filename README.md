@@ -2,8 +2,8 @@
 
 A small screenshot-driven Python web agent with **predefined browser functions**.
 Only two direct dependencies: `playwright` and `openai`. The core and CLI live in
-`agent.py`; lines are at most 100 characters. Explicit functions and argument
-validation replace the original 200-line implementation's unrestricted Python executor.
+`agent.py`; lines are at most 100 characters. The model calls predefined
+functions through an explicit action dictionary.
 
 Chrome runs in a detached `subprocess.Popen(..., start_new_session=True)` process.
 Playwright attaches over CDP. The loop sends viewport screenshots and tab metadata
@@ -182,7 +182,7 @@ plain values: `None` for sending, a string for replies and completion.
 
 The system prompt includes `Path(__file__).read_text()` so the implementation itself
 documents the functions. Tool schemas are derived from their signatures/docstrings. Endpoint discovery, browser
-readiness waits, URL/argument validation, and schema construction are module-level
+readiness waits and schema construction are module-level
 helpers with explicit inputs. Page actions are module-level functions too; the class
 holds browser/tab state, dispatches calls, and runs the agent loop.
 `get_action_space()` returns the default action dictionary. Pass a subset or custom dictionary
@@ -192,8 +192,11 @@ to `WebAgent(action_space=...)`; that dictionary drives both tool schemas and di
 the getters explicitly inside its `if __name__ == "__main__":` block.
 Seeing a function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
-Before dispatch, the agent checks the name, argument object, signature, types,
-finite numbers, and viewport coordinate bounds. Extra arguments are rejected.
+Dispatch uses the action dictionary and Python keyword arguments. Python and Playwright
+errors are returned to the model for recovery. The standard JSON encoder rejects `NaN`
+and infinities before they reach Playwright. There is no custom argument type or
+viewport-bound validation. Individual actions retain their existing checks, such as
+non-negative tab indices and the 0–10 second wait limit.
 Navigation URLs are passed directly to Playwright without scheme restrictions.
 There is no separate Python executor, JavaScript evaluator, raw CDP command,
 selector API, arbitrary callback, or filesystem tool. Screenshots stay in memory.

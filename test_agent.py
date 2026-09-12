@@ -194,14 +194,12 @@ class BrowserTests(unittest.TestCase):
             ("__getattribute__", {"name": "page"}), ("shutdown", {}), ("launch", {}),
             ("connect", {}), ("tools", {}),
             ("evaluate", {"expression": "document.title"}), ("run_browser", {"code": "1+1"}),
-            ("click", {"x": True, "y": 1}), ("click", {"x": "1", "y": 1}),
-            ("click", {"x": float("nan"), "y": 1}), ("click", {"x": -1, "y": 1}),
-            ("click", {"x": 1280, "y": 1}), ("click", {"x": 1}),
+            ("click", {"x": "1", "y": 1}),
+            ("click", {"x": 1}),
             ("click", {"x": 1, "y": 1, "page": "forbidden"}), ("click", []),
             ("wait", {"seconds": 11}), ("wait", {"seconds": -1}),
             ("screenshot", {"path": "/tmp/forbidden.png"}), ("switch_tab", {"index": 99}),
             ("switch_tab", {"index": -1}), ("switch_tab", {"index": "0"}),
-            ("switch_tab", {"index": True}),
         ]
         for name, arguments in invalid:
             with self.subTest(name=name, arguments=arguments):
@@ -214,6 +212,15 @@ class BrowserTests(unittest.TestCase):
             self.assertNotIn("page", tool["parameters"]["properties"])
             self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
+
+    def test_nonfinite_coordinates_do_not_break_playwright(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            for arguments in ({"x": value, "y": 1}, json.dumps({"x": value, "y": 1})):
+                with self.subTest(arguments=arguments):
+                    result = self.agent.act("click", arguments)
+                    self.assertIn("ValueError", result["error"])
+        self.assertIsNone(self.agent.act("click", {"x": 1, "y": 1}))
+        self.assertEqual(self.agent.page.locator("h1").inner_text(), "Workshop signup")
 
     def test_dispatch_rejects_invalid_names_and_argument_objects(self):
         for name in ("unknown", None, 42, [], {}):
@@ -475,7 +482,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(messages, ["Which track?"])
         self.assertEqual(agent.act("wait_for_reply", {}),
                          "Robotics")
-        self.assertIn("error", agent.act("finish", {"message": 42}))
+        self.assertIn("error", agent.act("finish", {}))
         self.assertEqual(agent.act("finish", {"message": "Done"}), "Done")
         self.assertEqual(Actions.finish(""), "")
 
@@ -495,7 +502,7 @@ class BrowserTests(unittest.TestCase):
 
     def test_invalid_finish_does_not_end_run(self):
         Fixture.replies = [
-            [tool_call("finish", {"message": 42}, "invalid")],
+            [tool_call("finish", {}, "invalid")],
             [tool_call("finish", {"message": "Done"}, "valid")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:

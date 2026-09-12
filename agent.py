@@ -4,7 +4,6 @@ from collections.abc import Callable
 from functools import partial
 import inspect
 import json
-import math
 from pathlib import Path
 import socket
 import subprocess
@@ -161,20 +160,6 @@ def tab_at(page: Page, index: int) -> Page:
         raise ValueError("Tab index must be non-negative")
     return prepare_page(page).context.pages[index]
 
-def validate_arguments(function: Callable, **arguments: Any) -> None:
-    signature = inspect.signature(function)
-    for key, value in arguments.items():
-        expected = signature.parameters[key].annotation
-        if expected is float:
-            valid = type(value) in (int, float) and math.isfinite(value)
-        else:
-            valid = type(value) is expected
-        if not valid:
-            raise ValueError(f"Invalid type or non-finite value for {key}")
-        limit = {"x": 1280, "x1": 1280, "x2": 1280, "y": 800, "y1": 800, "y2": 800}.get(key)
-        if limit is not None and not 0 <= value < limit:
-            raise ValueError(f"{key} is outside the viewport")
-
 def build_tool_schema(name: str, fn: Callable) -> dict[str, Any]:
     parameters = {k: p for k, p in inspect.signature(fn).parameters.items()
                   if k not in ("page", "agent")}
@@ -280,6 +265,7 @@ class WebAgent:
         try:
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
+            json.dumps(arguments, allow_nan=False)
             action = self.action_space[name]
             parameters = inspect.signature(action).parameters
             if "page" in parameters:
@@ -287,7 +273,6 @@ class WebAgent:
                 action = partial(action, self.page)
             elif "agent" in parameters:
                 action = partial(action, self)
-            validate_arguments(action, **arguments)
             return action(**arguments)
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
