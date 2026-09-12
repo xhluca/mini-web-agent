@@ -204,8 +204,6 @@ class WebAgent:
         """Launch detached headless Chrome. Call connect() separately to control it."""
         if type(port) is not int or not 0 <= port <= 65535:
             raise ValueError("port must be an integer from 0 to 65535; 0 selects a random port")
-        if browser_endpoint(self.profile):
-            raise RuntimeError("Chrome is already running; use connect()")
         if port:
             with socket.socket() as probe:
                 probe.bind(("127.0.0.1", port))
@@ -235,9 +233,8 @@ class WebAgent:
         """Attach Playwright to this profile's running Chrome; never launch a browser."""
         if self.browser:
             return self
-        endpoint = browser_endpoint(self.profile)
-        if not endpoint:
-            raise RuntimeError("Chrome is not running; call launch() first")
+        port, target = (self.profile / "DevToolsActivePort").read_text().splitlines()[:2]
+        endpoint = f"ws://127.0.0.1:{port}{target}"
         if not self.playwright:
             self.playwright = sync_playwright().start()
         try:

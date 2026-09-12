@@ -84,8 +84,8 @@ The lifecycle is explicit:
 - `shutdown()` closes the connected Chrome and disconnects. Connect first to close a browser.
 
 Use `WebAgent(profile).launch().connect()` for a new browser and
-`WebAgent(profile).connect()` to reuse one. Calling `launch()` on a running profile
-raises an error; calling `connect()` on an inactive profile also raises an error.
+`WebAgent(profile).connect()` to reuse one. Launch/connect do not preflight browser
+liveness; profile-file and Playwright connection errors propagate directly.
 
 Page actions are standalone functions with an explicit Playwright page argument:
 
