@@ -260,9 +260,7 @@ class WebAgent:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
-    def act(
-        self, name: str, arguments: dict[str, Any] | str,
-    ) -> str | int | dict[str, Any] | list[dict[str, Any]] | None:
+    def act(self, name: str, arguments: dict[str, Any] | str) -> str:
         try:
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
@@ -276,9 +274,9 @@ class WebAgent:
                 action = partial(action, self.page)
             elif "agent" in parameters:
                 action = partial(action, self)
-            return action(**arguments)
+            return json.dumps({"state": "success", "output": action(**arguments)})
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
-            return {"error": f"{type(error).__name__}: {error}"}
+            return json.dumps({"state": "error", "output": f"{type(error).__name__}: {error}"})
 
     def observe(self) -> tuple[str, str]:
         self.page = p = prepare_page(self.page)
@@ -341,13 +339,14 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
             if on_action:
                 on_action(step, {"name": call.name, "arguments": call.arguments}, result)
 
-            if call.name == "finish" and isinstance(result, str):
-                return result
+            if call.name == "finish":
+                final = json.loads(result)
+                if final["state"] == "success":
+                    return final["output"]
 
             history.append({
                 "type": "function_call_output", "call_id": call.call_id,
-                "output": [{"type": "input_text",
-                            "text": "success" if result is None else json.dumps(result)}],
+                "output": [{"type": "input_text", "text": result}],
             })
 
         text, image = agent.observe()

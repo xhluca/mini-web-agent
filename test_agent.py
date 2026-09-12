@@ -94,9 +94,9 @@ class BrowserTests(unittest.TestCase):
         self.folder.cleanup()
 
     def act(self, name, **arguments):
-        result = self.agent.act(name, arguments)
-        self.assertFalse(isinstance(result, dict) and "error" in result, result)
-        return result
+        result = json.loads(self.agent.act(name, arguments))
+        self.assertEqual(result["state"], "success", result)
+        return result["output"]
 
     def point(self, locator):
         box = locator.bounding_box()
@@ -128,7 +128,7 @@ class BrowserTests(unittest.TestCase):
         state, image = self.agent.observe()
         self.assertEqual(set(json.loads(state)), {"active_tab", "tabs"})
         self.assertTrue(base64.b64decode(image.split(",")[1]).startswith(b"\xff\xd8"))
-        self.assertIn("error", self.agent.act("screenshot", {}))
+        self.assertEqual(json.loads(self.agent.act("screenshot", {}))["state"], "error")
 
     def test_mouse_events(self):
         self.agent.page.set_content("""<div style='width:600px;height:600px'>Target</div>
@@ -186,8 +186,8 @@ class BrowserTests(unittest.TestCase):
         tabs = Actions.close_tab(self.agent, 1)
         self.assertEqual(len(tabs), 1)
         self.assertTrue(tabs[0]["active"])
-        self.assertIsNone(self.agent.act("wait", '{"seconds": 0}'))
-        self.assertIn("JSONDecodeError", self.agent.act("wait", "{")["error"])
+        self.assertIsNone(json.loads(self.agent.act("wait", '{"seconds": 0}'))["output"])
+        self.assertIn("JSONDecodeError", json.loads(self.agent.act("wait", "{"))["output"])
 
     def test_restricted_dispatch(self):
         invalid = [
@@ -203,7 +203,7 @@ class BrowserTests(unittest.TestCase):
         ]
         for name, arguments in invalid:
             with self.subTest(name=name, arguments=arguments):
-                self.assertIn("error", self.agent.act(name, arguments))
+                self.assertEqual(json.loads(self.agent.act(name, arguments))["state"], "error")
         self.assertEqual(len(Actions.list_tabs(self.agent.page)), 1)
         from agent import get_action_space
         self.assertEqual({t["name"] for t in prepare_tools(self.agent.action_space)},
@@ -217,22 +217,24 @@ class BrowserTests(unittest.TestCase):
         for value in (float("nan"), float("inf"), float("-inf")):
             for arguments in ({"x": value, "y": 1}, json.dumps({"x": value, "y": 1})):
                 with self.subTest(arguments=arguments):
-                    result = self.agent.act("click", arguments)
-                    self.assertIn("ValueError", result["error"])
-        self.assertIsNone(self.agent.act("click", {"x": 1, "y": 1}))
+                    result = json.loads(self.agent.act("click", arguments))
+                    self.assertIn("ValueError", result["output"])
+        self.assertIsNone(json.loads(self.agent.act("click", {"x": 1, "y": 1}))["output"])
         self.assertEqual(self.agent.page.locator("h1").inner_text(), "Workshop signup")
 
     def test_dispatch_rejects_invalid_names_and_argument_objects(self):
         for name in ("unknown", None, 42, [], {}):
             with self.subTest(name=name):
-                result = self.agent.act(name, {})
-                self.assertRegex(result["error"], r"^(KeyError|TypeError): .+")
+                result = json.loads(self.agent.act(name, {}))
+                self.assertRegex(result["output"], r"^(KeyError|TypeError): .+")
         for arguments in (None, [], [1], 42, True, "null", "[]", "42", '"text"'):
             with self.subTest(arguments=arguments):
-                result = self.agent.act("finish", arguments)
-                self.assertRegex(result["error"], r"^TypeError: .+")
-        self.assertEqual(self.agent.act("finish", {"message": "Done"}), "Done")
-        self.assertEqual(self.agent.act("finish", '{"message": "Done"}'), "Done")
+                result = json.loads(self.agent.act("finish", arguments))
+                self.assertRegex(result["output"], r"^TypeError: .+")
+        self.assertEqual(json.loads(self.agent.act("finish", {"message": "Done"}))["output"],
+                         "Done")
+        self.assertEqual(json.loads(self.agent.act("finish", '{"message": "Done"}'))["output"],
+                         "Done")
 
     def test_parameterized_actions_and_instructions(self):
         from agent import get_action_space, get_instructions
@@ -247,7 +249,7 @@ class BrowserTests(unittest.TestCase):
             return "custom result"
 
         self.agent.action_space = {"custom_action": custom_action, "finish": Actions.finish}
-        self.assertIn("KeyError", self.agent.act("click", {"x": 1, "y": 1})["error"])
+        self.assertIn("KeyError", json.loads(self.agent.act("click", {"x": 1, "y": 1}))["output"])
         Fixture.requests = []
         Fixture.replies = [
             [tool_call("custom_action", call_id="custom")],
@@ -263,7 +265,7 @@ class BrowserTests(unittest.TestCase):
                              {"custom_action", "finish"})
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertEqual(json.loads(outputs[0]["output"][0]["text"]), "custom result")
+        self.assertEqual(json.loads(outputs[0]["output"][0]["text"])["output"], "custom result")
 
     def test_launch_and_connect_are_separate(self):
         self.agent.shutdown()
@@ -392,9 +394,9 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual([event[0] for event in events], [0, 1, 2])
         self.assertEqual([event[1]["name"] for event in events],
                          ["run_browser", "type_text", "finish"])
-        self.assertIn("error", events[0][2])
-        self.assertIsNone(events[1][2])
-        self.assertEqual(events[2][2], "Done")
+        self.assertEqual(json.loads(events[0][2])["state"], "error")
+        self.assertEqual(json.loads(events[1][2]), {"state": "success", "output": None})
+        self.assertEqual(json.loads(events[2][2])["output"], "Done")
         self.assertEqual(json.loads(events[1][1]["arguments"]), {"text": "model@example.com"})
         self.assertEqual(result, "Done")
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(), "model@example.com")
@@ -420,7 +422,8 @@ class BrowserTests(unittest.TestCase):
             self.assertTrue(output["output"][2]["image_url"].startswith("data:image/"))
             self.assertIn("tabs", json.loads(output["output"][1]["text"]))
         self.assertIn("KeyError", outputs[0]["output"][0]["text"])
-        self.assertEqual(outputs[1]["output"][0]["text"], "success")
+        self.assertEqual(json.loads(outputs[1]["output"][0]["text"]),
+                         {"state": "success", "output": None})
 
     def test_one_observation_per_tool_batch(self):
         Fixture.requests = []
@@ -494,23 +497,23 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(self.agent.page.url, self.url + "/")
         outputs = [item for item in Fixture.requests[2][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertEqual(json.loads(outputs[-1]["output"][0]["text"]),
+        self.assertEqual(json.loads(outputs[-1]["output"][0]["text"])["output"],
                          "Robotics")
 
     def test_conversation_actions_work_without_run(self):
         messages = []
         agent = WebAgent(on_message=messages.append, on_reply=lambda: "Robotics",
             action_space=get_action_space())
-        agent.act("send_message", {"message": "Which track?"})
+        json.loads(agent.act("send_message", {"message": "Which track?"}))
         self.assertEqual(messages, ["Which track?"])
-        self.assertEqual(agent.act("wait_for_reply", {}),
+        self.assertEqual(json.loads(agent.act("wait_for_reply", {}))["output"],
                          "Robotics")
-        self.assertIn("error", agent.act("finish", {}))
-        self.assertEqual(agent.act("finish", {"message": "Done"}), "Done")
+        self.assertEqual(json.loads(agent.act("finish", {}))["state"], "error")
+        self.assertEqual(json.loads(agent.act("finish", {"message": "Done"}))["output"], "Done")
         self.assertEqual(Actions.finish(""), "")
 
         agent.on_reply = lambda: None
-        self.assertIn("error", agent.act("wait_for_reply", {}))
+        self.assertEqual(json.loads(agent.act("wait_for_reply", {}))["state"], "error")
 
     def test_empty_finish_and_repeated_runs(self):
         Fixture.replies = [
