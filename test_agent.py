@@ -15,7 +15,7 @@ from unittest.mock import patch
 from openai import OpenAI
 from playwright.sync_api import Error
 
-from agent import Actions, WebAgent, probe_browser_endpoint, build_tool_schemas, run
+from agent import Actions, WebAgent, probe_browser_endpoint, prepare_tools, run
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -206,8 +206,8 @@ class BrowserTests(unittest.TestCase):
                 self.assertIn("error", self.agent.act(name, arguments))
         self.assertEqual(len(Actions.list_tabs(self.agent.page)), 1)
         from agent import ACTIONS
-        self.assertEqual({t["name"] for t in build_tool_schemas()}, set(ACTIONS))
-        for tool in build_tool_schemas():
+        self.assertEqual({t["name"] for t in prepare_tools()}, set(ACTIONS))
+        for tool in prepare_tools():
             self.assertNotIn("page", tool["parameters"]["properties"])
             self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
@@ -287,7 +287,7 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Done"}, "call_3")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            with patch("agent.build_tool_schemas", wraps=build_tool_schemas) as schemas:
+            with patch("agent.prepare_tools", wraps=prepare_tools) as schemas:
                 events = []
                 result = run(self.agent,
                     "Fill the email", client, "test", max_steps=3,

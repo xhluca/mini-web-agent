@@ -188,27 +188,22 @@ def validate_arguments(function: Callable, arguments: dict[str, Any]) -> None:
             raise ValueError(f"{key} is outside the viewport")
 
 
-def build_tool_schemas() -> list[dict[str, Any]]:
-    tools = []
+def build_tool_schema(name: str, fn: Callable) -> dict[str, Any]:
+    parameters = {
+        k: p for k, p in inspect.signature(fn).parameters.items() if k not in ("page", "agent")
+    }
+    props = {
+        key: {"type": {float: "number", int: "integer", str: "string"}[p.annotation]}
+        for key, p in parameters.items()
+    }
+    required = [key for key, p in parameters.items() if p.default is inspect.Parameter.empty]
+    params = dict(type="object", properties=props, required=required, additionalProperties=False)
+    desc = inspect.getdoc(fn) or name.replace("_", " ")
+    return dict(type="function", name=name, strict=False, description=desc, parameters=params)
 
-    for name, function in ACTIONS.items():
-        parameters = {
-            key: p for key, p in inspect.signature(function).parameters.items()
-            if key not in ("page", "agent")
-        }
-        properties = {
-            key: {"type": {float: "number", int: "integer", str: "string"}[p.annotation]}
-            for key, p in parameters.items()
-        }
-        required = [key for key, p in parameters.items() if p.default is inspect.Parameter.empty]
-        tools.append(dict(
-            type="function", name=name, strict=False,
-            description=inspect.getdoc(function) or name.replace("_", " "),
-            parameters=dict(type="object", properties=properties, required=required,
-                            additionalProperties=False),
-        ))
 
-    return tools
+def prepare_tools() -> list[dict[str, Any]]:
+    return [build_tool_schema(name, fn) for name, fn in ACTIONS.items()]
 
 
 def screenshot(page: Page) -> str:
@@ -371,7 +366,7 @@ def run(
         {"role": "user", "content": task},
     ]
 
-    tools = build_tool_schemas()
+    tools = prepare_tools()
     for step in range(max_steps):
         text, image = agent.observe()
         history.append({"role": "user", "content": [
