@@ -15,7 +15,8 @@ from unittest.mock import patch
 from openai import OpenAI
 from playwright.sync_api import Error
 
-from agent import Actions, WebAgent, probe_browser_endpoint, prepare_tools, run
+from agent import (Actions, WebAgent, get_action_space, get_instructions,
+                   probe_browser_endpoint, prepare_tools, run)
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -83,7 +84,7 @@ class BrowserTests(unittest.TestCase):
 
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="mini-web-agent-test-")
-        self.agent = WebAgent(self.folder.name).launch().connect()
+        self.agent = WebAgent(self.folder.name, action_space=get_action_space()).launch().connect()
         Actions.navigate(self.agent.page, self.url)
 
     def tearDown(self):
@@ -282,12 +283,13 @@ class BrowserTests(unittest.TestCase):
             probe.bind(("127.0.0.1", 0))
             chosen = probe.getsockname()[1]
         with patch("agent.read_cdp_address") as read_address:
-            self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch()
+            self.agent = WebAgent(self.folder.name, cdp_port=chosen,
+                action_space=get_action_space()).launch()
             read_address.assert_not_called()
         self.agent.connect()
         self.assertEqual(self.agent.cdp_port, chosen)
         self.agent.disconnect()
-        other = WebAgent(self.agent.profile)
+        other = WebAgent(self.agent.profile, action_space=get_action_space())
         self.assertEqual(other.cdp_port, chosen)
         other.connect()
         self.assertEqual(other.cdp_port, chosen)
@@ -302,15 +304,17 @@ class BrowserTests(unittest.TestCase):
         self.agent.shutdown()
         for port in [-1, 65536, True, "9222"]:
             with self.assertRaises(ValueError):
-                WebAgent(self.folder.name, cdp_port=port)
+                WebAgent(self.folder.name, cdp_port=port, action_space=get_action_space())
         with self.assertRaises(OSError):
-            WebAgent(self.folder.name, cdp_port=self.server.server_port).launch()
+            WebAgent(self.folder.name, cdp_port=self.server.server_port,
+                action_space=get_action_space()).launch()
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
     def test_browser_survives_separate_python_process(self):
         self.agent.shutdown()
-        code = ("from agent import Actions, WebAgent; "
-                f"a=WebAgent({self.folder.name!r}).launch().connect(); "
+        code = ("from agent import Actions, WebAgent, get_action_space; "
+                f"a=WebAgent({self.folder.name!r}, "
+                "action_space=get_action_space()).launch().connect(); "
                 f"Actions.navigate(a.page, {self.url!r}); Actions.press_key(a.page, 'Tab'); "
                 "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
@@ -335,6 +339,7 @@ class BrowserTests(unittest.TestCase):
             result = run(self.agent,
                 "Fill the email", client, "test", max_steps=3,
                 on_action=lambda step, action, result: events.append((step, action, result)),
+                instructions=get_instructions(),
             )
         self.assertEqual([event[0] for event in events], [0, 1, 2])
         self.assertEqual([event[1]["name"] for event in events],
@@ -386,7 +391,8 @@ class BrowserTests(unittest.TestCase):
 
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
             with patch.object(self.agent, "observe", side_effect=record_observation):
-                self.assertEqual(run(self.agent, "Fill email", client, "test", max_steps=2),
+                self.assertEqual(run(self.agent, "Fill email", client, "test", max_steps=2,
+                    instructions=get_instructions()),
                                  "Done")
         self.assertEqual(observed_values, ["", "batch@example.com"])
         history = Fixture.requests[-1][1]["input"]
@@ -407,7 +413,8 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Done"}, "valid")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=2), "Done")
+            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=2,
+                instructions=get_instructions()), "Done")
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
         self.assertIn("JSONDecodeError", outputs[0]["output"][0]["text"])
@@ -431,7 +438,8 @@ class BrowserTests(unittest.TestCase):
         self.agent.on_message = messages.append
         self.agent.on_reply = reply
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            result = run(self.agent, "Sign me up", client, "test", max_steps=4)
+            result = run(self.agent, "Sign me up", client, "test", max_steps=4,
+                instructions=get_instructions())
         self.assertEqual(result, "All done.")
         self.assertEqual(messages, ["Which track?", "Working on Robotics."])
         self.assertEqual(replies, ["Robotics"])
@@ -443,7 +451,8 @@ class BrowserTests(unittest.TestCase):
 
     def test_conversation_actions_work_without_run(self):
         messages = []
-        agent = WebAgent(on_message=messages.append, on_reply=lambda: "Robotics")
+        agent = WebAgent(on_message=messages.append, on_reply=lambda: "Robotics",
+            action_space=get_action_space())
         agent.act("send_message", {"message": "Which track?"})
         self.assertEqual(messages, ["Which track?"])
         self.assertEqual(agent.act("wait_for_reply", {}),
@@ -461,8 +470,10 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Next task"}, "next")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=1), "")
-            self.assertEqual(run(self.agent, "Again", client, "test", max_steps=1), "Next task")
+            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=1,
+                instructions=get_instructions()), "")
+            self.assertEqual(run(self.agent, "Again", client, "test", max_steps=1,
+                instructions=get_instructions()), "Next task")
 
     def test_invalid_finish_does_not_end_run(self):
         Fixture.replies = [
@@ -470,7 +481,8 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Done"}, "valid")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=2), "Done")
+            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=2,
+                instructions=get_instructions()), "Done")
 
     def test_missing_tool_calls_receive_feedback(self):
         plain_text = dict(
@@ -482,7 +494,8 @@ class BrowserTests(unittest.TestCase):
         messages = []
         self.agent.on_message = messages.append
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=3), "Done")
+            self.assertEqual(run(self.agent, "Finish", client, "test", max_steps=3,
+                instructions=get_instructions()), "Done")
         self.assertEqual(messages, [])
         for turn in (1, 2):
             previous = Fixture.requests[turn - 1][1]["input"]
@@ -494,14 +507,16 @@ class BrowserTests(unittest.TestCase):
         Fixture.requests = []
         Fixture.replies = [[], []]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            result = run(self.agent, "Finish", client, "test", max_steps=2)
+            result = run(self.agent, "Finish", client, "test", max_steps=2,
+                instructions=get_instructions())
             self.assertEqual(result, "Stopped after 2 model turns; the task is still unfinished.")
         self.assertEqual(len(Fixture.requests), 2)
 
     def test_step_limit(self):
         Fixture.replies = [[tool_call("wait", {"seconds": 0})]]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            result = run(self.agent, "Keep going", client, "test", max_steps=1)
+            result = run(self.agent, "Keep going", client, "test", max_steps=1,
+                instructions=get_instructions())
             self.assertEqual(result, "Stopped after 1 model turns; the task is still unfinished.")
 
 

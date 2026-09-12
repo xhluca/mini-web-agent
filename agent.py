@@ -237,13 +237,13 @@ class WebAgent:
     def __init__(
         self, profile: str | Path = ".chrome", cdp_port: int = 0,
         on_message: Callable = print, on_reply: Callable = input,
-        action_space: dict[str, Callable] | None = None,
+        *, action_space: dict[str, Callable],
     ) -> None:
         if type(cdp_port) is not int or not 0 <= cdp_port <= 65535:
             raise ValueError("cdp_port must be an integer from 0 to 65535; 0 selects a random port")
 
         self.profile = Path(profile).expanduser().resolve()
-        self.action_space = get_action_space() if action_space is None else action_space
+        self.action_space = action_space
         self.on_message = on_message
         self.on_reply = on_reply
         self.cdp_port = cdp_port
@@ -366,14 +366,13 @@ class WebAgent:
 def run(
     agent: WebAgent, task: str, client: OpenAI, model: str, max_steps: int = 30,
     on_action: Callable | None = None,
-    instructions: str | None = None,
+    *, instructions: str,
 ) -> str:
     if max_steps < 1:
         raise ValueError("max_steps must be positive")
 
-    prompt = get_instructions() if instructions is None else instructions
     history = [
-        {"role": "system", "content": prompt},
+        {"role": "system", "content": instructions},
         {"role": "user", "content": task},
     ]
 
@@ -444,7 +443,9 @@ if __name__ == "__main__":
             "--cdp-port applies to launch; --connect discovers the profile's existing port"
         )
 
-    agent = WebAgent(args.profile, cdp_port=args.cdp_port)
+    action_space = get_action_space()
+    instructions = get_instructions()
+    agent = WebAgent(args.profile, cdp_port=args.cdp_port, action_space=action_space)
     if not args.connect:
         agent.launch()
     agent.connect()
@@ -454,6 +455,7 @@ if __name__ == "__main__":
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
                 agent, args.task, client, args.model, args.max_steps,
+                instructions=instructions,
                 on_action=lambda step, action, result: print(step, action, result, flush=True),
             ))
     finally:

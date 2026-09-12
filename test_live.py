@@ -7,7 +7,7 @@ import threading
 
 from openai import OpenAI
 
-from agent import WebAgent, run
+from agent import WebAgent, get_action_space, get_instructions, run
 from test_agent import Fixture
 
 
@@ -18,14 +18,15 @@ def main():
     thread.start()
     try:
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-live-") as profile:
-            agent = WebAgent(profile).launch().connect()
+            agent = WebAgent(profile, action_space=get_action_space()).launch().connect()
             try:
                 agent.page.goto(f"http://127.0.0.1:{server.server_port}")
                 task = ("Using the visible form controls, register model@example.com for Robotics, "
                         "agree to the terms, and click Register. Read the confirmation and report "
                         "it. Do not modify the page using JavaScript or replace its HTML.")
                 with OpenAI(timeout=60, max_retries=0) as client:
-                    answer = run(agent, task, client, model, max_steps=25)
+                    answer = run(agent, task, client, model, max_steps=25,
+                        instructions=get_instructions())
                 actual = agent.page.get_by_role("status").inner_text()
                 assert actual == "Registered: model@example.com / Robotics", actual
                 assert "model@example.com" in answer and "Robotics" in answer, answer

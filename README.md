@@ -34,12 +34,14 @@ For a new profile, Chrome chooses a random localhost CDP port by default. Use `-
 specific port when launching. The CLI prints the CDP URL after connecting.
 
 ```python
-agent = WebAgent('.chrome', cdp_port=0).launch()  # New profiles use a random port.
+from agent import WebAgent, get_action_space
+
+agent = WebAgent('.chrome', cdp_port=0, action_space=get_action_space()).launch()
 print(agent.cdp_port)                          # Actual assigned port.
 agent.connect()
 ```
 
-Choose a fixed port with `WebAgent('.chrome', cdp_port=9222).launch()`.
+Choose a fixed port with `WebAgent('.chrome', cdp_port=9222, action_space=get_action_space()).launch()`.
 Construction reads an existing profile's recorded port when no explicit port is given.
 For a new profile, `agent.cdp_port` starts at `0`; `launch()` fills in Chrome's chosen
 port. `connect()` uses that value without changing it. Set `agent.cdp_port = 0` before
@@ -56,9 +58,9 @@ Both providers use `client.responses.create()`; no Chat Completions adapter is i
 
 ```python
 from openai import OpenAI
-from agent import WebAgent, run
+from agent import WebAgent, get_action_space, get_instructions, run
 
-agent = WebAgent('.chrome', on_message=print, on_reply=input).launch().connect()
+agent = WebAgent('.chrome', action_space=get_action_space()).launch().connect()
 try:
     agent.act('navigate', {'url': 'https://example.com'})
     text, screenshot_data_url = agent.observe()
@@ -69,13 +71,14 @@ try:
             client,
             model='google/gemini-3.8-flash',
             max_steps=15,
+            instructions=get_instructions(),
             on_action=lambda step, action, result: print(step, action, result),
         ))
 finally:
     agent.disconnect()  # Disconnect; Chrome survives Python exit.
 
 # Reconnect later and close the actual browser.
-WebAgent('.chrome').connect().shutdown()
+WebAgent('.chrome', action_space=get_action_space()).connect().shutdown()
 ```
 
 The lifecycle is explicit:
@@ -85,8 +88,8 @@ The lifecycle is explicit:
 - `disconnect()` detaches Playwright and leaves Chrome running.
 - `shutdown()` closes the connected Chrome and disconnects. Connect first to close a browser.
 
-Use `WebAgent(profile).launch().connect()` for a new browser and
-`WebAgent(profile).connect()` to reuse one. Launch/connect do not preflight browser
+Use `WebAgent(profile, action_space=action_space).launch().connect()` for a new browser and
+`WebAgent(profile, action_space=action_space).connect()` to reuse one. Launch/connect do not preflight browser
 liveness. Lifecycle failures include an explicit message and retain the original exception
 as their cause; profile-file errors propagate directly.
 
@@ -185,7 +188,8 @@ holds browser/tab state, dispatches calls, and runs the agent loop.
 `get_action_space()` returns the default action dictionary. Pass a subset or custom dictionary
 to `WebAgent(action_space=...)`; that dictionary drives both tool schemas and dispatch.
 `get_instructions()` returns the default prompt, including the script source. Pass
-`run(..., instructions=...)` to replace it. Omitting either parameter uses its getter.
+`run(..., instructions=...)` to supply it. Both parameters are required; the CLI calls
+the getters explicitly inside its `if __name__ == "__main__":` block.
 Seeing a function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
 Before dispatch, the agent checks the name, argument object, signature, types,
