@@ -219,7 +219,7 @@ class BrowserTests(unittest.TestCase):
     def test_random_and_explicit_ports(self):
         from urllib.request import urlopen
 
-        port = self.agent.port
+        port = self.agent.cdp_port
         self.assertGreater(port, 0)
         with urlopen(f"http://127.0.0.1:{port}/json/version") as response:
             self.assertEqual(response.status, 200)
@@ -229,11 +229,10 @@ class BrowserTests(unittest.TestCase):
             chosen = probe.getsockname()[1]
         self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch().connect()
         self.assertEqual(self.agent.cdp_port, chosen)
-        self.assertEqual(self.agent.port, chosen)
         self.agent.disconnect()
         other = WebAgent(self.agent.profile).connect()
         try:
-            self.assertEqual(other.port, chosen)
+            self.assertEqual(other.cdp_port, chosen)
             self.assertIn(f":{chosen}/", browser_endpoint(other.profile))
         finally:
             other.shutdown()

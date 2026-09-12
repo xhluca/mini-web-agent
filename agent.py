@@ -207,19 +207,12 @@ class WebAgent:
         self.cdp_port = cdp_port
         self.playwright = self.process = self.browser = None
 
-    @property
-    def port(self):
-        """The profile's last assigned CDP port, or None before its first launch."""
-        try:
-            return int((self.profile / "DevToolsActivePort").read_text().splitlines()[0])
-        except (OSError, ValueError, IndexError):
-            return None
-
     def launch(self, timeout=20):
         """Launch detached headless Chrome. Call connect() separately to control it."""
         port = self.cdp_port
         if port:
             with socket.socket() as probe:
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 probe.bind(("127.0.0.1", port))
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.playwright = sync_playwright().start()
@@ -235,6 +228,8 @@ class WebAgent:
             if port:  # Chrome only writes this file automatically when launched with port=0.
                 target = urlsplit(browser_endpoint(self.profile, port)).path
                 (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
+            self.cdp_port = int(
+                (self.profile / "DevToolsActivePort").read_text().splitlines()[0])
         except BaseException as error:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
@@ -254,6 +249,7 @@ class WebAgent:
         try:
             self.browser = self.playwright.chromium.connect_over_cdp(
                 endpoint, timeout=timeout * 1000)
+            self.cdp_port = int(port)
             self.context = self.browser.contexts[0]
             self.context.set_default_timeout(10_000)
             self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
@@ -370,18 +366,18 @@ if __name__ == "__main__":
     parser.add_argument("task")
     parser.add_argument("--model", required=True)
     parser.add_argument("--profile", default=".chrome")
-    parser.add_argument("--port", type=int, default=0, help="CDP port; 0 selects a random port")
+    parser.add_argument("--cdp-port", type=int, default=0, help="CDP port; 0 selects a random port")
     parser.add_argument("--max-steps", type=int, default=30)
     parser.add_argument("--close", action="store_true")
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     args = parser.parse_args()
-    if args.connect and args.port:
-        parser.error("--port applies to launch; --connect discovers the profile's existing port")
-    agent = WebAgent(args.profile, cdp_port=args.port)
+    if args.connect and args.cdp_port:
+        parser.error("--cdp-port applies to launch; --connect discovers the profile's existing port")
+    agent = WebAgent(args.profile, cdp_port=args.cdp_port)
     if not args.connect:
         agent.launch()
     agent.connect()
-    print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
+    print(f"CDP: http://127.0.0.1:{agent.cdp_port}", flush=True)
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
             print(agent.run(args.task, client, args.model, args.max_steps,

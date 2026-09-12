@@ -30,21 +30,19 @@ python agent.py --model google/gemini-3.8-flash \
 Chrome profile (default `.chrome` in the working directory). `--close` shuts Chrome
 down after the task; otherwise it stays running for inspection and reuse.
 Use `--connect` to attach to an already running browser instead of launching a new one.
-Chrome chooses a random localhost CDP port by default. Use `--port 9222` to request a
+Chrome chooses a random localhost CDP port by default. Use `--cdp-port 9222` to request a
 specific port when launching. The CLI prints the CDP URL after connecting.
 
 ```python
 agent = WebAgent('.chrome', cdp_port=0).launch()  # Random port by default.
-print(agent.port)                                # Actual assigned port.
+print(agent.cdp_port)                          # Actual assigned port.
 agent.connect()
 ```
 
 Choose a fixed port with `WebAgent('.chrome', cdp_port=9222).launch()`.
-`cdp_port` is the requested launch setting; `0` lets Chrome choose a port.
-`agent.port` reads the profile's last assigned port, including after reconnecting from
-another Python process; it is not a liveness check. Before the profile's first launch,
-it is `None`. An occupied explicitly requested port raises an error. CDP remains bound
-to localhost.
+`agent.cdp_port` starts at `0` by default and holds the actual port after launch or
+connect. Set it back to `0` before relaunching to choose a new random port.
+An occupied explicitly requested port raises an error. CDP remains bound to localhost.
 
 The launcher always uses Playwright's bundled Chromium executable.
 Chrome launches with `--headless=new` hardcoded; there is no headed mode or flag override.
