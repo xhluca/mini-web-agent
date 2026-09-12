@@ -106,21 +106,21 @@ class Actions:
 
     def new_tab(agent: "WebAgent", url: str = "about:blank") -> int:
         """Open and activate a tab, returning its current index."""
-        tab = active_page(agent.page).context.new_page()
+        tab = prepare_page(agent.page).context.new_page()
         Actions.navigate(tab, url)
-        agent.page = active_page(tab)
+        agent.page = prepare_page(tab)
         return tab.context.pages.index(tab)
 
     def switch_tab(agent: "WebAgent", index: int) -> int:
         """Activate a tab by its current index."""
-        agent.page = active_page(tab_at(agent.page, index))
+        agent.page = prepare_page(tab_at(agent.page, index))
         agent.page.bring_to_front()
         return index
 
     def close_tab(agent: "WebAgent", index: int) -> list[dict[str, Any]]:
         """Close a tab and return the refreshed tab list."""
         tab_at(agent.page, index).close()
-        agent.page = active_page(agent.page)
+        agent.page = prepare_page(agent.page)
         return Actions.list_tabs(agent.page)
 
     def send_message(agent: "WebAgent", message: str) -> None:
@@ -185,7 +185,7 @@ def auto_select_port(profile: Path) -> int:
 def tab_at(page: Page, index: int) -> Page:
     if index < 0:
         raise ValueError("Tab index must be non-negative")
-    return active_page(page).context.pages[index]
+    return prepare_page(page).context.pages[index]
 
 
 def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
@@ -235,8 +235,8 @@ def screenshot(page: Page) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(data).decode()
 
 
-def active_page(page: Page) -> Page:
-    """Replace a closed page if needed and use the screenshot coordinate viewport."""
+def prepare_page(page: Page) -> Page:
+    """Return an open page with a 1280x800 viewport, replacing a closed page if needed."""
     if page.is_closed():
         context = page.context
         page = context.pages[0] if context.pages else context.new_page()
@@ -317,7 +317,7 @@ class WebAgent:
             context = self.browser.contexts[0]
             context.set_default_timeout(10_000)
             self.page = context.pages[0] if context.pages else context.new_page()
-            self.page = active_page(self.page)
+            self.page = prepare_page(self.page)
             return self
         except BaseException as error:
             self.disconnect()
@@ -337,7 +337,7 @@ class WebAgent:
             parameters = inspect.signature(action).parameters
             function = action
             if "page" in parameters:
-                self.page = active_page(self.page)
+                self.page = prepare_page(self.page)
                 function = partial(action, self.page)
             elif "agent" in parameters:
                 function = partial(action, self)
@@ -350,7 +350,7 @@ class WebAgent:
 
     def observe(self) -> tuple[str, str]:
         """Return tab metadata and a screenshot, without DOM text or accessibility trees."""
-        self.page = active_page(self.page)
+        self.page = prepare_page(self.page)
         tabs = Actions.list_tabs(self.page)
         state = dict(
             active_tab=next(tab["index"] for tab in tabs if tab["active"]),
