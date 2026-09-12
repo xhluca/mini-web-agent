@@ -99,9 +99,21 @@ type_text(agent.page, 'hello')
 ```
 
 Navigation, keyboard, scrolling, dragging, waiting, and screenshots follow the same
-pattern. Methods such as `agent.new_tab()` retain the tab state they need. The model
-always goes through `act(name, arguments)`; the dispatcher supplies the current page,
-and the model cannot choose or override that Python object.
+pattern. Tab operations are standalone too:
+
+```python
+from agent import list_tabs, new_tab, switch_tab, close_tab
+
+list_tabs(agent.page)
+agent.page = new_tab(agent.page, 'https://example.com')
+agent.page = switch_tab(agent.page, 0)
+agent.page = close_tab(agent.page, 1)
+```
+
+Functions that change the active tab return a Playwright Page. The agent stores that
+page and returns an index or updated tab list to the model. All model calls go through
+`act(name, arguments)`; the dispatcher supplies the current page, and the model cannot
+choose or override that Python object.
 These calls are synchronous and belong on one thread. `act` returns a JSON-serializable
 result or an `error` object; `run` feeds errors back to the model for recovery.
 

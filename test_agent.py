@@ -14,7 +14,7 @@ import unittest
 from openai import OpenAI
 from playwright.sync_api import Error
 
-from agent import WebAgent, browser_endpoint, build_tools, navigate, press_key, type_text
+from agent import WebAgent, browser_endpoint, build_tools, list_tabs, navigate, press_key, type_text
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -194,7 +194,7 @@ class BrowserTests(unittest.TestCase):
         for name, arguments in invalid:
             with self.subTest(name=name, arguments=arguments):
                 self.assertIn("error", self.agent.act(name, arguments))
-        self.assertEqual(len(self.agent.list_tabs()), 1)
+        self.assertEqual(len(list_tabs(self.agent.page)), 1)
         from agent import ACTIONS
         self.assertEqual({t["name"] for t in build_tools()}, set(ACTIONS))
         for tool in build_tools():

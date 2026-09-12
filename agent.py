@@ -70,7 +70,7 @@ def build_tools():
     tools = []
     for name, function in ACTIONS.items():
         parameters = {key: p for key, p in inspect.signature(function).parameters.items()
-                      if key not in ("self", "page")}
+                      if key != "page"}
         properties = {key: {"type": {float: "number", int: "integer", str: "string"}[p.annotation]}
                       for key, p in parameters.items()}
         required = [key for key, p in parameters.items()
@@ -152,6 +152,39 @@ def screenshot(page):
     data = page.screenshot(type="jpeg", quality=70, scale="css")
     return "data:image/jpeg;base64," + base64.b64encode(data).decode()
 
+def active_page(page):
+    """Replace a closed page if needed and use the screenshot coordinate viewport."""
+    if page.is_closed():
+        context = page.context
+        page = context.pages[0] if context.pages else context.new_page()
+    viewport = {"width": 1280, "height": 800}
+    if page.viewport_size != viewport:
+        page.set_viewport_size(viewport)
+    return page
+
+def list_tabs(page):
+    """List current zero-based indices, titles, URLs, and the active page flag."""
+    return [dict(index=i, title=tab.title(), url=tab.url, active=tab == page)
+            for i, tab in enumerate(page.context.pages)]
+
+def new_tab(page, url: str = "about:blank"):
+    """Open a tab and return its Page; the agent activates it and returns its index."""
+    validate_url(url)
+    tab = page.context.new_page()
+    navigate(tab, url)
+    return active_page(tab)
+
+def switch_tab(page, index: int):
+    """Return the selected Page; the agent activates it and returns its index."""
+    tab = page.context.pages[index]
+    tab.bring_to_front()
+    return active_page(tab)
+
+def close_tab(page, index: int):
+    """Close a tab and return the active Page; the agent returns the updated tab list."""
+    page.context.pages[index].close()
+    return active_page(page)
+
 class WebAgent:
     def __init__(self, profile=".chrome"):
         self.profile = Path(profile).expanduser().resolve()
@@ -208,56 +241,34 @@ class WebAgent:
             self.context = self.browser.contexts[0]
             self.context.set_default_timeout(10_000)
             self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
-            self.list_tabs()
+            self.page = active_page(self.page)
             return self
         except BaseException:
             self.disconnect()
             raise
-
-    def list_tabs(self):
-        """Return the current zero-based indices, titles, URLs, and active flags."""
-        if self.page.is_closed():
-            self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
-        viewport = {"width": 1280, "height": 800}
-        if self.page.viewport_size != viewport:
-            self.page.set_viewport_size(viewport)
-        return [dict(index=i, title=page.title(), url=page.url, active=page == self.page)
-                for i, page in enumerate(self.context.pages)]
-
-    def new_tab(self, url: str = "about:blank"):
-        """Open and activate a tab, returning its current index."""
-        validate_url(url)
-        self.page = self.context.new_page()
-        navigate(self.page, url)
-        return self.context.pages.index(self.page)
-
-    def switch_tab(self, index: int):
-        self.page = self.context.pages[index]
-        self.page.bring_to_front()
-
-    def close_tab(self, index: int):
-        """Close a tab and return the updated indices; keep at least one tab open."""
-        self.context.pages[index].close()
-        return self.list_tabs()
 
     def act(self, name, arguments):
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
                 raise ValueError("Unknown action or non-object arguments")
-            self.list_tabs()
+            self.page = active_page(self.page)
             action = ACTIONS[name]
-            target = self.page if "page" in inspect.signature(action).parameters else self
-            function = partial(action, target)
+            function = partial(action, self.page)
             validate_arguments(function, arguments)
             result = function(**arguments)
+            if name in ("new_tab", "switch_tab", "close_tab"):
+                self.page = result
+                result = (list_tabs(self.page) if name == "close_tab"
+                          else self.context.pages.index(self.page))
             return "Screenshot follows in the next observation" if name == "screenshot" else result
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
 
     def observe(self):
         """Return tab metadata and a screenshot, without DOM text or accessibility trees."""
-        tabs = self.list_tabs()
+        self.page = active_page(self.page)
+        tabs = list_tabs(self.page)
         state = dict(active_tab=next(tab["index"] for tab in tabs if tab["active"]), tabs=tabs,
                      viewport={"width": 1280, "height": 800})
         return json.dumps(state), screenshot(self.page)
@@ -321,7 +332,7 @@ class WebAgent:
 ACTIONS = {function.__name__: function for function in (
     navigate, back, forward, reload, click, double_click, right_click, hover,
     mouse_down, mouse_up, drag, scroll, type_text, press_key, key_down, key_up, wait, screenshot,
-    WebAgent.list_tabs, WebAgent.new_tab, WebAgent.switch_tab, WebAgent.close_tab,
+    list_tabs, new_tab, switch_tab, close_tab,
 )}
 
 if __name__ == "__main__":
