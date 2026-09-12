@@ -194,8 +194,8 @@ class BrowserTests(unittest.TestCase):
                 self.assertIn("error", self.agent.act(name, arguments))
         self.assertEqual(len(self.agent.list_tabs()), 1)
         from agent import ACTIONS
-        self.assertEqual({t["name"] for t in build_tools(WebAgent)}, set(ACTIONS))
-        for tool in build_tools(WebAgent):
+        self.assertEqual({t["name"] for t in build_tools()}, set(ACTIONS))
+        for tool in build_tools():
             self.assertNotIn("page", tool["parameters"]["properties"])
             self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())

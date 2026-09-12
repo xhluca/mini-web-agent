@@ -145,8 +145,8 @@ documents the functions. Tool schemas are derived from their signatures/docstrin
 readiness waits, URL/argument validation, and schema construction are module-level
 helpers with explicit inputs. Page actions are module-level functions too; the class
 holds browser/tab state, dispatches calls, and runs the agent loop.
-The fixed `ACTIONS` tuple is the allowlist; seeing a function in the source does not
-make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
+The single `ACTIONS` dictionary drives both tool schemas and dispatch; seeing a
+function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
 Before dispatch, the agent checks the name, argument object, signature, types,
 finite numbers, and viewport coordinate bounds. Extra arguments are rejected.
