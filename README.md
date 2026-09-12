@@ -89,7 +89,8 @@ The lifecycle is explicit:
 
 Use `WebAgent(profile).launch().connect()` for a new browser and
 `WebAgent(profile).connect()` to reuse one. Launch/connect do not preflight browser
-liveness; profile-file and Playwright connection errors propagate directly.
+liveness. Lifecycle failures include an explicit message and retain the original exception
+as their cause; profile-file errors propagate directly.
 
 Page actions are standalone functions with an explicit Playwright page argument:
 

@@ -235,12 +235,12 @@ class WebAgent:
             if port:  # Chrome only writes this file automatically when launched with port=0.
                 target = urlsplit(browser_endpoint(self.profile, port)).path
                 (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
-        except BaseException:
+        except BaseException as error:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
                 self.process.wait(timeout=5)
             self.disconnect()
-            raise
+            raise RuntimeError(f"Failed to launch Chrome: {error}") from error
         return self
 
     def connect(self, timeout=20):
@@ -259,9 +259,9 @@ class WebAgent:
             self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
             self.page = active_page(self.page)
             return self
-        except BaseException:
+        except BaseException as error:
             self.disconnect()
-            raise
+            raise Error(f"Failed to connect to Chrome: {error}") from error
 
     def act(self, name, arguments):
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
@@ -304,9 +304,9 @@ class WebAgent:
         try:
             try:
                 self.browser.new_browser_cdp_session().send("Browser.close")
-            except Error:
+            except Error as error:
                 if self.browser.is_connected():
-                    raise
+                    raise Error(f"Failed to shut down Chrome: {error}") from error
             wait_for_browser(self.profile, running=False)
             if self.process:
                 self.process.wait(timeout=5)
