@@ -1,0 +1,6 @@
+.venv/
+.chrome/
+__pycache__/
+.env
+*.png
+*.zip
