@@ -18,8 +18,6 @@ from urllib.request import urlopen
 from openai import OpenAI
 from playwright.sync_api import Browser, Error, Page, Playwright, sync_playwright
 
-ActionResult = str | int | dict[str, Any] | list[dict[str, Any]] | None
-
 INSTRUCTIONS = """Complete the user's browser task using only the provided function tools.
 Use screenshots to locate controls; coordinates are CSS pixels within the 1280x800 viewport.
 Observe results and verify success before answering. Use wait for delayed rendering.
@@ -310,7 +308,9 @@ class WebAgent:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
-    def act(self, name: str, arguments: dict[str, Any]) -> ActionResult:
+    def act(
+        self, name: str, arguments: dict[str, Any],
+    ) -> str | int | dict[str, Any] | list[dict[str, Any]] | None:
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
