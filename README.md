@@ -179,10 +179,9 @@ function in the source does not make it callable. `launch`, `connect`, `disconne
 
 Before dispatch, the agent checks the name, argument object, signature, types,
 finite numbers, and viewport coordinate bounds. Extra arguments are rejected.
-Navigation/new-tab tools allow HTTP(S) and `about:blank`; `file:`, `data:`, and
-`javascript:` URLs are rejected. There is no model-facing Python executor, JavaScript
-evaluator, raw CDP command, selector API, arbitrary callback, or filesystem tool.
-Screenshots stay in memory. The model cannot supply executable source or output paths.
+Navigation URLs are passed directly to Playwright without scheme restrictions.
+There is no separate Python executor, JavaScript evaluator, raw CDP command,
+selector API, arbitrary callback, or filesystem tool. Screenshots stay in memory.
 
 This restricts the model's tool interface; it is not browser isolation or a website
 allowlist. Clicks and keyboard input can still submit forms, trigger downloads, and

@@ -35,8 +35,7 @@ class Actions:
     """Model-callable actions; a namespace, never instantiated."""
 
     def navigate(page: Page, url: str) -> None:
-        """Navigate the active tab to an HTTP(S) URL or about:blank."""
-        validate_url(url)
+        """Navigate the active tab to a URL."""
         page.goto(url, wait_until="domcontentloaded")
 
     def back(page: Page) -> None:
@@ -114,7 +113,6 @@ class Actions:
 
     def new_tab(page: Page, url: str = "about:blank") -> Page:
         """Open a tab and return its Page; the agent activates it and returns its index."""
-        validate_url(url)
         tab = page.context.new_page()
         Actions.navigate(tab, url)
         return active_page(tab)
@@ -177,11 +175,6 @@ def wait_for_browser(
             return
         time.sleep(0.1)
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
-
-
-def validate_url(url: str) -> None:
-    if url != "about:blank" and urlsplit(url).scheme not in ("http", "https"):
-        raise ValueError("Only HTTP(S) URLs and about:blank are allowed")
 
 
 def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
