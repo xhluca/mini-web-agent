@@ -30,8 +30,6 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 
 
 class Actions:
-    """Model-callable actions; a namespace, never instantiated."""
-
     def navigate(page: Page, url: str) -> None:
         page.goto(url, wait_until="domcontentloaded")
 
