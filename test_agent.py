@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import socket
@@ -325,6 +326,23 @@ class BrowserTests(unittest.TestCase):
                          "survived@example.com")
         self.agent.shutdown()
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
+
+    def test_cli_passes_instructions_and_step_limit(self):
+        Fixture.requests = []
+        Fixture.replies = [[]]
+        with tempfile.TemporaryDirectory(prefix="mini-web-agent-cli-") as profile:
+            result = subprocess.run(
+                [sys.executable, "agent.py", "Test CLI", "--model", "test",
+                 "--profile", profile, "--max-steps", "1", "--close"],
+                cwd=Path(__file__).parent, capture_output=True, text=True, timeout=30,
+                env=dict(os.environ, OPENAI_API_KEY="local-test",
+                         OPENAI_BASE_URL=self.url + "/v1"),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Stopped after 1 model turns", result.stdout)
+        self.assertEqual(len(Fixture.requests), 1)
+        self.assertIn("Complete the user's browser task",
+                      Fixture.requests[0][1]["input"][0]["content"])
 
     def test_responses_wire_format_and_error_recovery(self):
         Fixture.requests = []

@@ -454,8 +454,8 @@ if __name__ == "__main__":
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
-                agent, args.task, client, args.model, args.max_steps,
-                instructions=instructions,
+                agent, args.task, client, args.model,
+                instructions=instructions, max_steps=args.max_steps,
                 on_action=lambda step, action, result: print(step, action, result, flush=True),
             ))
     finally:
