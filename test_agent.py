@@ -389,6 +389,34 @@ class BrowserTests(unittest.TestCase):
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
             self.assertEqual(self.agent.run("Finish", client, "test", max_steps=2), "Done")
 
+    def test_missing_tool_calls_receive_feedback(self):
+        plain_text = dict(
+            type="message", id="msg_plain", role="assistant", status="completed",
+            content=[dict(type="output_text", text="I am done.", annotations=[])],
+        )
+        Fixture.requests = []
+        Fixture.replies = [[plain_text], [], [tool_call("finish", {"message": "Done"})]]
+        messages = []
+        self.agent.on_message = messages.append
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            self.assertEqual(self.agent.run("Finish", client, "test", max_steps=3), "Done")
+        self.assertEqual(messages, [])
+        for turn in (1, 2):
+            previous = Fixture.requests[turn - 1][1]["input"]
+            history = Fixture.requests[turn][1]["input"]
+            self.assertEqual(history[:len(previous)], previous)
+            self.assertEqual(history[-2], {
+                "role": "user",
+                "content": "Use a provided tool. Call finish if the task is complete.",
+            })
+
+        Fixture.requests = []
+        Fixture.replies = [[], []]
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            with self.assertRaisesRegex(RuntimeError, "unfinished after 2"):
+                self.agent.run("Finish", client, "test", max_steps=2)
+        self.assertEqual(len(Fixture.requests), 2)
+
     def test_step_limit(self):
         Fixture.replies = [[tool_call("wait", {"seconds": 0})]]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:

@@ -162,8 +162,8 @@ the website. `wait(seconds)` remains a separate browser-delay action.
 
 `finish(message)` ends the current run immediately and returns its final message;
 later actions in the same model response are skipped. Browser shutdown remains the
-caller's choice. Plain assistant text is displayed as a message and the loop continues
-until `finish` or the turn limit. Configure `on_message` and `on_reply` on `WebAgent`.
+caller's choice. Responses without tool calls receive corrective feedback, and the loop retries
+within the existing turn limit. Only `finish` ends the run successfully. Configure `on_message` and `on_reply` on `WebAgent`.
 Calling `act()` performs these actions directly, including delivery and waiting.
 `finish(message)` simply returns its message without changing agent state.
 `run()` returns after a successful `finish` call, including an empty final string;

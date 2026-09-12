@@ -412,9 +412,10 @@ class WebAgent:
             calls = [item for item in response.output if item.type == "function_call"]
 
             if not calls:
-                if not response.output_text:
-                    raise RuntimeError("Model returned neither an action nor an answer")
-                self.act("send_message", {"message": response.output_text})
+                history.append({
+                    "role": "user",
+                    "content": "Use a provided tool. Call finish if the task is complete.",
+                })
                 continue
 
             for call in calls:
