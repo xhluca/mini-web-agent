@@ -185,7 +185,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(len(tabs), 1)
         self.assertTrue(tabs[0]["active"])
         self.assertIsNone(self.agent.act("wait", '{"seconds": 0}'))
-        self.assertIn("Invalid action JSON", self.agent.act("wait", "{")["error"])
+        self.assertIn("JSONDecodeError", self.agent.act("wait", "{")["error"])
 
     def test_restricted_dispatch(self):
         invalid = [
@@ -329,7 +329,7 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(self.agent.run("Finish", client, "test", max_steps=2), "Done")
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertIn("Invalid action JSON", outputs[0]["output"])
+        self.assertIn("JSONDecodeError", outputs[0]["output"])
 
     def test_messages_wait_for_reply_and_finish(self):
         Fixture.requests = []

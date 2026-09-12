@@ -325,8 +325,6 @@ class WebAgent:
                 function = partial(action, self)
             validate_arguments(function, arguments)
             return function(**arguments)
-        except json.JSONDecodeError as error:
-            return {"error": f"Invalid action JSON: {error}"}
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
 
