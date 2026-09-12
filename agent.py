@@ -432,9 +432,11 @@ class WebAgent:
 
             for call in calls:
                 try:
-                    result = self.act(call.name, json.loads(call.arguments))
-                except (ValueError, TypeError) as error:
-                    result = {"error": f"Invalid action: {error}"}
+                    arguments = json.loads(call.arguments)
+                except json.JSONDecodeError as error:
+                    result = {"error": f"Invalid action JSON: {error}"}
+                else:
+                    result = self.act(call.name, arguments)
 
                 if on_step:
                     on_step(step, dict(name=call.name, arguments=call.arguments), result)

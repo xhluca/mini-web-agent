@@ -288,6 +288,20 @@ class BrowserTests(unittest.TestCase):
         self.assertIn("Unknown action", outputs[0]["output"])
         self.assertEqual(outputs[1]["output"], "null")
 
+    def test_malformed_action_json_recovers(self):
+        malformed = tool_call("click", call_id="bad_json")
+        malformed["arguments"] = "{"
+        Fixture.requests = []
+        Fixture.replies = [
+            [malformed],
+            [tool_call("finish", {"message": "Done"}, "valid")],
+        ]
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            self.assertEqual(self.agent.run("Finish", client, "test", max_steps=2), "Done")
+        outputs = [item for item in Fixture.requests[-1][1]["input"]
+                   if item.get("type") == "function_call_output"]
+        self.assertIn("Invalid action JSON", outputs[0]["output"])
+
     def test_messages_wait_for_reply_and_finish(self):
         Fixture.requests = []
         Fixture.replies = [
