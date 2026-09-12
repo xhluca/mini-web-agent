@@ -81,8 +81,7 @@ def build_tools():
 
     for name, function in ACTIONS.items():
         parameters = {
-            key: p
-            for key, p in inspect.signature(function).parameters.items()
+            key: p for key, p in inspect.signature(function).parameters.items()
             if key not in ("page", "self")
         }
         properties = {
@@ -90,20 +89,12 @@ def build_tools():
             for key, p in parameters.items()
         }
         required = [key for key, p in parameters.items() if p.default is inspect.Parameter.empty]
-        tools.append(
-            dict(
-                type="function",
-                name=name,
-                strict=False,
-                description=inspect.getdoc(function) or name.replace("_", " "),
-                parameters=dict(
-                    type="object",
-                    properties=properties,
-                    required=required,
-                    additionalProperties=False,
-                ),
-            )
-        )
+        tools.append(dict(
+            type="function", name=name, strict=False,
+            description=inspect.getdoc(function) or name.replace("_", " "),
+            parameters=dict(type="object", properties=properties, required=required,
+                            additionalProperties=False),
+        ))
 
     return tools
 
@@ -263,14 +254,9 @@ class WebAgent:
         self.playwright = sync_playwright().start()
         executable = self.playwright.chromium.executable_path
         args = [
-            executable,
-            f"--user-data-dir={self.profile}",
-            f"--remote-debugging-port={port}",
-            "--remote-debugging-address=127.0.0.1",
-            "--no-first-run",
-            "--no-default-browser-check",
-            "--headless=new",
-            "about:blank",
+            executable, f"--user-data-dir={self.profile}", f"--remote-debugging-port={port}",
+            "--remote-debugging-address=127.0.0.1", "--no-first-run",
+            "--no-default-browser-check", "--headless=new", "about:blank",
         ]
 
         try:
@@ -353,11 +339,8 @@ class WebAgent:
 
             if name in ("new_tab", "switch_tab", "close_tab"):
                 self.page = result
-                result = (
-                    list_tabs(self.page)
-                    if name == "close_tab"
-                    else self.context.pages.index(self.page)
-                )
+                result = (list_tabs(self.page) if name == "close_tab"
+                          else self.context.pages.index(self.page))
 
             return "Screenshot follows in the next observation" if name == "screenshot" else result
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
@@ -369,8 +352,7 @@ class WebAgent:
         tabs = list_tabs(self.page)
         state = dict(
             active_tab=next(tab["index"] for tab in tabs if tab["active"]),
-            tabs=tabs,
-            viewport={"width": 1280, "height": 800},
+            tabs=tabs, viewport={"width": 1280, "height": 800},
         )
         return json.dumps(state), screenshot(self.page)
 
@@ -417,12 +399,8 @@ class WebAgent:
             history.append({"role": "user", "content": content})
 
             response = client.responses.create(
-                model=model,
-                input=history,
-                tools=build_tools(),
-                store=False,
-                include=["reasoning.encrypted_content"],
-                parallel_tool_calls=False,
+                model=model, input=history, tools=build_tools(), store=False,
+                include=["reasoning.encrypted_content"], parallel_tool_calls=False,
                 max_output_tokens=4096,
             )
             if response.status != "completed":
@@ -447,13 +425,10 @@ class WebAgent:
                 if on_step:
                     on_step(step, dict(name=call.name, arguments=call.arguments), result)
 
-                history.append(
-                    {
-                        "type": "function_call_output",
-                        "call_id": call.call_id,
-                        "output": json.dumps(result),
-                    }
-                )
+                history.append({
+                    "type": "function_call_output", "call_id": call.call_id,
+                    "output": json.dumps(result),
+                })
 
                 if self.done:
                     return self.final_message
@@ -461,36 +436,13 @@ class WebAgent:
         raise RuntimeError(f"Task unfinished after {max_steps} model turns")
 
 
-ACTIONS = {
-    function.__name__: function
-    for function in (
-        navigate,
-        back,
-        forward,
-        reload,
-        click,
-        double_click,
-        right_click,
-        hover,
-        mouse_down,
-        mouse_up,
-        drag,
-        scroll,
-        type_text,
-        press_key,
-        key_down,
-        key_up,
-        wait,
-        screenshot,
-        list_tabs,
-        new_tab,
-        switch_tab,
-        close_tab,
-        WebAgent.send_message,
-        WebAgent.finish,
-        WebAgent.wait_for_reply,
-    )
-}
+ACTIONS = {function.__name__: function for function in (
+    navigate, back, forward, reload,
+    click, double_click, right_click, hover, mouse_down, mouse_up, drag, scroll,
+    type_text, press_key, key_down, key_up, wait, screenshot,
+    list_tabs, new_tab, switch_tab, close_tab,
+    WebAgent.send_message, WebAgent.finish, WebAgent.wait_for_reply,
+)}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -515,15 +467,10 @@ if __name__ == "__main__":
 
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
-            print(
-                agent.run(
-                    args.task,
-                    client,
-                    args.model,
-                    args.max_steps,
-                    on_step=lambda n, action, result: print(n, action, result, flush=True),
-                )
-            )
+            print(agent.run(
+                args.task, client, args.model, args.max_steps,
+                on_step=lambda n, action, result: print(n, action, result, flush=True),
+            ))
     finally:
         if args.close:
             agent.shutdown()
