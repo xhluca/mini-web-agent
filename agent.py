@@ -2,6 +2,7 @@
 
 import argparse
 import base64
+from collections.abc import Callable
 from functools import partial
 import inspect
 import json
@@ -10,11 +11,15 @@ from pathlib import Path
 import socket
 import subprocess
 import time
+from typing import Any, TypeVar
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from openai import OpenAI
-from playwright.sync_api import Error, sync_playwright
+from playwright.sync_api import Browser, BrowserContext, Error, Page, Playwright, sync_playwright
+
+T = TypeVar("T")
+ActionResult = str | int | dict[str, Any] | list[dict[str, Any]] | None
 
 INSTRUCTIONS = """Complete the user's browser task using only the provided function tools.
 Use screenshots to locate controls; coordinates are CSS pixels within the 1280x800 viewport.
@@ -27,7 +32,7 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 """
 
 
-def namespace(cls):
+def namespace(cls: type[T]) -> type[T]:
     """Make functions in a class static so it can serve as a namespace."""
     for name, value in list(vars(cls).items()):
         if inspect.isfunction(value) and not name.startswith("__"):
@@ -39,40 +44,40 @@ def namespace(cls):
 class Actions:
     """Model-callable actions; a namespace, never instantiated."""
 
-    def navigate(page, url: str):
+    def navigate(page: Page, url: str) -> None:
         """Navigate the active tab to an HTTP(S) URL or about:blank."""
         validate_url(url)
         page.goto(url, wait_until="domcontentloaded")
 
-    def back(page):
+    def back(page: Page) -> None:
         page.go_back(wait_until="commit")
 
-    def forward(page):
+    def forward(page: Page) -> None:
         page.go_forward(wait_until="commit")
 
-    def reload(page):
+    def reload(page: Page) -> None:
         page.reload(wait_until="domcontentloaded")
 
-    def click(page, x: float, y: float):
+    def click(page: Page, x: float, y: float) -> None:
         page.mouse.click(x, y)
 
-    def double_click(page, x: float, y: float):
+    def double_click(page: Page, x: float, y: float) -> None:
         page.mouse.dblclick(x, y)
 
-    def right_click(page, x: float, y: float):
+    def right_click(page: Page, x: float, y: float) -> None:
         page.mouse.click(x, y, button="right")
 
-    def hover(page, x: float, y: float):
+    def hover(page: Page, x: float, y: float) -> None:
         page.mouse.move(x, y, steps=10)
 
-    def mouse_down(page):
+    def mouse_down(page: Page) -> None:
         """Hold the left mouse button at the current pointer position."""
         page.mouse.down()
 
-    def mouse_up(page):
+    def mouse_up(page: Page) -> None:
         page.mouse.up()
 
-    def drag(page, x1: float, y1: float, x2: float, y2: float):
+    def drag(page: Page, x1: float, y1: float, x2: float, y2: float) -> None:
         Actions.hover(page, x1, y1)
         Actions.mouse_down(page)
         try:
@@ -80,87 +85,87 @@ class Actions:
         finally:
             Actions.mouse_up(page)
 
-    def scroll(page, dx: float, dy: float):
+    def scroll(page: Page, dx: float, dy: float) -> None:
         """Scroll at the pointer; positive dy scrolls down, positive dx scrolls right."""
         page.mouse.wheel(dx, dy)
 
-    def type_text(page, text: str):
+    def type_text(page: Page, text: str) -> None:
         """Type into the focused control. Use press_key('ControlOrMeta+A') to replace text."""
         page.keyboard.type(text)
 
-    def press_key(page, key: str):
+    def press_key(page: Page, key: str) -> None:
         """Press a key or chord, e.g. Enter, Tab, ArrowDown, ControlOrMeta+A."""
         page.keyboard.press(key)
 
-    def key_down(page, key: str):
+    def key_down(page: Page, key: str) -> None:
         """Hold a key, e.g. Shift, until key_up is called (release before switching tabs)."""
         page.keyboard.down(key)
 
-    def key_up(page, key: str):
+    def key_up(page: Page, key: str) -> None:
         page.keyboard.up(key)
 
-    def wait(page, seconds: float):
+    def wait(page: Page, seconds: float) -> None:
         """Wait between 0 and 10 seconds while processing browser events."""
         if not 0 <= seconds <= 10:
             raise ValueError("seconds must be between 0 and 10")
         page.wait_for_timeout(seconds * 1000)
 
-    def screenshot(page):
+    def screenshot(page: Page) -> str:
         """Return the active tab's viewport JPEG as a data URL; never writes files."""
         data = page.screenshot(type="jpeg", quality=70, scale="css")
         return "data:image/jpeg;base64," + base64.b64encode(data).decode()
 
-    def list_tabs(page):
+    def list_tabs(page: Page) -> list[dict[str, Any]]:
         """List current zero-based indices, titles, URLs, and the active page flag."""
         return [
             dict(index=i, title=tab.title(), url=tab.url, active=tab == page)
             for i, tab in enumerate(page.context.pages)
         ]
 
-    def new_tab(page, url: str = "about:blank"):
+    def new_tab(page: Page, url: str = "about:blank") -> Page:
         """Open a tab and return its Page; the agent activates it and returns its index."""
         validate_url(url)
         tab = page.context.new_page()
         Actions.navigate(tab, url)
         return active_page(tab)
 
-    def switch_tab(page, index: int):
+    def switch_tab(page: Page, index: int) -> Page:
         """Return the selected Page; the agent activates it and returns its index."""
         tab = page.context.pages[index]
         tab.bring_to_front()
         return active_page(tab)
 
-    def close_tab(page, index: int):
+    def close_tab(page: Page, index: int) -> Page:
         """Close a tab and return the active Page; the agent returns the updated tab list."""
         page.context.pages[index].close()
         return active_page(page)
 
-    def send_message(agent, message: str):
+    def send_message(agent: "WebAgent", message: str) -> dict[str, str]:
         """Send a progress update to the user and continue working."""
         agent.on_message(message)
         return {"type": "message", "text": message}
 
-    def wait_for_reply(agent):
+    def wait_for_reply(agent: "WebAgent") -> dict[str, str]:
         """Wait for the user's response and return it to the model."""
         reply = agent.on_reply()
         if not isinstance(reply, str):
             raise TypeError("on_reply must return the user's reply as a string")
         return {"type": "user_reply", "text": reply}
 
-    def finish(agent, message: str):
+    def finish(agent: "WebAgent", message: str) -> dict[str, str]:
         """Mark the task complete and store its final answer."""
         agent.final_message = message
         agent.done = True
         return {"type": "finish", "text": message}
 
 
-ACTIONS = {
+ACTIONS: dict[str, Callable[..., Any]] = {
     name: method.__func__ for name, method in vars(Actions).items()
     if isinstance(method, staticmethod)
 }
 
 
-def browser_endpoint(profile, port=0):
+def browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
     try:
         target = ""
         if not port:
@@ -174,7 +179,9 @@ def browser_endpoint(profile, port=0):
         return None
 
 
-def wait_for_browser(profile, running, attempts=50, port=0):
+def wait_for_browser(
+    profile: str | Path, running: bool, attempts: int = 50, port: int = 0
+) -> None:
     """Check every 0.1 seconds until Chrome has started or stopped."""
     for _ in range(attempts):
         if bool(browser_endpoint(profile, port)) == running:
@@ -183,12 +190,12 @@ def wait_for_browser(profile, running, attempts=50, port=0):
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
 
-def validate_url(url):
+def validate_url(url: str) -> None:
     if url != "about:blank" and urlsplit(url).scheme not in ("http", "https"):
         raise ValueError("Only HTTP(S) URLs and about:blank are allowed")
 
 
-def validate_arguments(function, arguments):
+def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
     signature = inspect.signature(function)
     signature.bind(**arguments)
 
@@ -208,7 +215,7 @@ def validate_arguments(function, arguments):
                 raise ValueError(f"{key} is outside the viewport")
 
 
-def build_tools():
+def build_tools() -> list[dict[str, Any]]:
     """Derive tool schemas from the signatures of explicitly registered functions."""
     tools = []
 
@@ -232,7 +239,7 @@ def build_tools():
     return tools
 
 
-def active_page(page):
+def active_page(page: Page) -> Page:
     """Replace a closed page if needed and use the screenshot coordinate viewport."""
     if page.is_closed():
         context = page.context
@@ -245,7 +252,10 @@ def active_page(page):
 
 
 class WebAgent:
-    def __init__(self, profile=".chrome", cdp_port=0, on_message=print, on_reply=input):
+    def __init__(
+        self, profile: str | Path = ".chrome", cdp_port: int = 0,
+        on_message: Callable[[str], None] = print, on_reply: Callable[[], str] = input,
+    ) -> None:
         if type(cdp_port) is not int or not 0 <= cdp_port <= 65535:
             raise ValueError("cdp_port must be an integer from 0 to 65535; 0 selects a random port")
 
@@ -253,11 +263,15 @@ class WebAgent:
         self.on_message = on_message
         self.on_reply = on_reply
         self.done = False
-        self.final_message = None
+        self.final_message: str | None = None
         self.cdp_port = cdp_port
-        self.playwright = self.process = self.browser = None
+        self.playwright: Playwright | None = None
+        self.process: subprocess.Popen[bytes] | None = None
+        self.browser: Browser | None = None
+        self.context: BrowserContext
+        self.page: Page
 
-    def launch(self, timeout=20):
+    def launch(self, timeout: float = 20) -> "WebAgent":
         """Launch detached headless Chrome. Call connect() separately to control it."""
         port = self.cdp_port
         if port:
@@ -294,7 +308,7 @@ class WebAgent:
 
         return self
 
-    def connect(self, timeout=20):
+    def connect(self, timeout: float = 20) -> "WebAgent":
         """Attach Playwright to this profile's running Chrome; never launch a browser."""
         if self.browser:
             return self
@@ -318,8 +332,7 @@ class WebAgent:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
-
-    def act(self, name, arguments):
+    def act(self, name: str, arguments: dict[str, Any]) -> ActionResult:
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
@@ -344,7 +357,7 @@ class WebAgent:
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
 
-    def observe(self):
+    def observe(self) -> tuple[str, str]:
         """Return tab metadata and a screenshot, without DOM text or accessibility trees."""
         self.page = active_page(self.page)
         tabs = Actions.list_tabs(self.page)
@@ -354,14 +367,14 @@ class WebAgent:
         )
         return json.dumps(state), Actions.screenshot(self.page)
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Detach Playwright and leave Chrome running."""
         if self.playwright:
             self.playwright.stop()
             self.playwright = None
             self.browser = None
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Close the connected Chrome browser, then disconnect Playwright."""
         try:
             try:
@@ -376,7 +389,10 @@ class WebAgent:
         finally:
             self.disconnect()
 
-    def run(self, task, client, model, max_steps=30, on_step=None):
+    def run(
+        self, task: str, client: OpenAI, model: str, max_steps: int = 30,
+        on_step: Callable[[int, dict[str, str], ActionResult], None] | None = None,
+    ) -> str:
         """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
