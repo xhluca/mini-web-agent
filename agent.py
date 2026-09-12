@@ -27,53 +27,51 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 """
 
 
+def namespace(cls):
+    """Make functions in a class static so it can serve as a namespace."""
+    for name, value in list(vars(cls).items()):
+        if inspect.isfunction(value) and not name.startswith("__"):
+            setattr(cls, name, staticmethod(value))
+    return cls
+
+
+@namespace
 class Actions:
     """Model-callable actions; a namespace, never instantiated."""
 
-    @staticmethod
     def navigate(page, url: str):
         """Navigate the active tab to an HTTP(S) URL or about:blank."""
         validate_url(url)
         page.goto(url, wait_until="domcontentloaded")
 
-    @staticmethod
     def back(page):
         page.go_back(wait_until="commit")
 
-    @staticmethod
     def forward(page):
         page.go_forward(wait_until="commit")
 
-    @staticmethod
     def reload(page):
         page.reload(wait_until="domcontentloaded")
 
-    @staticmethod
     def click(page, x: float, y: float):
         page.mouse.click(x, y)
 
-    @staticmethod
     def double_click(page, x: float, y: float):
         page.mouse.dblclick(x, y)
 
-    @staticmethod
     def right_click(page, x: float, y: float):
         page.mouse.click(x, y, button="right")
 
-    @staticmethod
     def hover(page, x: float, y: float):
         page.mouse.move(x, y, steps=10)
 
-    @staticmethod
     def mouse_down(page):
         """Hold the left mouse button at the current pointer position."""
         page.mouse.down()
 
-    @staticmethod
     def mouse_up(page):
         page.mouse.up()
 
-    @staticmethod
     def drag(page, x1: float, y1: float, x2: float, y2: float):
         Actions.hover(page, x1, y1)
         Actions.mouse_down(page)
@@ -82,44 +80,36 @@ class Actions:
         finally:
             Actions.mouse_up(page)
 
-    @staticmethod
     def scroll(page, dx: float, dy: float):
         """Scroll at the pointer; positive dy scrolls down, positive dx scrolls right."""
         page.mouse.wheel(dx, dy)
 
-    @staticmethod
     def type_text(page, text: str):
         """Type into the focused control. Use press_key('ControlOrMeta+A') to replace text."""
         page.keyboard.type(text)
 
-    @staticmethod
     def press_key(page, key: str):
         """Press a key or chord, e.g. Enter, Tab, ArrowDown, ControlOrMeta+A."""
         page.keyboard.press(key)
 
-    @staticmethod
     def key_down(page, key: str):
         """Hold a key, e.g. Shift, until key_up is called (release before switching tabs)."""
         page.keyboard.down(key)
 
-    @staticmethod
     def key_up(page, key: str):
         page.keyboard.up(key)
 
-    @staticmethod
     def wait(page, seconds: float):
         """Wait between 0 and 10 seconds while processing browser events."""
         if not 0 <= seconds <= 10:
             raise ValueError("seconds must be between 0 and 10")
         page.wait_for_timeout(seconds * 1000)
 
-    @staticmethod
     def screenshot(page):
         """Return the active tab's viewport JPEG as a data URL; never writes files."""
         data = page.screenshot(type="jpeg", quality=70, scale="css")
         return "data:image/jpeg;base64," + base64.b64encode(data).decode()
 
-    @staticmethod
     def list_tabs(page):
         """List current zero-based indices, titles, URLs, and the active page flag."""
         return [
@@ -127,7 +117,6 @@ class Actions:
             for i, tab in enumerate(page.context.pages)
         ]
 
-    @staticmethod
     def new_tab(page, url: str = "about:blank"):
         """Open a tab and return its Page; the agent activates it and returns its index."""
         validate_url(url)
@@ -135,26 +124,22 @@ class Actions:
         Actions.navigate(tab, url)
         return active_page(tab)
 
-    @staticmethod
     def switch_tab(page, index: int):
         """Return the selected Page; the agent activates it and returns its index."""
         tab = page.context.pages[index]
         tab.bring_to_front()
         return active_page(tab)
 
-    @staticmethod
     def close_tab(page, index: int):
         """Close a tab and return the active Page; the agent returns the updated tab list."""
         page.context.pages[index].close()
         return active_page(page)
 
-    @staticmethod
     def send_message(agent, message: str):
         """Send a progress update to the user and continue working."""
         agent.on_message(message)
         return {"type": "message", "text": message}
 
-    @staticmethod
     def wait_for_reply(agent):
         """Wait for the user's response and return it to the model."""
         reply = agent.on_reply()
@@ -162,7 +147,6 @@ class Actions:
             raise TypeError("on_reply must return the user's reply as a string")
         return {"type": "user_reply", "text": reply}
 
-    @staticmethod
     def finish(agent, message: str):
         """Mark the task complete and store its final answer."""
         agent.final_message = message

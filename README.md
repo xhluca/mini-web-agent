@@ -89,7 +89,8 @@ liveness. Lifecycle failures include an explicit message and retain the original
 as their cause; profile-file errors propagate directly.
 
 All model actions live in the `Actions` namespace before the helper functions. Its
-static methods need no instance; page actions take an explicit Playwright page:
+methods are made static by one `@namespace` decorator; no instance is needed.
+Page actions take an explicit Playwright page:
 
 ```python
 from agent import Actions
