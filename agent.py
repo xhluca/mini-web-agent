@@ -165,8 +165,7 @@ def check_port_available(port: int) -> None:
 
 
 def read_assigned_port(profile: Path) -> int:
-    port_file = profile / "DevToolsActivePort"
-    return int(port_file.read_text().splitlines()[0])
+    return int((profile / "DevToolsActivePort").read_text().splitlines()[0])
 
 def tab_at(page: Page, index: int) -> Page:
     if index < 0:
