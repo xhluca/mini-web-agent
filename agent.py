@@ -318,14 +318,13 @@ class WebAgent:
 
             action = ACTIONS[name]
             parameters = inspect.signature(action).parameters
-            function = action
             if "page" in parameters:
                 self.page = prepare_page(self.page)
-                function = partial(action, self.page)
+                action = partial(action, self.page)
             elif "agent" in parameters:
-                function = partial(action, self)
-            validate_arguments(function, arguments)
-            return function(**arguments)
+                action = partial(action, self)
+            validate_arguments(action, arguments)
+            return action(**arguments)
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
 
