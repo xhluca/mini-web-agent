@@ -177,15 +177,10 @@ def check_port_available(port: int) -> None:
             probe.bind(("127.0.0.1", port))
 
 
-def auto_select_port(profile: Path, port: int = 0, timeout: float = 20) -> int:
-    """Wait for Chrome and return its port, recording fixed ports for reconnects."""
-    wait_for_browser(profile, running=True, attempts=int(timeout * 10), port=port)
+def auto_select_port(profile: Path) -> int:
+    """Read the port Chrome assigned when launched with cdp_port=0."""
     port_file = profile / "DevToolsActivePort"
-    if port:  # Chrome writes this file itself only when launched with port=0.
-        target = urlsplit(browser_endpoint(profile, port)).path
-        port_file.write_text(f"{port}\n{target}\n")
     return int(port_file.read_text().splitlines()[0])
-
 
 def tab_at(page: Page, index: int) -> Page:
     if index < 0:
@@ -289,7 +284,12 @@ class WebAgent:
                     args, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True
                 )
 
-            self.cdp_port = auto_select_port(self.profile, port, timeout)
+            wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
+            if port == 0:
+                self.cdp_port = auto_select_port(self.profile)
+            else:
+                target = urlsplit(browser_endpoint(self.profile, port)).path
+                (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
         except BaseException as error:
             if self.process and self.process.poll() is None:
                 self.process.terminate()

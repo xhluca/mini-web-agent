@@ -237,7 +237,9 @@ class BrowserTests(unittest.TestCase):
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             chosen = probe.getsockname()[1]
-        self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch().connect()
+        with patch("agent.auto_select_port") as select_port:
+            self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch().connect()
+            select_port.assert_not_called()
         self.assertEqual(self.agent.cdp_port, chosen)
         self.agent.disconnect()
         other = WebAgent(self.agent.profile).connect()
