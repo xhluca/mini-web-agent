@@ -182,9 +182,11 @@ documents the functions. Tool schemas are derived from their signatures/docstrin
 readiness waits, URL/argument validation, and schema construction are module-level
 helpers with explicit inputs. Page actions are module-level functions too; the class
 holds browser/tab state, dispatches calls, and runs the agent loop.
-The `ACTIONS` dictionary is derived from functions defined in `Actions` and drives both
-tool schemas and dispatch; seeing a
-function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
+`get_action_space()` returns the default action dictionary. Pass a subset or custom dictionary
+to `WebAgent(action_space=...)`; that dictionary drives both tool schemas and dispatch.
+`get_instructions()` returns the default prompt, including the script source. Pass
+`run(..., instructions=...)` to replace it. Omitting either parameter uses its getter.
+Seeing a function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
 Before dispatch, the agent checks the name, argument object, signature, types,
 finite numbers, and viewport coordinate bounds. Extra arguments are rejected.

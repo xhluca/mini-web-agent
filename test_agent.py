@@ -205,9 +205,10 @@ class BrowserTests(unittest.TestCase):
             with self.subTest(name=name, arguments=arguments):
                 self.assertIn("error", self.agent.act(name, arguments))
         self.assertEqual(len(Actions.list_tabs(self.agent.page)), 1)
-        from agent import ACTIONS
-        self.assertEqual({t["name"] for t in prepare_tools()}, set(ACTIONS))
-        for tool in prepare_tools():
+        from agent import get_action_space
+        self.assertEqual({t["name"] for t in prepare_tools(self.agent.action_space)},
+                         set(get_action_space()))
+        for tool in prepare_tools(self.agent.action_space):
             self.assertNotIn("page", tool["parameters"]["properties"])
             self.assertNotIn("self", tool["parameters"]["properties"])
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
@@ -223,6 +224,37 @@ class BrowserTests(unittest.TestCase):
                 self.assertRegex(result["error"], r"^TypeError: .+")
         self.assertEqual(self.agent.act("finish", {"message": "Done"}), "Done")
         self.assertEqual(self.agent.act("finish", '{"message": "Done"}'), "Done")
+
+    def test_parameterized_actions_and_instructions(self):
+        from agent import get_action_space, get_instructions
+
+        action_space = get_action_space()
+        action_space.pop("click")
+        self.assertIn("click", get_action_space())
+        self.assertIn("Tool implementation:", get_instructions())
+        self.assertEqual(WebAgent(action_space={}).action_space, {})
+
+        def custom_action() -> str:
+            return "custom result"
+
+        self.agent.action_space = {"custom_action": custom_action, "finish": Actions.finish}
+        self.assertIn("KeyError", self.agent.act("click", {"x": 1, "y": 1})["error"])
+        Fixture.requests = []
+        Fixture.replies = [
+            [tool_call("custom_action", call_id="custom")],
+            [tool_call("finish", {"message": "Done"})],
+        ]
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            result = run(self.agent, "Test custom actions", client, "test", max_steps=2,
+                         instructions="Use only the supplied actions.")
+        self.assertEqual(result, "Done")
+        for _, request in Fixture.requests:
+            self.assertEqual(request["input"][0]["content"], "Use only the supplied actions.")
+            self.assertEqual({tool["name"] for tool in request["tools"]},
+                             {"custom_action", "finish"})
+        outputs = [item for item in Fixture.requests[-1][1]["input"]
+                   if item.get("type") == "function_call_output"]
+        self.assertEqual(json.loads(outputs[0]["output"][0]["text"]), "custom result")
 
     def test_launch_and_connect_are_separate(self):
         self.agent.shutdown()
