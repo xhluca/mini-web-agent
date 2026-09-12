@@ -4,6 +4,7 @@ import base64
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import socket
 import subprocess
 import sys
 import tempfile
@@ -209,6 +210,37 @@ class BrowserTests(unittest.TestCase):
         self.agent.disconnect()
         self.assertTrue(browser_endpoint(self.agent.profile))
         self.agent.connect().shutdown()
+        self.assertIsNone(browser_endpoint(self.agent.profile))
+
+    def test_random_and_explicit_ports(self):
+        from urllib.request import urlopen
+
+        port = self.agent.port
+        self.assertGreater(port, 0)
+        with urlopen(f"http://127.0.0.1:{port}/json/version") as response:
+            self.assertEqual(response.status, 200)
+        self.agent.shutdown()
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            chosen = probe.getsockname()[1]
+        self.agent.launch(port=chosen).connect()
+        self.assertEqual(self.agent.port, chosen)
+        self.agent.disconnect()
+        other = WebAgent(self.agent.profile).connect()
+        try:
+            self.assertEqual(other.port, chosen)
+            self.assertIn(f":{chosen}/", browser_endpoint(other.profile))
+        finally:
+            other.shutdown()
+            self.agent.process.wait(timeout=5)
+
+    def test_invalid_or_occupied_port(self):
+        self.agent.shutdown()
+        for port in [-1, 65536, True, "9222"]:
+            with self.assertRaises(ValueError):
+                self.agent.launch(port=port)
+        with self.assertRaises(OSError):
+            self.agent.launch(port=self.server.server_port)
         self.assertIsNone(browser_endpoint(self.agent.profile))
 
     def test_browser_survives_separate_python_process(self):

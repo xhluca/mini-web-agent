@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import socket
 import subprocess
 import time
 from urllib.parse import urlsplit
@@ -29,9 +30,11 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 """
 
 
-def browser_endpoint(profile):
+def browser_endpoint(profile, port=0):
     try:
-        port, target = (Path(profile) / "DevToolsActivePort").read_text().splitlines()[:2]
+        target = ""
+        if not port:
+            port, target = (Path(profile) / "DevToolsActivePort").read_text().splitlines()[:2]
         endpoint = f"http://127.0.0.1:{int(port)}"
         with urlopen(endpoint + "/json/version", timeout=0.5) as response:
             actual = json.load(response)["webSocketDebuggerUrl"]
@@ -40,10 +43,10 @@ def browser_endpoint(profile):
         return None
 
 
-def wait_for_browser(profile, running, attempts=50):
+def wait_for_browser(profile, running, attempts=50, port=0):
     """Check every 0.1 seconds until Chrome has started or stopped."""
     for _ in range(attempts):
-        if bool(browser_endpoint(profile)) == running:
+        if bool(browser_endpoint(profile, port)) == running:
             return
         time.sleep(0.1)
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
@@ -94,23 +97,39 @@ class WebAgent:
         self.playwright = self.process = self.browser = None
         self.tabs, self.next_tab = {}, 0
 
-    def launch(self, chrome=None, timeout=20):
+    @property
+    def port(self):
+        """The profile's last assigned CDP port, or None before its first launch."""
+        try:
+            return int((self.profile / "DevToolsActivePort").read_text().splitlines()[0])
+        except (OSError, ValueError, IndexError):
+            return None
+
+    def launch(self, chrome=None, timeout=20, port=0):
         """Launch detached headless Chrome. Call connect() separately to control it."""
+        if type(port) is not int or not 0 <= port <= 65535:
+            raise ValueError("port must be an integer from 0 to 65535; 0 selects a random port")
         if browser_endpoint(self.profile):
             raise RuntimeError("Chrome is already running; use connect()")
+        if port:
+            with socket.socket() as probe:
+                probe.bind(("127.0.0.1", port))
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
         executable = chrome or os.getenv("CHROME_BIN")
         if not executable:
             self.playwright = sync_playwright().start()
             executable = self.playwright.chromium.executable_path
         args = [executable, f"--user-data-dir={self.profile}",
-                "--remote-debugging-port=0", "--remote-debugging-address=127.0.0.1",
+                f"--remote-debugging-port={port}", "--remote-debugging-address=127.0.0.1",
                 "--no-first-run", "--no-default-browser-check", "--headless=new", "about:blank"]
         try:
             with (self.profile / "chrome.log").open("ab") as log:
                 self.process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log,
                                                 stderr=log, start_new_session=True)
-            wait_for_browser(self.profile, running=True, attempts=int(timeout * 10))
+            wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
+            if port:  # Chrome only writes this file automatically when launched with port=0.
+                target = urlsplit(browser_endpoint(self.profile, port)).path
+                (self.profile / "DevToolsActivePort").write_text(f"{port}\n{target}\n")
         except BaseException:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
@@ -330,14 +349,18 @@ if __name__ == "__main__":
     parser.add_argument("task")
     parser.add_argument("--model", required=True)
     parser.add_argument("--profile", default=".chrome")
+    parser.add_argument("--port", type=int, default=0, help="CDP port; 0 selects a random port")
     parser.add_argument("--max-steps", type=int, default=30)
     parser.add_argument("--close", action="store_true")
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     args = parser.parse_args()
+    if args.connect and args.port:
+        parser.error("--port applies to launch; --connect discovers the profile's existing port")
     agent = WebAgent(args.profile)
     if not args.connect:
-        agent.launch()
+        agent.launch(port=args.port)
     agent.connect()
+    print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
             print(agent.run(args.task, client, args.model, args.max_steps,

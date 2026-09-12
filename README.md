@@ -1,7 +1,7 @@
 # mini-web-agent
 
 A small screenshot-driven Python web agent with **predefined browser functions**.
-Only two direct dependencies: `playwright` and `openai`. The core is about 340 lines,
+Only two direct dependencies: `playwright` and `openai`. The core is about 370 lines,
 including the CLI; lines are at most 100 characters. Explicit functions and argument
 validation replace the original 200-line implementation's unrestricted Python executor.
 
@@ -30,6 +30,19 @@ python agent.py --model google/gemini-3.8-flash \
 Chrome profile (default `.chrome` in the working directory). `--close` shuts Chrome
 down after the task; otherwise it stays running for inspection and reuse.
 Use `--connect` to attach to an already running browser instead of launching a new one.
+Chrome chooses a random localhost CDP port by default. Use `--port 9222` to request a
+specific port when launching. The CLI prints the CDP URL after connecting.
+
+```python
+agent = WebAgent('.chrome').launch()  # Same as launch(port=0).
+print(agent.port)                     # Actual assigned port, available before connect().
+agent.connect()
+```
+
+`agent.port` reads the profile's last assigned port, including after reconnecting from
+another Python process; it is not a liveness check. Before the profile's first launch,
+it is `None`. An occupied explicitly requested port raises an error. CDP remains bound
+to localhost.
 
 To use an existing Chrome installation, set `CHROME_BIN` to its executable.
 Chrome launches with `--headless=new` hardcoded; there is no headed mode or flag override.
@@ -164,7 +177,7 @@ to verify outcomes independently; the model receives no DOM information.
 The live test asks Gemini 3.8 Flash to complete a signup form using the restricted tools,
 then verifies both the resulting DOM and the model's reported confirmation.
 
-Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all eight
+Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all ten
 integration tests pass. The screenshot-only Gemini 3.8 Flash test through OpenRouter's
 Responses API also passed, using 14 predefined actions across 15 model turns. The API
 key was used only in the test process environment and was not saved in the project.
