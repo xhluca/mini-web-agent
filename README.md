@@ -54,7 +54,7 @@ Both providers use `client.responses.create()`; no Chat Completions adapter is i
 
 ```python
 from openai import OpenAI
-from agent import WebAgent
+from agent import WebAgent, run
 
 agent = WebAgent('.chrome', on_message=print, on_reply=input).launch().connect()
 try:
@@ -62,7 +62,7 @@ try:
     text, screenshot_data_url = agent.observe()
     print(text)  # Active tab index and tab titles/URLs.
     with OpenAI(timeout=60, max_retries=1) as client:
-        print(agent.run(
+        print(run(agent,
             'Read the page and report its heading.',
             client,
             model='google/gemini-3.8-flash',
@@ -234,7 +234,9 @@ key was used only in the test process environment and was not saved in the proje
 - [OpenRouter Responses API](https://openrouter.ai/docs/api_reference/responses/overview)
 - [Playwright Page API](https://playwright.dev/python/docs/api/class-page)
 
-`run(..., on_action=callback)` calls the callback after each model-requested action,
+The conversation loop is the standalone `run(agent, task, client, model, ...)` function.
+
+`run(agent, ..., on_action=callback)` calls the callback after each model-requested action,
 including failures and `finish`. It receives the zero-based model turn, an action
 dictionary (`name` and raw JSON `arguments`), and the result. Its return value is ignored.
 The CLI uses this callback to print actions and results immediately.

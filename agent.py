@@ -126,7 +126,7 @@ class Actions:
         return message
 
 
-ACTIONS: dict[str, Callable[..., Any]] = {
+ACTIONS: dict[str, Callable] = {
     name: function for name, function in vars(Actions).items() if inspect.isfunction(function)
 }
 
@@ -171,7 +171,7 @@ def tab_at(page: Page, index: int) -> Page:
     return prepare_page(page).context.pages[index]
 
 
-def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
+def validate_arguments(function: Callable, arguments: dict[str, Any]) -> None:
     signature = inspect.signature(function)
 
     for key, value in arguments.items():
@@ -232,7 +232,7 @@ def prepare_page(page: Page) -> Page:
 class WebAgent:
     def __init__(
         self, profile: str | Path = ".chrome", cdp_port: int = 0,
-        on_message: Callable[[str], None] = print, on_reply: Callable[[], str] = input,
+        on_message: Callable = print, on_reply: Callable = input,
     ) -> None:
         if type(cdp_port) is not int or not 0 <= cdp_port <= 65535:
             raise ValueError("cdp_port must be an integer from 0 to 65535; 0 selects a random port")
@@ -358,59 +358,60 @@ class WebAgent:
         if self.process:
             self.process.wait(timeout=5)
 
-    def run(
-        self, task: str, client: OpenAI, model: str, max_steps: int = 30,
-        on_action: Callable[[int, dict[str, str], Any], None] | None = None,
-    ) -> str:
-        if max_steps < 1:
-            raise ValueError("max_steps must be positive")
 
-        history = [
-            {"role": "system", "content": INSTRUCTIONS + Path(__file__).read_text()},
-            {"role": "user", "content": task},
-        ]
+def run(
+    agent: WebAgent, task: str, client: OpenAI, model: str, max_steps: int = 30,
+    on_action: Callable | None = None,
+) -> str:
+    if max_steps < 1:
+        raise ValueError("max_steps must be positive")
 
-        tools = build_tool_schemas()
-        for step in range(max_steps):
-            text, image = self.observe()
-            history.append({"role": "user", "content": [
-                {"type": "input_text", "text": text},
-                {"type": "input_image", "image_url": image},
-            ]})
+    history = [
+        {"role": "system", "content": INSTRUCTIONS + Path(__file__).read_text()},
+        {"role": "user", "content": task},
+    ]
 
-            response = client.responses.create(
-                model=model, input=history, tools=tools, store=False,
-                include=["reasoning.encrypted_content"], parallel_tool_calls=False,
-                max_output_tokens=4096,
-            )
-            if response.status != "completed":
-                raise RuntimeError(f"Model response {response.status}: {response.error}")
+    tools = build_tool_schemas()
+    for step in range(max_steps):
+        text, image = agent.observe()
+        history.append({"role": "user", "content": [
+            {"type": "input_text", "text": text},
+            {"type": "input_image", "image_url": image},
+        ]})
 
-            history.extend(item.model_dump(exclude_none=True) for item in response.output)
-            calls = [item for item in response.output if item.type == "function_call"]
+        response = client.responses.create(
+            model=model, input=history, tools=tools, store=False,
+            include=["reasoning.encrypted_content"], parallel_tool_calls=False,
+            max_output_tokens=4096,
+        )
+        if response.status != "completed":
+            raise RuntimeError(f"Model response {response.status}: {response.error}")
 
-            if not calls:
-                history.append({
-                    "role": "user",
-                    "content": "Use a provided tool. Call finish if the task is complete.",
-                })
-                continue
+        history.extend(item.model_dump(exclude_none=True) for item in response.output)
+        calls = [item for item in response.output if item.type == "function_call"]
 
-            for call in calls:
-                result = self.act(call.name, call.arguments)
+        if not calls:
+            history.append({
+                "role": "user",
+                "content": "Use a provided tool. Call finish if the task is complete.",
+            })
+            continue
 
-                if on_action:
-                    on_action(step, {"name": call.name, "arguments": call.arguments}, result)
+        for call in calls:
+            result = agent.act(call.name, call.arguments)
 
-                history.append({
-                    "type": "function_call_output", "call_id": call.call_id,
-                    "output": json.dumps(result),
-                })
+            if on_action:
+                on_action(step, {"name": call.name, "arguments": call.arguments}, result)
 
-                if call.name == "finish" and isinstance(result, str):
-                    return result
+            history.append({
+                "type": "function_call_output", "call_id": call.call_id,
+                "output": json.dumps(result),
+            })
 
-        raise RuntimeError(f"Task unfinished after {max_steps} model turns")
+            if call.name == "finish" and isinstance(result, str):
+                return result
+
+    raise RuntimeError(f"Task unfinished after {max_steps} model turns")
 
 
 if __name__ == "__main__":
@@ -436,8 +437,8 @@ if __name__ == "__main__":
 
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
-            print(agent.run(
-                args.task, client, args.model, args.max_steps,
+            print(run(
+                agent, args.task, client, args.model, args.max_steps,
                 on_action=lambda step, action, result: print(step, action, result, flush=True),
             ))
     finally:
