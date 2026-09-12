@@ -14,7 +14,7 @@ import unittest
 from openai import OpenAI
 from playwright.sync_api import Error
 
-from agent import WebAgent, browser_endpoint, build_tools, list_tabs, navigate, press_key, type_text
+from agent import Actions, WebAgent, browser_endpoint, build_tools
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -83,7 +83,7 @@ class BrowserTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="mini-web-agent-test-")
         self.agent = WebAgent(self.folder.name).launch().connect()
-        navigate(self.agent.page, self.url)
+        Actions.navigate(self.agent.page, self.url)
 
     def tearDown(self):
         if browser_endpoint(self.agent.profile):
@@ -194,7 +194,7 @@ class BrowserTests(unittest.TestCase):
         for name, arguments in invalid:
             with self.subTest(name=name, arguments=arguments):
                 self.assertIn("error", self.agent.act(name, arguments))
-        self.assertEqual(len(list_tabs(self.agent.page)), 1)
+        self.assertEqual(len(Actions.list_tabs(self.agent.page)), 1)
         from agent import ACTIONS
         self.assertEqual({t["name"] for t in build_tools()}, set(ACTIONS))
         for tool in build_tools():
@@ -249,10 +249,10 @@ class BrowserTests(unittest.TestCase):
 
     def test_browser_survives_separate_python_process(self):
         self.agent.shutdown()
-        code = ("from agent import WebAgent, navigate, press_key, type_text; "
+        code = ("from agent import Actions, WebAgent; "
                 f"a=WebAgent({self.folder.name!r}).launch().connect(); "
-                f"navigate(a.page, {self.url!r}); press_key(a.page, 'Tab'); "
-                "type_text(a.page, 'survived@example.com'); a.disconnect()")
+                f"Actions.navigate(a.page, {self.url!r}); Actions.press_key(a.page, 'Tab'); "
+                "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
         self.assertTrue(browser_endpoint(self.agent.profile))

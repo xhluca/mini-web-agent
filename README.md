@@ -88,27 +88,28 @@ Use `WebAgent(profile).launch().connect()` for a new browser and
 liveness. Lifecycle failures include an explicit message and retain the original exception
 as their cause; profile-file errors propagate directly.
 
-Page actions are standalone functions with an explicit Playwright page argument:
+All model actions live in the `Actions` namespace before the helper functions. Its
+static methods need no instance; page actions take an explicit Playwright page:
 
 ```python
-from agent import click, double_click, hover, type_text
+from agent import Actions
 
-click(agent.page, 100, 200)
-double_click(agent.page, 100, 200)
-hover(agent.page, 300, 400)
-type_text(agent.page, 'hello')
+Actions.click(agent.page, 100, 200)
+Actions.double_click(agent.page, 100, 200)
+Actions.hover(agent.page, 300, 400)
+Actions.type_text(agent.page, 'hello')
 ```
 
 Navigation, keyboard, scrolling, dragging, waiting, and screenshots follow the same
-pattern. Tab operations are standalone too:
+pattern. Tab operations use the same namespace:
 
 ```python
-from agent import list_tabs, new_tab, switch_tab, close_tab
+from agent import Actions
 
-list_tabs(agent.page)
-agent.page = new_tab(agent.page, 'https://example.com')
-agent.page = switch_tab(agent.page, 0)
-agent.page = close_tab(agent.page, 1)
+Actions.list_tabs(agent.page)
+agent.page = Actions.new_tab(agent.page, 'https://example.com')
+agent.page = Actions.switch_tab(agent.page, 0)
+agent.page = Actions.close_tab(agent.page, 1)
 ```
 
 Functions that change the active tab return a Playwright Page. The agent stores that
@@ -171,7 +172,8 @@ documents the functions. Tool schemas are derived from their signatures/docstrin
 readiness waits, URL/argument validation, and schema construction are module-level
 helpers with explicit inputs. Page actions are module-level functions too; the class
 holds browser/tab state, dispatches calls, and runs the agent loop.
-The single `ACTIONS` dictionary drives both tool schemas and dispatch; seeing a
+The `ACTIONS` dictionary is derived from `Actions` static methods and drives both
+tool schemas and dispatch; seeing a
 function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
 Before dispatch, the agent checks the name, argument object, signature, types,
