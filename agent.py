@@ -289,16 +289,13 @@ class WebAgent:
             self.playwright = self.browser = None
 
     def shutdown(self) -> None:
+        """Stop Chrome only if this agent launched it, then disconnect Playwright."""
         try:
-            self.browser.new_browser_cdp_session().send("Browser.close")
-        except Error as error:
-            if self.browser.is_connected():
-                raise Error(f"Failed to shut down Chrome: {error}") from error
+            if self.process and self.process.poll() is None:
+                self.process.terminate()
+                self.process.wait(timeout=5)
         finally:
             self.disconnect()
-        wait_for_browser(self.profile, running=False)
-        if self.process:
-            self.process.wait(timeout=5)
 
 def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: str,
         max_steps: int = 100, max_output_tokens=8192, on_action: Callable | None = None) -> str:
@@ -358,7 +355,6 @@ if __name__ == "__main__":
     parser.add_argument("--profile", default=".chrome")
     parser.add_argument("--cdp-port", type=int, default=0, help="CDP port; use 0 for random port")
     parser.add_argument("--max-steps", type=int, default=100)
-    parser.add_argument("--close", action="store_true")
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     args = parser.parse_args()
 
@@ -368,16 +364,15 @@ if __name__ == "__main__":
         )
 
     agent = WebAgent(args.profile, cdp_port=args.cdp_port, action_space=get_action_space())
-    if not args.connect:
-        agent.launch()
-    agent.connect()
-    print(f"CDP: http://127.0.0.1:{agent.cdp_port}", flush=True)
-
     try:
+        if not args.connect:
+            agent.launch()
+        agent.connect()
+        print(f"CDP: http://127.0.0.1:{agent.cdp_port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
                 agent, args.task, client, args.model, get_instructions(),
                 max_steps=args.max_steps, on_action=lambda s, a, r: print(s, a, r, flush=True),
             ))
     finally:
-        agent.shutdown() if args.close else agent.disconnect()
+        agent.shutdown()

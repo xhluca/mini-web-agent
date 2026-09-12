@@ -27,8 +27,8 @@ python agent.py --model google/gemini-3.8-flash \
 ```
 
 `--max-steps 30` bounds model turns. `--profile /absolute/path` chooses the persistent
-Chrome profile (default `.chrome` in the working directory). `--close` shuts Chrome
-down after the task; otherwise it stays running for inspection and reuse.
+Chrome profile (default `.chrome` in the working directory). The CLI closes Chrome
+when it launched it and leaves an existing browser running when used with `--connect`.
 Use `--connect` to attach to an already running browser instead of launching a new one.
 For a new profile, Chrome chooses a random localhost CDP port by default. Use `--cdp-port 9222` to request a
 specific port when launching. The CLI prints the CDP URL after connecting.
@@ -75,9 +75,9 @@ try:
             on_action=lambda step, action, result: print(step, action, result),
         ))
 finally:
-    agent.disconnect()  # Disconnect; Chrome survives Python exit.
+    agent.shutdown()  # Close Chrome because this agent launched it.
 
-# Reconnect later and close the actual browser.
+# Attaching does not transfer ownership; shutdown only disconnects this client.
 WebAgent('.chrome', action_space=get_action_space()).connect().shutdown()
 ```
 
@@ -86,7 +86,8 @@ The lifecycle is explicit:
 - `launch()` starts detached Chrome and returns the agent; it does not attach Playwright.
 - `connect()` attaches to running Chrome and returns the agent; it never launches Chrome.
 - `disconnect()` detaches Playwright and leaves Chrome running.
-- `shutdown()` closes the connected Chrome and disconnects. Connect first to close a browser.
+- `shutdown()` stops Chrome only when this agent launched it, then disconnects.
+  It also works after `launch()` without `connect()`, or after `disconnect()`.
 
 Use `WebAgent(profile, action_space=action_space).launch().connect()` for a new browser and
 `WebAgent(profile, action_space=action_space).connect()` to reuse one. Launch/connect do not preflight browser
@@ -217,7 +218,8 @@ A dedicated profile's `DevToolsActivePort` provides the random localhost port an
 browser token; both are checked before attaching. Use one controller per profile.
 Startup diagnostics are in `<profile>/chrome.log`. CDP attachment has lower fidelity
 than Playwright's own protocol, so advanced browser features can have limitations.
-The launcher targets Linux/macOS. Chrome survives Python exit, but not machine shutdown
+The launcher targets Linux/macOS. An explicitly disconnected Chrome survives Python exit;
+the CLI cleans up browsers it launches. Chrome does not survive machine shutdown
 or a supervisor killing its cgroup.
 
 ## Tests

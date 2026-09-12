@@ -306,7 +306,9 @@ class BrowserTests(unittest.TestCase):
             self.assertIn(f":{chosen}/", probe_browser_endpoint(other.profile))
         finally:
             other.shutdown()
-            self.agent.process.wait(timeout=5)
+            self.assertTrue(probe_browser_endpoint(self.agent.profile))
+            self.agent.shutdown()
+            self.assertIsNotNone(self.agent.process.returncode)
 
     def test_invalid_or_occupied_port(self):
         self.agent.shutdown()
@@ -319,12 +321,12 @@ class BrowserTests(unittest.TestCase):
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
     def test_browser_survives_separate_python_process(self):
-        self.agent.shutdown()
+        self.agent.disconnect()
         code = ("from agent import Actions, WebAgent, get_action_space; "
                 f"a=WebAgent({self.folder.name!r}, "
-                "action_space=get_action_space()).launch().connect(); "
+                "action_space=get_action_space()).connect(); "
                 f"Actions.navigate(a.page, {self.url!r}); Actions.press_key(a.page, 'Tab'); "
-                "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
+                "Actions.type_text(a.page, 'survived@example.com'); a.shutdown()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
         self.assertTrue(probe_browser_endpoint(self.agent.profile))
@@ -334,18 +336,40 @@ class BrowserTests(unittest.TestCase):
         self.agent.shutdown()
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
+    def test_shutdown_owned_browser_without_connection(self):
+        self.agent.disconnect()
+        self.agent.shutdown()
+        self.assertIsNotNone(self.agent.process.returncode)
+        self.assertIsNone(probe_browser_endpoint(self.agent.profile))
+        self.agent.shutdown()
+
+    def test_cli_keeps_connected_browser_running(self):
+        Fixture.requests = []
+        Fixture.replies = [[]]
+        result = subprocess.run(
+            [sys.executable, "agent.py", "Test CLI", "--model", "test", "--connect",
+             "--profile", str(self.agent.profile), "--max-steps", "1"],
+            cwd=Path(__file__).parent, capture_output=True, text=True, timeout=30,
+            env=dict(os.environ, OPENAI_API_KEY="local-test", OPENAI_BASE_URL=self.url + "/v1"),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(probe_browser_endpoint(self.agent.profile))
+        self.assertIsNone(self.agent.process.poll())
+
     def test_cli_passes_instructions_and_step_limit(self):
         Fixture.requests = []
         Fixture.replies = [[]]
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-cli-") as profile:
             result = subprocess.run(
                 [sys.executable, "agent.py", "Test CLI", "--model", "test",
-                 "--profile", profile, "--max-steps", "1", "--close"],
+                 "--profile", profile, "--max-steps", "1"],
                 cwd=Path(__file__).parent, capture_output=True, text=True, timeout=30,
                 env=dict(os.environ, OPENAI_API_KEY="local-test",
                          OPENAI_BASE_URL=self.url + "/v1"),
             )
         self.assertEqual(result.returncode, 0, result.stderr)
+        port = int(result.stdout.split("CDP: http://127.0.0.1:")[1].splitlines()[0])
+        self.assertIsNone(probe_browser_endpoint(profile, port))
         self.assertIn("Stopped after 1 model turns", result.stdout)
         self.assertEqual(len(Fixture.requests), 1)
         self.assertIn("Complete the user's browser task",
