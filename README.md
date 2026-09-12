@@ -124,9 +124,9 @@ Tab-changing actions take the agent, update its active page, and return an index
 updated tab list directly. All model calls go through `act(name, arguments)`, which
 accepts an argument dictionary or JSON string. Dispatch supplies the page or agent
 according to the function signature; the model cannot override that Python object.
-These calls are synchronous and belong on one thread. `act` always returns a JSON string:
+These calls are synchronous and belong on one thread. `act` always returns a dictionary:
 `{"state": "success", "output": ...}` or `{"state": "error", "output": "..."}`.
-`run` sends that string directly as tool-result text and checks `state` before accepting
+`run` serializes it once as tool-result text and checks `state` before accepting
 `finish`. The `output` field preserves return values, including `null` for actions returning `None`.
 
 ## Model-callable functions
@@ -181,6 +181,9 @@ Calling `act()` performs these actions directly, including delivery and waiting.
 `run()` returns after a successful `finish` call, including an empty final string;
 invalid calls return errors and the loop continues. Conversation actions return
 plain values: `None` for sending, a string for replies and completion.
+
+Incomplete model responses are discarded and retried with shorter-response feedback,
+within the existing model-turn limit. Their partial tool calls are never executed or replayed.
 
 ## Restriction and self-documentation
 
@@ -257,6 +260,6 @@ The conversation loop is the standalone `run(agent, task, client, model, ...)` f
 
 `run(agent, ..., on_action=callback)` calls the callback after each model-requested action,
 including failures and `finish`. It receives the zero-based model turn, an action
-dictionary (`name` and raw JSON `arguments`), and the JSON result string.
+dictionary (`name` and raw JSON `arguments`), and the result dictionary.
 Its return value is ignored.
 The CLI uses this callback to print actions and results immediately.

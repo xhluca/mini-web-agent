@@ -260,7 +260,7 @@ class WebAgent:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
 
-    def act(self, name: str, arguments: dict[str, Any] | str) -> str:
+    def act(self, name: str, arguments: dict[str, Any] | str) -> dict:
         try:
             if isinstance(arguments, str):
                 arguments = json.loads(arguments)
@@ -274,9 +274,9 @@ class WebAgent:
                 action = partial(action, self.page)
             elif "agent" in parameters:
                 action = partial(action, self)
-            return json.dumps({"state": "success", "output": action(**arguments)})
+            return {"state": "success", "output": action(**arguments)}
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
-            return json.dumps({"state": "error", "output": f"{type(error).__name__}: {error}"})
+            return {"state": "error", "output": f"{type(error).__name__}: {error}"}
 
     def observe(self) -> tuple[str, str]:
         self.page = p = prepare_page(self.page)
@@ -322,15 +322,16 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
             max_output_tokens=max_output_tokens,
         )
         if response.status != "completed":
-            raise RuntimeError(f"Model response {response.status}: {response.error}")
+            history.append({"role": "user", "content":
+                            "Your response was incomplete. Retry with a shorter response."})
+            continue
 
         history.extend(response.output)
         calls = [item for item in response.output if item.type == "function_call"]
 
         if not calls:
-            history.append({
-                "role": "user", "content": "Use provided tools. Call finish if task is complete.",
-            })
+            history.append({"role": "user", "content": 
+                            "Use provided tools. Call finish if task is complete."})
             continue
 
         for call in calls:
@@ -339,14 +340,12 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
             if on_action:
                 on_action(step, {"name": call.name, "arguments": call.arguments}, result)
 
-            if call.name == "finish":
-                final = json.loads(result)
-                if final["state"] == "success":
-                    return final["output"]
+            if call.name == "finish" and result["state"] == "success":
+                return result["output"]
 
             history.append({
                 "type": "function_call_output", "call_id": call.call_id,
-                "output": [{"type": "input_text", "text": result}],
+                "output": [{"type": "input_text", "text": json.dumps(result)}],
             })
 
         text, image = agent.observe()
