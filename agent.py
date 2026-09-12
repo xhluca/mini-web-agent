@@ -6,7 +6,6 @@ from functools import partial
 import inspect
 import json
 import math
-import os
 from pathlib import Path
 import socket
 import subprocess
@@ -201,7 +200,7 @@ class WebAgent:
         except (OSError, ValueError, IndexError):
             return None
 
-    def launch(self, chrome=None, timeout=20, port=0):
+    def launch(self, timeout=20, port=0):
         """Launch detached headless Chrome. Call connect() separately to control it."""
         if type(port) is not int or not 0 <= port <= 65535:
             raise ValueError("port must be an integer from 0 to 65535; 0 selects a random port")
@@ -211,10 +210,8 @@ class WebAgent:
             with socket.socket() as probe:
                 probe.bind(("127.0.0.1", port))
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
-        executable = chrome or os.getenv("CHROME_BIN")
-        if not executable:
-            self.playwright = sync_playwright().start()
-            executable = self.playwright.chromium.executable_path
+        self.playwright = sync_playwright().start()
+        executable = self.playwright.chromium.executable_path
         args = [executable, f"--user-data-dir={self.profile}",
                 f"--remote-debugging-port={port}", "--remote-debugging-address=127.0.0.1",
                 "--no-first-run", "--no-default-browser-check", "--headless=new", "about:blank"]

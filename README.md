@@ -44,7 +44,7 @@ another Python process; it is not a liveness check. Before the profile's first l
 it is `None`. An occupied explicitly requested port raises an error. CDP remains bound
 to localhost.
 
-To use an existing Chrome installation, set `CHROME_BIN` to its executable.
+The launcher always uses Playwright's bundled Chromium executable.
 Chrome launches with `--headless=new` hardcoded; there is no headed mode or flag override.
 Minimal Linux installations may need `playwright install-deps chromium`.
 For OpenAI itself, unset `OPENAI_BASE_URL` and use an OpenAI key and available vision model.
