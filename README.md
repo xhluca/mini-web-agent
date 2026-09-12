@@ -67,6 +67,7 @@ try:
             client,
             model='google/gemini-3.8-flash',
             max_steps=15,
+            on_action=lambda step, action, result: print(step, action, result),
         ))
 finally:
     agent.disconnect()  # Disconnect; Chrome survives Python exit.
@@ -231,3 +232,8 @@ key was used only in the test process environment and was not saved in the proje
 - [OpenAI Responses guidance](https://developers.openai.com/api/docs/guides/migrate-to-responses)
 - [OpenRouter Responses API](https://openrouter.ai/docs/api_reference/responses/overview)
 - [Playwright Page API](https://playwright.dev/python/docs/api/class-page)
+
+`run(..., on_action=callback)` calls the callback after each model-requested action,
+including failures and `finish`. It receives the zero-based model turn, an action
+dictionary (`name` and raw JSON `arguments`), and the result. Its return value is ignored.
+The CLI uses this callback to print actions and results immediately.

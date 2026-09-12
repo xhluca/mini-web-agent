@@ -270,8 +270,19 @@ class BrowserTests(unittest.TestCase):
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
             with patch("agent.build_tools", wraps=build_tools) as schemas:
-                result = self.agent.run("Fill the email", client, "test", max_steps=3)
+                events = []
+                result = self.agent.run(
+                    "Fill the email", client, "test", max_steps=3,
+                    on_action=lambda step, action, result: events.append((step, action, result)),
+                )
                 schemas.assert_called_once_with()
+        self.assertEqual([event[0] for event in events], [0, 1, 2])
+        self.assertEqual([event[1]["name"] for event in events],
+                         ["run_browser", "type_text", "finish"])
+        self.assertIn("error", events[0][2])
+        self.assertIsNone(events[1][2])
+        self.assertEqual(events[2][2], "Done")
+        self.assertEqual(json.loads(events[1][1]["arguments"]), {"text": "model@example.com"})
         self.assertEqual(result, "Done")
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(), "model@example.com")
         self.assertEqual(len(Fixture.requests), 3)

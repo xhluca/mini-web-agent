@@ -380,6 +380,7 @@ class WebAgent:
 
     def run(
         self, task: str, client: OpenAI, model: str, max_steps: int = 30,
+        on_action: Callable[[int, dict[str, str], Any], None] | None = None,
     ) -> str:
         """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
         if max_steps < 1:
@@ -392,7 +393,7 @@ class WebAgent:
         ]
 
         tools = build_tools()
-        for _ in range(max_steps):
+        for step in range(max_steps):
             text, image = self.observe()
             content = [
                 {"type": "input_text", "text": text},
@@ -424,6 +425,9 @@ class WebAgent:
                     result = {"error": f"Invalid action JSON: {error}"}
                 else:
                     result = self.act(call.name, arguments)
+
+                if on_action:
+                    on_action(step, {"name": call.name, "arguments": call.arguments}, result)
 
                 history.append({
                     "type": "function_call_output", "call_id": call.call_id,
@@ -461,6 +465,7 @@ if __name__ == "__main__":
         with OpenAI(timeout=60, max_retries=1) as client:
             print(agent.run(
                 args.task, client, args.model, args.max_steps,
+                on_action=lambda step, action, result: print(step, action, result, flush=True),
             ))
     finally:
         if args.close:
