@@ -404,7 +404,6 @@ class WebAgent:
 
             history.extend(item.model_dump(exclude_none=True) for item in response.output)
             calls = [item for item in response.output if item.type == "function_call"]
-            content[1] = {"type": "input_text", "text": "[Earlier screenshot omitted.]"}
 
             if not calls:
                 if not response.output_text:

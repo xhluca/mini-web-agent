@@ -272,14 +272,18 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(result, "Done")
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(), "model@example.com")
         self.assertEqual(len(Fixture.requests), 3)
-        for path, request in Fixture.requests:
+        for turn, (path, request) in enumerate(Fixture.requests, start=1):
             self.assertEqual(path, "/v1/responses")
             self.assertFalse(request["store"])
             self.assertIn(Path(__file__).with_name("agent.py").read_text(),
                           request["input"][0]["content"])
             images = [part for item in request["input"] if isinstance(item.get("content"), list)
                       for part in item["content"] if part["type"] == "input_image"]
-            self.assertEqual(len(images), 1)
+            self.assertEqual(len(images), turn)
+            if turn > 1:
+                previous = Fixture.requests[turn - 2][1]
+                self.assertEqual(request["input"][:len(previous["input"])], previous["input"])
+                self.assertEqual(request["tools"], previous["tools"])
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
         self.assertIn("Unknown action", outputs[0]["output"])

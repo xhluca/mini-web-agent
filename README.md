@@ -149,9 +149,11 @@ Closing the active tab selects a remaining one; closing the last creates a blank
 
 `screenshot()` returns a data URL to host callers. When called as a model tool, it
 requests the next observation's screenshot instead of returning image bytes as text.
-The loop captures an observation before each model turn. Only the latest image is
-sent; prior textual metadata, reasoning, and tool results stay in history. Requests
-use `store=False` and explicit history for OpenRouter's stateless Responses endpoint.
+The loop captures an observation before each model turn and only appends to history.
+Earlier screenshots, metadata, reasoning, and tool results remain unchanged to preserve
+the prompt prefix for provider KV caching. This favors cache reuse over limiting context
+growth; actual cache hits depend on the provider. Requests use `store=False` and explicit
+history for OpenRouter's stateless Responses endpoint.
 
 `send_message(message)` calls `on_message` and the loop continues. `wait_for_reply()`
 blocks in `on_reply` until it returns a string, then supplies that reply to the model.
