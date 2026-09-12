@@ -32,7 +32,7 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 class WebAgent:
     def __init__(self, profile=".chrome"):
         self.profile = Path(profile).expanduser().resolve()
-        self.playwright = self.process = None
+        self.playwright = self.process = self.browser = None
         self.tabs, self.next_tab = {}, 0
 
     def _endpoint(self):
@@ -53,42 +53,51 @@ class WebAgent:
             time.sleep(0.1)
         raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
-    def start(self, chrome=None, timeout=20):
-        """Launch detached Chrome, or reconnect to this profile's running Chrome."""
-        if self.playwright:
-            return self
+    def launch(self, chrome=None, timeout=20):
+        """Launch detached headless Chrome. Call connect() separately to control it."""
+        if self._endpoint():
+            raise RuntimeError("Chrome is already running; use connect()")
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
-        self.playwright = sync_playwright().start()
-        process = None
+        executable = chrome or os.getenv("CHROME_BIN")
+        if not executable:
+            self.playwright = sync_playwright().start()
+            executable = self.playwright.chromium.executable_path
+        args = [executable, f"--user-data-dir={self.profile}",
+                "--remote-debugging-port=0", "--remote-debugging-address=127.0.0.1",
+                "--no-first-run", "--no-default-browser-check", "--headless=new", "about:blank"]
         try:
-            if not self._endpoint():
-                executable = chrome or os.getenv("CHROME_BIN")
-                executable = executable or self.playwright.chromium.executable_path
-                args = [executable, f"--user-data-dir={self.profile}",
-                        "--remote-debugging-port=0", "--remote-debugging-address=127.0.0.1",
-                        "--no-first-run", "--no-default-browser-check", "--headless=new"]
-                args.append("about:blank")
-                with (self.profile / "chrome.log").open("ab") as log:
-                    process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log,
-                                               stderr=log, start_new_session=True)
-                    self.process = process
-                self._wait_for_browser(running=True, attempts=int(timeout * 10))
-            browser = self.playwright.chromium.connect_over_cdp(
-                self._endpoint(), timeout=timeout * 1000)
-            context = browser.contexts[0]
-            context.set_default_timeout(10_000)
-            page = context.pages[0] if context.pages else context.new_page()
-            page.set_viewport_size({"width": 1280, "height": 800})
-            self.browser, self.context, self.page = browser, context, page
+            with (self.profile / "chrome.log").open("ab") as log:
+                self.process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log,
+                                                stderr=log, start_new_session=True)
+            self._wait_for_browser(running=True, attempts=int(timeout * 10))
+        except BaseException:
+            if self.process and self.process.poll() is None:
+                self.process.terminate()
+                self.process.wait(timeout=5)
+            self.disconnect()
+            raise
+        return self
+
+    def connect(self, timeout=20):
+        """Attach Playwright to this profile's running Chrome; never launch a browser."""
+        if self.browser:
+            return self
+        endpoint = self._endpoint()
+        if not endpoint:
+            raise RuntimeError("Chrome is not running; call launch() first")
+        if not self.playwright:
+            self.playwright = sync_playwright().start()
+        try:
+            self.browser = self.playwright.chromium.connect_over_cdp(
+                endpoint, timeout=timeout * 1000)
+            self.context = self.browser.contexts[0]
+            self.context.set_default_timeout(10_000)
+            self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
             self.tabs = {}
             self.list_tabs()
             return self
         except BaseException:
-            self.playwright.stop()
-            self.playwright = None
-            if process and process.poll() is None:
-                process.terminate()
-                process.wait(timeout=5)
+            self.disconnect()
             raise
 
     def navigate(self, url: str):
@@ -198,8 +207,8 @@ class WebAgent:
 
     def act(self, name, arguments):
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
-        if not self.playwright:
-            raise RuntimeError("Call start() before act()")
+        if not self.browser:
+            raise RuntimeError("Call connect() before act()")
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
                 raise ValueError("Unknown action or non-object arguments")
@@ -246,24 +255,28 @@ class WebAgent:
                                               required=required, additionalProperties=False)))
         return tools
 
-    def stop(self, close_browser=False):
-        """Disconnect by default; optionally shut down Chrome itself with Browser.close."""
-        if not self.playwright:
-            return
-        try:
-            if close_browser:
-                browser = self.browser
-                try:
-                    browser.new_browser_cdp_session().send("Browser.close")
-                except Error:
-                    if browser.is_connected():
-                        raise
-                self._wait_for_browser(running=False)
-                if self.process:
-                    self.process.wait(timeout=5)
-        finally:
+    def disconnect(self):
+        """Detach Playwright and leave Chrome running."""
+        if self.playwright:
             self.playwright.stop()
             self.playwright = None
+            self.browser = None
+
+    def shutdown(self):
+        """Close the connected Chrome browser, then disconnect Playwright."""
+        if not self.browser:
+            raise RuntimeError("Call connect() before shutdown()")
+        try:
+            try:
+                self.browser.new_browser_cdp_session().send("Browser.close")
+            except Error:
+                if self.browser.is_connected():
+                    raise
+            self._wait_for_browser(running=False)
+            if self.process:
+                self.process.wait(timeout=5)
+        finally:
+            self.disconnect()
 
     def run(self, task, client, model, max_steps=30, on_step=None):
         """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
@@ -308,11 +321,18 @@ if __name__ == "__main__":
     parser.add_argument("--profile", default=".chrome")
     parser.add_argument("--max-steps", type=int, default=30)
     parser.add_argument("--close", action="store_true")
+    parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     args = parser.parse_args()
-    agent = WebAgent(args.profile).start()
+    agent = WebAgent(args.profile)
+    if not args.connect:
+        agent.launch()
+    agent.connect()
     try:
         with OpenAI(timeout=60, max_retries=1) as client:
             print(agent.run(args.task, client, args.model, args.max_steps,
                             on_step=lambda n, action, result: print(n, action, result, flush=True)))
     finally:
-        agent.stop(close_browser=args.close)
+        if args.close:
+            agent.shutdown()
+        else:
+            agent.disconnect()

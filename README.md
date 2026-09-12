@@ -1,7 +1,7 @@
 # mini-web-agent
 
 A small screenshot-driven Python web agent with **predefined browser functions**.
-Only two direct dependencies: `playwright` and `openai`. The core is about 320 lines,
+Only two direct dependencies: `playwright` and `openai`. The core is about 340 lines,
 including the CLI; lines are at most 100 characters. Explicit functions and argument
 validation replace the original 200-line implementation's unrestricted Python executor.
 
@@ -29,6 +29,7 @@ python agent.py --model google/gemini-3.8-flash \
 `--max-steps 30` bounds model turns. `--profile /absolute/path` chooses the persistent
 Chrome profile (default `.chrome` in the working directory). `--close` shuts Chrome
 down after the task; otherwise it stays running for inspection and reuse.
+Use `--connect` to attach to an already running browser instead of launching a new one.
 
 To use an existing Chrome installation, set `CHROME_BIN` to its executable.
 Chrome launches with `--headless=new` hardcoded; there is no headed mode or flag override.
@@ -42,7 +43,7 @@ Both providers use `client.responses.create()`; no Chat Completions adapter is i
 from openai import OpenAI
 from agent import WebAgent
 
-agent = WebAgent('.chrome').start()
+agent = WebAgent('.chrome').launch().connect()
 try:
     agent.act('navigate', {'url': 'https://example.com'})
     text, screenshot_data_url = agent.observe()
@@ -56,11 +57,22 @@ try:
             on_step=lambda step, action, result: print(step, action, result),
         ))
 finally:
-    agent.stop()  # Disconnect; Chrome survives Python exit.
+    agent.disconnect()  # Disconnect; Chrome survives Python exit.
 
 # Reconnect later and close the actual browser.
-WebAgent('.chrome').start().stop(close_browser=True)
+WebAgent('.chrome').connect().shutdown()
 ```
+
+The lifecycle is explicit:
+
+- `launch()` starts detached Chrome and returns the agent; it does not attach Playwright.
+- `connect()` attaches to running Chrome and returns the agent; it never launches Chrome.
+- `disconnect()` detaches Playwright and leaves Chrome running.
+- `shutdown()` closes the connected Chrome and disconnects. Connect first to close a browser.
+
+Use `WebAgent(profile).launch().connect()` for a new browser and
+`WebAgent(profile).connect()` to reuse one. Calling `launch()` on a running profile
+raises an error; calling `connect()` on an inactive profile also raises an error.
 
 Host code can also call methods directly: `agent.click(100, 200)` or
 `agent.new_tab('https://example.com')`. The model always goes through `act(name, arguments)`.
@@ -105,7 +117,7 @@ use `store=False` and explicit history for OpenRouter's stateless Responses endp
 The system prompt includes `Path(__file__).read_text()` so the implementation itself
 documents the functions. Tool schemas are derived from their signatures/docstrings.
 The fixed `ACTIONS` tuple is the allowlist; seeing a function in the source does not
-make it callable. `start`, `stop`, `run`, and internal methods are host-only.
+make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
 Before dispatch, the agent checks the name, argument object, signature, types,
 finite numbers, and viewport coordinate bounds. Extra arguments are rejected.
@@ -150,7 +162,7 @@ to verify outcomes independently; the model receives no DOM information.
 The live test asks Gemini 3.8 Flash to complete a signup form using the restricted tools,
 then verifies both the resulting DOM and the model's reported confirmation.
 
-Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all seven
+Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all eight
 integration tests pass. The screenshot-only Gemini 3.8 Flash test through OpenRouter's
 Responses API also passed, using 14 predefined actions across 15 model turns. The API
 key was used only in the test process environment and was not saved in the project.

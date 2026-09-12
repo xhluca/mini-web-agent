@@ -80,11 +80,12 @@ class BrowserTests(unittest.TestCase):
 
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="mini-web-agent-test-")
-        self.agent = WebAgent(self.folder.name).start()
+        self.agent = WebAgent(self.folder.name).launch().connect()
         self.agent.navigate(self.url)
 
     def tearDown(self):
-        self.agent.start().stop(close_browser=True)
+        if self.agent._endpoint():
+            self.agent.connect().shutdown()
         self.folder.cleanup()
 
     def act(self, name, **arguments):
@@ -173,7 +174,8 @@ class BrowserTests(unittest.TestCase):
 
     def test_restricted_dispatch(self):
         invalid = [
-            ("__getattribute__", {"name": "page"}), ("stop", {}), ("tools", {}),
+            ("__getattribute__", {"name": "page"}), ("shutdown", {}), ("launch", {}),
+            ("connect", {}), ("tools", {}),
             ("evaluate", {"expression": "document.title"}), ("run_browser", {"code": "1+1"}),
             ("navigate", {"url": "javascript:alert(1)"}),
             ("navigate", {"url": "file:///etc/passwd"}),
@@ -193,18 +195,34 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual({t["name"] for t in self.agent.tools()}, set(ACTIONS))
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
 
+    def test_launch_and_connect_are_separate(self):
+        self.agent.shutdown()
+        with self.assertRaisesRegex(RuntimeError, "not running"):
+            self.agent.connect()
+        self.assertIsNone(self.agent._endpoint())
+        self.agent.launch()
+        self.assertIsNone(self.agent.browser)
+        self.assertTrue(self.agent._endpoint())
+        with self.assertRaisesRegex(RuntimeError, "already running"):
+            self.agent.launch()
+        self.agent.connect()
+        self.agent.disconnect()
+        self.assertTrue(self.agent._endpoint())
+        self.agent.connect().shutdown()
+        self.assertIsNone(self.agent._endpoint())
+
     def test_browser_survives_separate_python_process(self):
-        self.agent.stop(close_browser=True)
+        self.agent.shutdown()
         code = ("from agent import WebAgent; "
-                f"a=WebAgent({self.folder.name!r}).start(); a.navigate({self.url!r}); "
-                "a.press_key('Tab'); a.type_text('survived@example.com'); a.stop()")
+                f"a=WebAgent({self.folder.name!r}).launch().connect(); a.navigate({self.url!r}); "
+                "a.press_key('Tab'); a.type_text('survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
         self.assertTrue(self.agent._endpoint())
-        self.agent.start()
+        self.agent.connect()
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(),
                          "survived@example.com")
-        self.agent.stop(close_browser=True)
+        self.agent.shutdown()
         self.assertIsNone(self.agent._endpoint())
 
     def test_responses_wire_format_and_error_recovery(self):

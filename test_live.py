@@ -18,7 +18,7 @@ def main():
     thread.start()
     try:
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-live-") as profile:
-            agent = WebAgent(profile).start()
+            agent = WebAgent(profile).launch().connect()
             try:
                 agent.page.goto(f"http://127.0.0.1:{server.server_port}")
                 task = ("Using the visible form controls, register model@example.com for Robotics, "
@@ -32,7 +32,7 @@ def main():
                 assert "model@example.com" in answer and "Robotics" in answer, answer
                 print("PASS:", answer)
             finally:
-                agent.stop(close_browser=True)
+                agent.shutdown()
     finally:
         server.shutdown()
         server.server_close()
