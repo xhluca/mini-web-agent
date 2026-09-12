@@ -115,7 +115,9 @@ use `store=False` and explicit history for OpenRouter's stateless Responses endp
 ## Restriction and self-documentation
 
 The system prompt includes `Path(__file__).read_text()` so the implementation itself
-documents the functions. Tool schemas are derived from their signatures/docstrings.
+documents the functions. Tool schemas are derived from their signatures/docstrings. Endpoint discovery, browser
+readiness waits, URL/argument validation, and schema construction are module-level
+helpers with explicit inputs; the class holds browser state and browser actions.
 The fixed `ACTIONS` tuple is the allowlist; seeing a function in the source does not
 make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 

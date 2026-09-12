@@ -29,33 +29,74 @@ The following source documents the tools. Only names in ACTIONS are callable by 
 """
 
 
+def browser_endpoint(profile):
+    try:
+        port, target = (Path(profile) / "DevToolsActivePort").read_text().splitlines()[:2]
+        endpoint = f"http://127.0.0.1:{int(port)}"
+        with urlopen(endpoint + "/json/version", timeout=0.5) as response:
+            actual = json.load(response)["webSocketDebuggerUrl"]
+        return actual if actual.endswith(target) else None
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def wait_for_browser(profile, running, attempts=50):
+    """Check every 0.1 seconds until Chrome has started or stopped."""
+    for _ in range(attempts):
+        if bool(browser_endpoint(profile)) == running:
+            return
+        time.sleep(0.1)
+    raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
+
+
+def validate_url(url):
+    if url != "about:blank" and urlsplit(url).scheme not in ("http", "https"):
+        raise ValueError("Only HTTP(S) URLs and about:blank are allowed")
+
+
+def validate_arguments(function, arguments):
+    signature = inspect.signature(function)
+    signature.bind(**arguments)
+    for key, value in arguments.items():
+        expected = signature.parameters[key].annotation
+        if expected is float:
+            valid = type(value) in (int, float) and math.isfinite(value)
+        else:
+            valid = type(value) is expected
+        if not valid:
+            raise ValueError(f"Invalid type or non-finite value for {key}")
+        if key in ("x", "x1", "x2", "y", "y1", "y2"):
+            if not 0 <= value < (1280 if key.startswith("x") else 800):
+                raise ValueError(f"{key} is outside the viewport")
+
+
+def build_tools(agent_type):
+    """Derive tool schemas from the signatures of explicitly registered functions."""
+    tools = []
+    for name in ACTIONS:
+        function = getattr(agent_type, name)
+        parameters = {key: p for key, p in inspect.signature(function).parameters.items()
+                      if key != "self"}
+        properties = {key: {"type": "number" if p.annotation is float else "string"}
+                      for key, p in parameters.items()}
+        required = [key for key, p in parameters.items()
+                    if p.default is inspect.Parameter.empty]
+        tools.append(dict(type="function", name=name, strict=False,
+                          description=inspect.getdoc(function) or name.replace("_", " "),
+                          parameters=dict(type="object", properties=properties,
+                                          required=required, additionalProperties=False)))
+    return tools
+
+
 class WebAgent:
     def __init__(self, profile=".chrome"):
         self.profile = Path(profile).expanduser().resolve()
         self.playwright = self.process = self.browser = None
         self.tabs, self.next_tab = {}, 0
 
-    def _endpoint(self):
-        try:
-            port, target = (self.profile / "DevToolsActivePort").read_text().splitlines()[:2]
-            endpoint = f"http://127.0.0.1:{int(port)}"
-            with urlopen(endpoint + "/json/version", timeout=0.5) as response:
-                actual = json.load(response)["webSocketDebuggerUrl"]
-            return actual if actual.endswith(target) else None
-        except (OSError, ValueError, KeyError):
-            return None
-
-    def _wait_for_browser(self, running, attempts=50):
-        """Check every 0.1 seconds until Chrome has started or stopped."""
-        for _ in range(attempts):
-            if bool(self._endpoint()) == running:
-                return
-            time.sleep(0.1)
-        raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
-
     def launch(self, chrome=None, timeout=20):
         """Launch detached headless Chrome. Call connect() separately to control it."""
-        if self._endpoint():
+        if browser_endpoint(self.profile):
             raise RuntimeError("Chrome is already running; use connect()")
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
         executable = chrome or os.getenv("CHROME_BIN")
@@ -69,7 +110,7 @@ class WebAgent:
             with (self.profile / "chrome.log").open("ab") as log:
                 self.process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=log,
                                                 stderr=log, start_new_session=True)
-            self._wait_for_browser(running=True, attempts=int(timeout * 10))
+            wait_for_browser(self.profile, running=True, attempts=int(timeout * 10))
         except BaseException:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
@@ -82,7 +123,7 @@ class WebAgent:
         """Attach Playwright to this profile's running Chrome; never launch a browser."""
         if self.browser:
             return self
-        endpoint = self._endpoint()
+        endpoint = browser_endpoint(self.profile)
         if not endpoint:
             raise RuntimeError("Chrome is not running; call launch() first")
         if not self.playwright:
@@ -102,8 +143,7 @@ class WebAgent:
 
     def navigate(self, url: str):
         """Navigate the active tab to an HTTP(S) URL or about:blank."""
-        if url != "about:blank" and urlsplit(url).scheme not in ("http", "https"):
-            raise ValueError("Only HTTP(S) URLs and about:blank are allowed")
+        validate_url(url)
         self.page.goto(url, wait_until="domcontentloaded")
 
     def back(self):
@@ -188,8 +228,7 @@ class WebAgent:
 
     def new_tab(self, url: str = "about:blank"):
         """Open and activate a tab, returning its stable ID."""
-        if url != "about:blank" and urlsplit(url).scheme not in ("http", "https"):
-            raise ValueError("Only HTTP(S) URLs and about:blank are allowed")
+        validate_url(url)
         self.page = self.context.new_page()
         self.navigate(url)
         return next(tab["id"] for tab in self.list_tabs() if tab["active"])
@@ -213,19 +252,7 @@ class WebAgent:
             if name not in ACTIONS or not isinstance(arguments, dict):
                 raise ValueError("Unknown action or non-object arguments")
             function = getattr(self, name)  # Name has passed the explicit allowlist above.
-            signature = inspect.signature(function)
-            signature.bind(**arguments)
-            for key, value in arguments.items():
-                expected = signature.parameters[key].annotation
-                if expected is float:
-                    valid = type(value) in (int, float) and math.isfinite(value)
-                else:
-                    valid = type(value) is expected
-                if not valid:
-                    raise ValueError(f"Invalid type or non-finite value for {key}")
-                if key in ("x", "x1", "x2", "y", "y1", "y2"):
-                    if not 0 <= value < (1280 if key.startswith("x") else 800):
-                        raise ValueError(f"{key} is outside the viewport")
+            validate_arguments(function, arguments)
             self.list_tabs()
             result = function(**arguments)
             return "Screenshot follows in the next observation" if name == "screenshot" else result
@@ -238,22 +265,6 @@ class WebAgent:
         state = dict(active_tab=next(tab["id"] for tab in tabs if tab["active"]), tabs=tabs,
                      viewport={"width": 1280, "height": 800})
         return json.dumps(state), self.screenshot()
-
-    def tools(self):
-        """Derive tool schemas from the signatures of explicitly registered functions."""
-        tools = []
-        for name in ACTIONS:
-            function = getattr(self, name)
-            parameters = inspect.signature(function).parameters
-            properties = {key: {"type": "number" if p.annotation is float else "string"}
-                          for key, p in parameters.items()}
-            required = [key for key, p in parameters.items()
-                        if p.default is inspect.Parameter.empty]
-            tools.append(dict(type="function", name=name, strict=False,
-                              description=inspect.getdoc(function) or name.replace("_", " "),
-                              parameters=dict(type="object", properties=properties,
-                                              required=required, additionalProperties=False)))
-        return tools
 
     def disconnect(self):
         """Detach Playwright and leave Chrome running."""
@@ -272,7 +283,7 @@ class WebAgent:
             except Error:
                 if self.browser.is_connected():
                     raise
-            self._wait_for_browser(running=False)
+            wait_for_browser(self.profile, running=False)
             if self.process:
                 self.process.wait(timeout=5)
         finally:
@@ -290,7 +301,7 @@ class WebAgent:
                        {"type": "input_image", "image_url": image}]
             history.append({"role": "user", "content": content})
             response = client.responses.create(
-                model=model, input=history, tools=self.tools(), store=False,
+                model=model, input=history, tools=build_tools(WebAgent), store=False,
                 include=["reasoning.encrypted_content"], parallel_tool_calls=False,
                 max_output_tokens=4096)
             if response.status != "completed":

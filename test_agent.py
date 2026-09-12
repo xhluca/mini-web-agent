@@ -12,7 +12,7 @@ import unittest
 
 from openai import OpenAI
 
-from agent import WebAgent
+from agent import WebAgent, browser_endpoint, build_tools
 
 HTML = """<!doctype html><html><body>
 <h1>Workshop signup</h1>
@@ -84,7 +84,7 @@ class BrowserTests(unittest.TestCase):
         self.agent.navigate(self.url)
 
     def tearDown(self):
-        if self.agent._endpoint():
+        if browser_endpoint(self.agent.profile):
             self.agent.connect().shutdown()
         self.folder.cleanup()
 
@@ -192,38 +192,38 @@ class BrowserTests(unittest.TestCase):
                 self.assertIn("error", self.agent.act(name, arguments))
         self.assertEqual(len(self.agent.list_tabs()), 1)
         from agent import ACTIONS
-        self.assertEqual({t["name"] for t in self.agent.tools()}, set(ACTIONS))
+        self.assertEqual({t["name"] for t in build_tools(WebAgent)}, set(ACTIONS))
         self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
 
     def test_launch_and_connect_are_separate(self):
         self.agent.shutdown()
         with self.assertRaisesRegex(RuntimeError, "not running"):
             self.agent.connect()
-        self.assertIsNone(self.agent._endpoint())
+        self.assertIsNone(browser_endpoint(self.agent.profile))
         self.agent.launch()
         self.assertIsNone(self.agent.browser)
-        self.assertTrue(self.agent._endpoint())
+        self.assertTrue(browser_endpoint(self.agent.profile))
         with self.assertRaisesRegex(RuntimeError, "already running"):
             self.agent.launch()
         self.agent.connect()
         self.agent.disconnect()
-        self.assertTrue(self.agent._endpoint())
+        self.assertTrue(browser_endpoint(self.agent.profile))
         self.agent.connect().shutdown()
-        self.assertIsNone(self.agent._endpoint())
+        self.assertIsNone(browser_endpoint(self.agent.profile))
 
     def test_browser_survives_separate_python_process(self):
         self.agent.shutdown()
-        code = ("from agent import WebAgent; "
+        code = ("from agent import WebAgent, browser_endpoint, build_tools; "
                 f"a=WebAgent({self.folder.name!r}).launch().connect(); a.navigate({self.url!r}); "
                 "a.press_key('Tab'); a.type_text('survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
-        self.assertTrue(self.agent._endpoint())
+        self.assertTrue(browser_endpoint(self.agent.profile))
         self.agent.connect()
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(),
                          "survived@example.com")
         self.agent.shutdown()
-        self.assertIsNone(self.agent._endpoint())
+        self.assertIsNone(browser_endpoint(self.agent.profile))
 
     def test_responses_wire_format_and_error_recovery(self):
         Fixture.requests = []
