@@ -60,7 +60,7 @@ agent = WebAgent('.chrome', on_message=print, on_reply=input).launch().connect()
 try:
     agent.act('navigate', {'url': 'https://example.com'})
     text, screenshot_data_url = agent.observe()
-    print(text)  # Active tab index, tab titles/URLs, viewport dimensions.
+    print(text)  # Active tab index and tab titles/URLs.
     with OpenAI(timeout=60, max_retries=1) as client:
         print(agent.run(
             'Read the page and report its heading.',

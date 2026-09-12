@@ -336,7 +336,7 @@ class WebAgent:
         tabs = Actions.list_tabs(self.page)
         state = dict(
             active_tab=self.page.context.pages.index(self.page),
-            tabs=tabs, viewport={"width": 1280, "height": 800},
+            tabs=tabs,
         )
         return json.dumps(state), screenshot(self.page)
 

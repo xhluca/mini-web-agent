@@ -124,7 +124,7 @@ class BrowserTests(unittest.TestCase):
         self.act("scroll", dx=0, dy=400)
         page.wait_for_function("scrollY > 0")
         state, image = self.agent.observe()
-        self.assertEqual(set(json.loads(state)), {"active_tab", "tabs", "viewport"})
+        self.assertEqual(set(json.loads(state)), {"active_tab", "tabs"})
         self.assertTrue(base64.b64decode(image.split(",")[1]).startswith(b"\xff\xd8"))
         self.assertIn("error", self.agent.act("screenshot", {}))
 
