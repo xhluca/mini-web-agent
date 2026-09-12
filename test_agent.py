@@ -10,6 +10,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from openai import OpenAI
 from playwright.sync_api import Error
@@ -125,7 +126,7 @@ class BrowserTests(unittest.TestCase):
         state, image = self.agent.observe()
         self.assertEqual(set(json.loads(state)), {"active_tab", "tabs", "viewport"})
         self.assertTrue(base64.b64decode(image.split(",")[1]).startswith(b"\xff\xd8"))
-        self.assertIn("Screenshot follows", self.act("screenshot"))
+        self.assertIn("error", self.agent.act("screenshot", {}))
 
     def test_mouse_events(self):
         self.agent.page.set_content("""<div style='width:600px;height:600px'>Target</div>
@@ -268,7 +269,9 @@ class BrowserTests(unittest.TestCase):
             [tool_call("finish", {"message": "Done"}, "call_3")],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
-            result = self.agent.run("Fill the email", client, "test", max_steps=3)
+            with patch("agent.build_tools", wraps=build_tools) as schemas:
+                result = self.agent.run("Fill the email", client, "test", max_steps=3)
+                schemas.assert_called_once_with()
         self.assertEqual(result, "Done")
         self.assertEqual(self.agent.page.get_by_label("Email").input_value(), "model@example.com")
         self.assertEqual(len(Fixture.requests), 3)
@@ -330,7 +333,7 @@ class BrowserTests(unittest.TestCase):
         outputs = [item for item in Fixture.requests[2][1]["input"]
                    if item.get("type") == "function_call_output"]
         self.assertEqual(json.loads(outputs[-1]["output"]),
-                         {"type": "user_reply", "text": "Robotics"})
+                         "Robotics")
 
     def test_conversation_actions_work_without_run(self):
         messages = []
@@ -338,15 +341,23 @@ class BrowserTests(unittest.TestCase):
         agent.act("send_message", {"message": "Which track?"})
         self.assertEqual(messages, ["Which track?"])
         self.assertEqual(agent.act("wait_for_reply", {}),
-                         {"type": "user_reply", "text": "Robotics"})
+                         "Robotics")
         self.assertIn("error", agent.act("finish", {"message": 42}))
-        self.assertFalse(agent.done)
+        self.assertIsNone(agent.final_message)
         agent.act("finish", {"message": "Done"})
-        self.assertTrue(agent.done)
         self.assertEqual(agent.final_message, "Done")
 
         agent.on_reply = lambda: None
         self.assertIn("error", agent.act("wait_for_reply", {}))
+
+    def test_empty_finish_and_repeated_runs(self):
+        Fixture.replies = [
+            [tool_call("finish", {"message": ""}, "empty")],
+            [tool_call("finish", {"message": "Next task"}, "next")],
+        ]
+        with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
+            self.assertEqual(self.agent.run("Finish", client, "test", max_steps=1), "")
+            self.assertEqual(self.agent.run("Again", client, "test", max_steps=1), "Next task")
 
     def test_invalid_finish_does_not_end_run(self):
         Fixture.replies = [

@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from openai import OpenAI
-from playwright.sync_api import Browser, BrowserContext, Error, Page, Playwright, sync_playwright
+from playwright.sync_api import Browser, Error, Page, Playwright, sync_playwright
 
 ActionResult = str | int | dict[str, Any] | list[dict[str, Any]] | None
 
@@ -99,11 +99,6 @@ class Actions:
             raise ValueError("seconds must be between 0 and 10")
         page.wait_for_timeout(seconds * 1000)
 
-    def screenshot(page: Page) -> str:
-        """Return the active tab's viewport JPEG as a data URL; never writes files."""
-        data = page.screenshot(type="jpeg", quality=70, scale="css")
-        return "data:image/jpeg;base64," + base64.b64encode(data).decode()
-
     def list_tabs(page: Page) -> list[dict[str, Any]]:
         """List current zero-based indices, titles, URLs, and the active page flag."""
         return [
@@ -128,23 +123,21 @@ class Actions:
         page.context.pages[index].close()
         return active_page(page)
 
-    def send_message(agent: "WebAgent", message: str) -> dict[str, str]:
+    def send_message(agent: "WebAgent", message: str) -> None:
         """Send a progress update to the user and continue working."""
         agent.on_message(message)
-        return {"type": "message", "text": message}
 
-    def wait_for_reply(agent: "WebAgent") -> dict[str, str]:
+    def wait_for_reply(agent: "WebAgent") -> str:
         """Wait for the user's response and return it to the model."""
         reply = agent.on_reply()
         if not isinstance(reply, str):
             raise TypeError("on_reply must return the user's reply as a string")
-        return {"type": "user_reply", "text": reply}
+        return reply
 
-    def finish(agent: "WebAgent", message: str) -> dict[str, str]:
+    def finish(agent: "WebAgent", message: str) -> str:
         """Mark the task complete and store its final answer."""
         agent.final_message = message
-        agent.done = True
-        return {"type": "finish", "text": message}
+        return message
 
 
 ACTIONS: dict[str, Callable[..., Any]] = {
@@ -179,7 +172,6 @@ def wait_for_browser(
 
 def validate_arguments(function: Callable[..., Any], arguments: dict[str, Any]) -> None:
     signature = inspect.signature(function)
-    signature.bind(**arguments)
 
     for key, value in arguments.items():
         expected = signature.parameters[key].annotation
@@ -221,6 +213,12 @@ def build_tools() -> list[dict[str, Any]]:
     return tools
 
 
+def screenshot(page: Page) -> str:
+    """Return the active tab's viewport JPEG as a data URL; never writes files."""
+    data = page.screenshot(type="jpeg", quality=70, scale="css")
+    return "data:image/jpeg;base64," + base64.b64encode(data).decode()
+
+
 def active_page(page: Page) -> Page:
     """Replace a closed page if needed and use the screenshot coordinate viewport."""
     if page.is_closed():
@@ -244,13 +242,11 @@ class WebAgent:
         self.profile = Path(profile).expanduser().resolve()
         self.on_message = on_message
         self.on_reply = on_reply
-        self.done = False
         self.final_message: str | None = None
         self.cdp_port = cdp_port
         self.playwright: Playwright | None = None
         self.process: subprocess.Popen[bytes] | None = None
         self.browser: Browser | None = None
-        self.context: BrowserContext
         self.page: Page
 
     def launch(self, timeout: float = 20) -> "WebAgent":
@@ -305,9 +301,9 @@ class WebAgent:
                 endpoint, timeout=timeout * 1000
             )
             self.cdp_port = int(port)
-            self.context = self.browser.contexts[0]
-            self.context.set_default_timeout(10_000)
-            self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
+            context = self.browser.contexts[0]
+            context.set_default_timeout(10_000)
+            self.page = context.pages[0] if context.pages else context.new_page()
             self.page = active_page(self.page)
             return self
         except BaseException as error:
@@ -333,9 +329,9 @@ class WebAgent:
             if name in ("new_tab", "switch_tab", "close_tab"):
                 self.page = result
                 result = (Actions.list_tabs(self.page) if name == "close_tab"
-                          else self.context.pages.index(self.page))
+                          else self.page.context.pages.index(self.page))
 
-            return "Screenshot follows in the next observation" if name == "screenshot" else result
+            return result
         except (Error, ValueError, TypeError, KeyError, IndexError, OverflowError) as error:
             return {"error": f"{type(error).__name__}: {error}"}
 
@@ -347,7 +343,7 @@ class WebAgent:
             active_tab=next(tab["index"] for tab in tabs if tab["active"]),
             tabs=tabs, viewport={"width": 1280, "height": 800},
         )
-        return json.dumps(state), Actions.screenshot(self.page)
+        return json.dumps(state), screenshot(self.page)
 
     def disconnect(self) -> None:
         """Detach Playwright and leave Chrome running."""
@@ -373,20 +369,19 @@ class WebAgent:
 
     def run(
         self, task: str, client: OpenAI, model: str, max_steps: int = 30,
-        on_step: Callable[[int, dict[str, str], ActionResult], None] | None = None,
     ) -> str:
         """Observe -> Responses API -> predefined action; raise on turn-budget exhaustion."""
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
 
-        self.done = False
         self.final_message = None
         history = [
             {"role": "system", "content": INSTRUCTIONS + Path(__file__).read_text()},
             {"role": "user", "content": task},
         ]
 
-        for step in range(max_steps):
+        tools = build_tools()
+        for _ in range(max_steps):
             text, image = self.observe()
             content = [
                 {"type": "input_text", "text": text},
@@ -395,7 +390,7 @@ class WebAgent:
             history.append({"role": "user", "content": content})
 
             response = client.responses.create(
-                model=model, input=history, tools=build_tools(), store=False,
+                model=model, input=history, tools=tools, store=False,
                 include=["reasoning.encrypted_content"], parallel_tool_calls=False,
                 max_output_tokens=4096,
             )
@@ -419,15 +414,12 @@ class WebAgent:
                 else:
                     result = self.act(call.name, arguments)
 
-                if on_step:
-                    on_step(step, dict(name=call.name, arguments=call.arguments), result)
-
                 history.append({
                     "type": "function_call_output", "call_id": call.call_id,
                     "output": json.dumps(result),
                 })
 
-                if self.done:
+                if self.final_message is not None:
                     return self.final_message
 
         raise RuntimeError(f"Task unfinished after {max_steps} model turns")
@@ -458,7 +450,6 @@ if __name__ == "__main__":
         with OpenAI(timeout=60, max_retries=1) as client:
             print(agent.run(
                 args.task, client, args.model, args.max_steps,
-                on_step=lambda n, action, result: print(n, action, result, flush=True),
             ))
     finally:
         if args.close:

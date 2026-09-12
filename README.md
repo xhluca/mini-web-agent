@@ -67,7 +67,6 @@ try:
             client,
             model='google/gemini-3.8-flash',
             max_steps=15,
-            on_step=lambda step, action, result: print(step, action, result),
         ))
 finally:
     agent.disconnect()  # Disconnect; Chrome survives Python exit.
@@ -101,7 +100,7 @@ Actions.hover(agent.page, 300, 400)
 Actions.type_text(agent.page, 'hello')
 ```
 
-Navigation, keyboard, scrolling, dragging, waiting, and screenshots follow the same
+Navigation, keyboard, scrolling, dragging, and waiting follow the same
 pattern. Tab operations use the same namespace:
 
 ```python
@@ -131,7 +130,7 @@ result or an `error` object; `run` feeds errors back to the model for recovery.
 | Keyboard | `type_text(text)`, `press_key(key)`, `key_down(key)`, `key_up(key)` |
 | Timing | `wait(seconds)`; between 0 and 10 seconds |
 | Conversation | `send_message(message)`, `wait_for_reply()`, `finish(message)` |
-| Observation | `screenshot()`, `list_tabs()` |
+| Observation | `list_tabs()` (screenshots are automatic each turn) |
 | Tabs | `new_tab(url='about:blank')`, `switch_tab(index)`, `close_tab(index)` |
 
 Coordinates are CSS pixels within a 1280×800 viewport. Screenshots use the same CSS
@@ -147,8 +146,8 @@ active flag. Closing a tab shifts later indices, so use the newest list. Popups 
 automatically without changing the agent's active tab. `new_tab` activates its new tab.
 Closing the active tab selects a remaining one; closing the last creates a blank tab.
 
-`screenshot()` returns a data URL to host callers. When called as a model tool, it
-requests the next observation's screenshot instead of returning image bytes as text.
+The standalone `screenshot(page)` helper returns a data URL to host callers.
+It is not a model tool; observations automatically include a screenshot.
 The loop captures an observation before each model turn and only appends to history.
 Earlier screenshots, metadata, reasoning, and tool results remain unchanged to preserve
 the prompt prefix for provider KV caching. This favors cache reuse over limiting context
@@ -165,8 +164,9 @@ later actions in the same model response are skipped. Browser shutdown remains t
 caller's choice. Plain assistant text is displayed as a message and the loop continues
 until `finish` or the turn limit. Configure `on_message` and `on_reply` on `WebAgent`.
 Calling `act()` performs these actions directly, including delivery and waiting.
-`finish` sets `agent.done` and `agent.final_message`; `run()` checks that state after
-each action. Each new run resets completion state.
+`finish` stores `agent.final_message`; `run()` ends when it is no longer `None`,
+including an empty final string. Each new run resets it to `None`. Conversation
+actions return plain values: `None` for sending, a string for replies and completion.
 
 ## Restriction and self-documentation
 

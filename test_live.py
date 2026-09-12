@@ -25,8 +25,7 @@ def main():
                         "agree to the terms, and click Register. Read the confirmation and report "
                         "it. Do not modify the page using JavaScript or replace its HTML.")
                 with OpenAI(timeout=60, max_retries=0) as client:
-                    answer = agent.run(task, client, model, max_steps=25,
-                                       on_step=lambda n, a, r: print(n, a, r, flush=True))
+                    answer = agent.run(task, client, model, max_steps=25)
                 actual = agent.page.get_by_role("status").inner_text()
                 assert actual == "Registered: model@example.com / Robotics", actual
                 assert "model@example.com" in answer and "Robotics" in answer, answer
