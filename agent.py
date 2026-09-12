@@ -186,8 +186,11 @@ def close_tab(page, index: int):
     return active_page(page)
 
 class WebAgent:
-    def __init__(self, profile=".chrome"):
+    def __init__(self, profile=".chrome", cdp_port=0):
+        if type(cdp_port) is not int or not 0 <= cdp_port <= 65535:
+            raise ValueError("cdp_port must be an integer from 0 to 65535; 0 selects a random port")
         self.profile = Path(profile).expanduser().resolve()
+        self.cdp_port = cdp_port
         self.playwright = self.process = self.browser = None
 
     @property
@@ -198,10 +201,9 @@ class WebAgent:
         except (OSError, ValueError, IndexError):
             return None
 
-    def launch(self, timeout=20, port=0):
+    def launch(self, timeout=20):
         """Launch detached headless Chrome. Call connect() separately to control it."""
-        if type(port) is not int or not 0 <= port <= 65535:
-            raise ValueError("port must be an integer from 0 to 65535; 0 selects a random port")
+        port = self.cdp_port
         if port:
             with socket.socket() as probe:
                 probe.bind(("127.0.0.1", port))
@@ -347,9 +349,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.connect and args.port:
         parser.error("--port applies to launch; --connect discovers the profile's existing port")
-    agent = WebAgent(args.profile)
+    agent = WebAgent(args.profile, cdp_port=args.port)
     if not args.connect:
-        agent.launch(port=args.port)
+        agent.launch()
     agent.connect()
     print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
     try:

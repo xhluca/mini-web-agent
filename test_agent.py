@@ -227,7 +227,8 @@ class BrowserTests(unittest.TestCase):
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             chosen = probe.getsockname()[1]
-        self.agent.launch(port=chosen).connect()
+        self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch().connect()
+        self.assertEqual(self.agent.cdp_port, chosen)
         self.assertEqual(self.agent.port, chosen)
         self.agent.disconnect()
         other = WebAgent(self.agent.profile).connect()
@@ -242,9 +243,9 @@ class BrowserTests(unittest.TestCase):
         self.agent.shutdown()
         for port in [-1, 65536, True, "9222"]:
             with self.assertRaises(ValueError):
-                self.agent.launch(port=port)
+                WebAgent(self.folder.name, cdp_port=port)
         with self.assertRaises(OSError):
-            self.agent.launch(port=self.server.server_port)
+            WebAgent(self.folder.name, cdp_port=self.server.server_port).launch()
         self.assertIsNone(browser_endpoint(self.agent.profile))
 
     def test_browser_survives_separate_python_process(self):

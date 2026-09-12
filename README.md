@@ -34,11 +34,13 @@ Chrome chooses a random localhost CDP port by default. Use `--port 9222` to requ
 specific port when launching. The CLI prints the CDP URL after connecting.
 
 ```python
-agent = WebAgent('.chrome').launch()  # Same as launch(port=0).
-print(agent.port)                     # Actual assigned port, available before connect().
+agent = WebAgent('.chrome', cdp_port=0).launch()  # Random port by default.
+print(agent.port)                                # Actual assigned port.
 agent.connect()
 ```
 
+Choose a fixed port with `WebAgent('.chrome', cdp_port=9222).launch()`.
+`cdp_port` is the requested launch setting; `0` lets Chrome choose a port.
 `agent.port` reads the profile's last assigned port, including after reconnecting from
 another Python process; it is not a liveness check. Before the profile's first launch,
 it is `None`. An occupied explicitly requested port raises an error. CDP remains bound
