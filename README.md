@@ -195,7 +195,7 @@ the getters explicitly inside its `if __name__ == "__main__":` block.
 Seeing a function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
 
 Dispatch uses the action dictionary and Python keyword arguments. Python and Playwright
-errors are returned to the model for recovery. `check_finite_arguments()` rejects `NaN`
+errors are returned to the model for recovery. `act()` rejects `NaN`
 and infinities in numeric arguments before they reach Playwright. There is no custom argument type or
 viewport-bound validation. Individual actions retain their existing checks, such as
 non-negative tab indices and the 0–10 second wait limit.
