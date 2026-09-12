@@ -1,14 +1,16 @@
 # mini-web-agent
 
-A **200-line Python web agent**, including its CLI. Only two direct dependencies:
-`playwright` and `openai`. Every core source line is at most 100 characters.
+A small screenshot-driven Python web agent with **predefined browser functions**.
+Only two direct dependencies: `playwright` and `openai`. The core is about 320 lines,
+including the CLI; lines are at most 100 characters. Explicit functions and argument
+validation replace the original 200-line implementation's unrestricted Python executor.
 
 Chrome runs in a detached `subprocess.Popen(..., start_new_session=True)` process.
-Playwright attaches over CDP. The callable loop sends an ARIA snapshot and viewport
-screenshot to the **Responses API**, executes the returned tool calls, and repeats.
-There is no Chat Completions adapter.
+Playwright attaches over CDP. The loop sends viewport screenshots and tab metadata
+through the **Responses API**, dispatches named function calls, and observes again.
+There are no accessibility trees, DOM observations, or model-generated code execution.
 
-## Install
+## Install and run
 
 From this directory, with Python 3.10+:
 
@@ -17,20 +19,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install 'openai>=2.0,<4' 'playwright>=1.58,<2'
 python -m playwright install chromium
-```
-
-The environment in this checkout is already installed. On a minimal Linux server,
-Playwright may also need browser system libraries (`playwright install-deps chromium`).
-To use an existing Chrome installation, set `CHROME_BIN` to its executable instead
-of installing bundled Chromium. Headless is the default; `--headed` needs a display
-(for example, an existing Xvfb session).
-
-## Run with OpenRouter
-
-Set your key in `OPENAI_API_KEY` without committing it. For example, `read` avoids
-putting the key itself in shell history:
-
-```bash
 read -rsp 'OpenRouter key: ' OPENAI_API_KEY
 export OPENAI_API_KEY
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
@@ -38,144 +26,137 @@ python agent.py --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-`--max-steps 20` bounds model turns. `--profile /absolute/path` chooses the persistent
-browser profile (default: `.chrome` relative to the working directory). `--close`
-closes Chrome after the task; otherwise it stays running for inspection or reuse.
-Use a vision model with function calling enabled for your key.
+`--max-steps 30` bounds model turns. `--profile /absolute/path` chooses the persistent
+Chrome profile (default `.chrome` in the working directory). `--close` shuts Chrome
+down after the task; otherwise it stays running for inspection and reuse.
 
-For OpenAI itself, unset `OPENAI_BASE_URL`, set an OpenAI key and choose an available
-model. The code uses `client.responses.create()` in both cases. OpenRouter requires
-stateless requests, so the loop sends history explicitly with `store=False`.
-Reasoning items and tool outputs are retained; only the latest screenshot is sent.
+To use an existing Chrome installation, set `CHROME_BIN` to its executable.
+Headless is the default; `--headed` requires a display such as an existing Xvfb session.
+Minimal Linux installations may need `playwright install-deps chromium`.
+For OpenAI itself, unset `OPENAI_BASE_URL` and use an OpenAI key and available vision model.
+Both providers use `client.responses.create()`; no Chat Completions adapter is included.
 
-## Call it from Python
+## Callable interface
 
 ```python
 from openai import OpenAI
 from agent import WebAgent
 
-agent = WebAgent(".chrome").start()
+agent = WebAgent('.chrome').start()
 try:
-    print(agent.act("page.goto('https://example.com')\nprint(page.title())"))
+    agent.act('navigate', {'url': 'https://example.com'})
     text, screenshot_data_url = agent.observe()
-    print(text)
+    print(text)  # Active tab ID, tab titles/URLs, viewport dimensions.
     with OpenAI(timeout=60, max_retries=1) as client:
-        answer = agent.run(
-            "Read the page and report its heading.",
+        print(agent.run(
+            'Read the page and report its heading.',
             client,
-            model="google/gemini-3.8-flash",
-            max_steps=10,
-            on_step=lambda step, action, output: print(step, action, output),
-        )
-        print(answer)
+            model='google/gemini-3.8-flash',
+            max_steps=15,
+            on_step=lambda step, action, result: print(step, action, result),
+        ))
 finally:
-    agent.stop()  # Disconnect; Chrome and its tabs survive this Python process.
+    agent.stop()  # Disconnect; Chrome survives Python exit.
 
-# Reconnect later, then close the actual browser with a raw CDP Browser.close command.
-WebAgent(".chrome").start().stop(close_browser=True)
+# Reconnect later and close the actual browser.
+WebAgent('.chrome').start().stop(close_browser=True)
 ```
 
-`start()` returns the agent. `act(code)` returns printed output or a Python/Playwright
-error, allowing the model to recover. `observe()` returns `(json_text, image_data_url)`.
-`run()` returns the model's final answer and raises if the turn budget is exhausted.
-`stop()` disconnects; `stop(close_browser=True)` requests browser shutdown and polls
-for its CDP endpoint to disappear. Calls are synchronous and belong on one thread.
+Host code can also call methods directly: `agent.click(100, 200)` or
+`agent.new_tab('https://example.com')`. The model always goes through `act(name, arguments)`.
+These calls are synchronous and belong on one thread. `act` returns a JSON-serializable
+result or an `error` object; `run` feeds errors back to the model for recovery.
 
-## Action space
+## Model-callable functions
 
-`act()` executes Python with persistent `page`, `context`, `browser`, and `cdp`
-variables. This exposes the Playwright API directly, including context managers,
-callbacks, and raw CDP, without maintaining a fixed menu of browser actions.
-Assign to `page` to change the tab used by the next observation.
-
-| Capability | Code passed to `act()` |
+| Category | Functions |
 | --- | --- |
-| Navigation | `page.goto(url)`; `page.go_back()`; `page.reload()` |
-| Accessible locators | `page.get_by_role('button', name='Submit').click()` |
-| Form input | `page.get_by_label('Email').fill('me@example.com')` |
-| Select/check | `page.locator('select').select_option('a')`; `loc.check()` |
-| Mouse/keyboard | `page.mouse.click(100, 200)`; `page.keyboard.press('Enter')` |
-| Drag | `loc.drag_to(other)` or mouse `move`, `down`, `move`, `up` |
-| Scroll | `page.mouse.wheel(0, 600)`; `loc.scroll_into_view_if_needed()` |
-| Read DOM/JS | `print(page.content())`; `print(page.evaluate('document.title'))` |
-| Wait | `loc.wait_for()`; `page.wait_for_url('**/done')` |
-| Frames | `page.frame_locator('iframe').get_by_text('Continue').click()` |
-| Tabs | `page = context.new_page()`; `page = context.pages[0]`; `page.close()` |
-| Upload | `page.locator('input[type=file]').set_input_files('/tmp/file.txt')` |
-| Dialogs | `page.on('dialog', lambda dialog: dialog.accept())` |
-| Console/network | `page.on('console', lambda message: print(message.text))` |
-| Interception | `page.route('**/*.png', lambda route: route.abort())` |
-| Raw CDP | `print(cdp.send('Runtime.evaluate', {'expression': 'location.href'}))` |
-| Capture | `page.screenshot(path='page.png')`; `page.pdf(path='page.pdf')` |
+| Navigation | `navigate(url)`, `back()`, `forward()`, `reload()` |
+| Clicks | `click(x, y)`, `double_click(x, y)`, `right_click(x, y)` |
+| Pointer | `hover(x, y)`, `mouse_down()`, `mouse_up()`, `drag(x1, y1, x2, y2)` |
+| Scrolling | `scroll(dx, dy)`; positive values scroll right/down at the pointer |
+| Keyboard | `type_text(text)`, `press_key(key)`, `key_down(key)`, `key_up(key)` |
+| Timing | `wait(seconds)`; between 0 and 10 seconds |
+| Observation | `screenshot()`, `list_tabs()` |
+| Tabs | `new_tab(url='about:blank')`, `switch_tab(tab_id)`, `close_tab(tab_id)` |
 
-Variables such as `url`, `loc`, and `other` in the table must be defined by your code.
-Multi-line actions work, including downloads and popups:
+Coordinates are CSS pixels within a 1280×800 viewport. Screenshots use the same CSS
+scale, including on high-DPI displays. Keyboard actions target the focused control.
+`press_key` accepts Playwright key names/chords such as `Tab`, `ArrowDown`, `Enter`,
+and `ControlOrMeta+A`. Mouse down/up hold/release the left button; `right_click` is a
+complete right-button click. Release held keys/buttons before switching tabs.
+Visible controls inside frames are reachable by coordinates without selecting a frame.
 
-```python
-agent.act("""
-with page.expect_download() as pending:
-    page.get_by_text('Download').click()
-pending.value.save_as('/tmp/download.csv')
-""")
+Tab IDs are strings and remain stable during a connection: closing a tab never
+renumbers surviving tabs. Reconnecting produces a fresh tab mapping; call `list_tabs()`
+to get current IDs. New tabs opened by clicks/popups are discovered automatically at
+observations/actions without changing the agent's active tab. `new_tab` activates its
+new tab. Closing the active tab selects a remaining one; closing the last creates a
+blank tab. Each observation includes the active ID and all current titles/URLs.
 
-agent.act("""
-with page.expect_popup() as pending:
-    page.get_by_text('Open report').click()
-page = pending.value
-cdp = context.new_cdp_session(page)
-""")
-```
+`screenshot()` returns a data URL to host callers. When called as a model tool, it
+requests the next observation's screenshot instead of returning image bytes as text.
+The loop captures an observation before each model turn. Only the latest image is
+sent; prior textual metadata, reasoning, and tool results stay in history. Requests
+use `store=False` and explicit history for OpenRouter's stateless Responses endpoint.
 
-For inspection, `agent.scope` contains the actual Playwright objects. To record a
-trace, call `context.tracing.start(screenshots=True, snapshots=True)` before actions,
-then `context.tracing.stop(path='trace.zip')`. Open it with `playwright show-trace`.
-Event listeners only collect events while this Python process is connected.
+## Restriction and self-documentation
+
+The system prompt includes `Path(__file__).read_text()` so the implementation itself
+documents the functions. Tool schemas are derived from their signatures/docstrings.
+The fixed `ACTIONS` tuple is the allowlist; seeing a function in the source does not
+make it callable. `start`, `stop`, `run`, and internal methods are host-only.
+
+Before dispatch, the agent checks the name, argument object, signature, types,
+finite numbers, and viewport coordinate bounds. Extra arguments are rejected.
+Navigation/new-tab tools allow HTTP(S) and `about:blank`; `file:`, `data:`, and
+`javascript:` URLs are rejected. There is no model-facing Python executor, JavaScript
+evaluator, raw CDP command, selector API, arbitrary callback, or filesystem tool.
+Screenshots stay in memory. The model cannot supply executable source or output paths.
+
+This restricts the model's tool interface; it is not browser isolation or a website
+allowlist. Clicks and keyboard input can still submit forms, trigger downloads, and
+perform authenticated actions. Remote pages still execute their own JavaScript.
+The source code and screenshots are sent to the configured model provider.
 
 ## Deliberate limits
 
-Model-generated Python runs with your process's permissions: **this is not a sandbox**.
-The broad action space includes imports and filesystem access. Use trusted tasks in
-an appropriate environment. Browser content is labeled untrusted in the prompt, but
-that is not an enforcement boundary.
+Uploads/download management, explicit dialog handling, DOM reading, and native OS
+controls are outside the model action set. Playwright's default dialog behavior applies.
+Use screenshots plus `wait` for loading/animation state. Coordinate targeting can be
+less reliable than locators; native menus may not be represented in page screenshots.
 
-This is the full browser API surface available through Playwright/CDP, not OS desktop
-automation: native browser menus, OS dialogs, and extension popups are outside it.
-CDP attachment has lower fidelity than Playwright's own browser protocol, so advanced
-features can have limitations. Python actions have no hard execution timeout; the
-default Playwright operation timeout is 10 seconds. The model turn budget cannot stop
-an infinite Python loop. Text observations are truncated to 16,000 characters and
-include top-frame ARIA; the model can inspect child frames or HTML through `act()`.
+A dedicated profile's `DevToolsActivePort` provides the random localhost port and
+browser token; both are checked before attaching. Use one controller per profile.
+Startup diagnostics are in `<profile>/chrome.log`. CDP attachment has lower fidelity
+than Playwright's own protocol, so advanced browser features can have limitations.
+The launcher targets Linux/macOS. Chrome survives Python exit, but not machine shutdown
+or a supervisor killing its cgroup.
 
-The profile's `DevToolsActivePort` identifies the random port and browser token;
-both are checked before attaching. Use a separate profile and only one controller
-at a time. Chrome startup diagnostics are in `<profile>/chrome.log`. The launcher
-targets Linux/macOS; it does not implement Windows detached-process flags. Chrome
-survives Python exit, but not a machine shutdown or a supervisor killing its cgroup.
-
-## Test
+## Tests
 
 ```bash
 python -m unittest -v test_agent.py
+python test_live.py  # Opt-in paid Gemini test using OPENAI_* environment variables.
 ```
 
-Tests use real Chromium, temporary profiles, and a local HTTP server. They exercise
-form controls, keyboard/mouse input, frames, dialogs, uploads/downloads, popups,
-tracing, CDP, reconnection after a separate Python process exits, graceful shutdown,
-and serialized Responses requests with tool feedback and step limits. No API key is
-needed. Run `python test_live.py` for an opt-in paid end-to-end model test using your
-`OPENAI_API_KEY` and `OPENAI_BASE_URL` settings.
+The integration suite uses real Chromium and a local HTTP/Responses fixture. It checks
+coordinate form input, keyboard and mouse events, iframe interaction, screenshots,
+navigation, popup discovery, stable tab IDs, closing the last tab, rejected tool
+names/arguments, persistence across Python processes, source self-documentation,
+Responses serialization, error recovery, and turn limits. Test code uses DOM assertions
+to verify outcomes independently; the model receives no DOM information.
 
-Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all four
-integration tests pass. The live OpenRouter Responses test with
-`google/gemini-3.8-flash` also passed: the model filled the email field, selected
-Robotics, checked the terms, submitted the form, and read back the confirmation.
-The test independently checked the resulting DOM and final answer. This took two
-browser tool calls and three model turns. The supplied key was used only in the
-test process environment and was not saved in the project.
+The live test asks Gemini 3.8 Flash to complete a signup form using the restricted tools,
+then verifies both the resulting DOM and the model's reported confirmation.
 
-## API references
+Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all seven
+integration tests pass. The screenshot-only Gemini 3.8 Flash test through OpenRouter's
+Responses API also passed, using 14 predefined actions across 15 model turns. The API
+key was used only in the test process environment and was not saved in the project.
+
+## References
 
 - [OpenAI Responses guidance](https://developers.openai.com/api/docs/guides/migrate-to-responses)
 - [OpenRouter Responses API](https://openrouter.ai/docs/api_reference/responses/overview)
-- [Gemini model IDs](https://ai.google.dev/gemini-api/docs/models)
-- [Playwright CDP attachment](https://playwright.dev/python/docs/api/class-browsertype#browser-type-connect-over-cdp)
+- [Playwright Page API](https://playwright.dev/python/docs/api/class-page)

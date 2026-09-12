@@ -59,9 +59,9 @@ class Fixture(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def tool_call(code, call_id="call_1", name="run_browser"):
+def tool_call(name, arguments=None, call_id="call_1"):
     return dict(type="function_call", id="fc_" + call_id, call_id=call_id,
-                name=name, arguments=json.dumps({"code": code}), status="completed")
+                name=name, arguments=json.dumps(arguments or {}), status="completed")
 
 
 class BrowserTests(unittest.TestCase):
@@ -81,103 +81,161 @@ class BrowserTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="mini-web-agent-test-")
         self.agent = WebAgent(self.folder.name).start()
-        self.agent.scope["page"].goto(self.url)
+        self.agent.navigate(self.url)
 
     def tearDown(self):
         self.agent.start().stop(close_browser=True)
         self.folder.cleanup()
 
-    def act(self, code):
-        result = self.agent.act(code)
-        self.assertNotIn("Error:", result)
+    def act(self, name, **arguments):
+        result = self.agent.act(name, arguments)
+        self.assertFalse(isinstance(result, dict) and "error" in result, result)
         return result
 
-    def test_actions_observation_and_events(self):
-        self.act("page.get_by_label('Email').fill('agent@example.com')")
-        self.act("page.get_by_label('Track').select_option(label='Robotics')")
-        self.act("page.get_by_label('Agree to terms').check()")
-        self.act("page.get_by_role('button', name='Register').click()")
-        self.assertIn("agent@example.com / Robotics", self.act(
-            "print(page.get_by_role('status').inner_text())"))
-        self.act("page.frame_locator('iframe').get_by_role('button').click()")
-        self.assertIn("42", self.act("print(page.frames[1].locator('button').inner_text())"))
-        self.act("page.get_by_label('Email').focus()\npage.keyboard.press('ControlOrMeta+A')\n"
-                 "page.keyboard.type('typed@example.com')")
-        self.assertIn("typed@example.com", self.act(
-            "print(page.locator('input').first.input_value())"))
-        self.act("box = page.get_by_role('button', name='Register').bounding_box()\n"
-                 "page.mouse.move(box['x'] + 5, box['y'] + 5, steps=5)\n"
-                 "page.mouse.down()\npage.mouse.up()\npage.mouse.wheel(0, 400)")
-        self.act("page.wait_for_function('scrollY > 0')")
-        self.act("page.get_by_label('Upload').set_input_files("
-                 "{'name': 'note.txt', 'mimeType': 'text/plain', 'buffer': b'hello'})")
-        self.assertIn("note.txt", self.act(
-            "print(page.get_by_label('Upload').evaluate('(el) => el.files[0].name'))"))
-        self.act("dialogs = []\ndef handle(dialog):\n"
-                 "    dialogs.append(dialog.message)\n    dialog.accept()\n"
-                 "page.on('dialog', handle)\npage.get_by_text('Dialog', exact=True).click()")
-        self.assertIn("Hello", self.act("print(dialogs)"))
-        self.act("with page.expect_download() as pending:\n"
-                 "    page.get_by_text('Download', exact=True).click()\n"
-                 f"pending.value.save_as({str(Path(self.folder.name) / 'note.txt')!r})")
-        self.assertEqual((Path(self.folder.name) / "note.txt").read_text(), "downloaded")
-        self.act("with page.expect_popup() as pending:\n"
-                 "    page.get_by_text('Popup', exact=True).click()\npage = pending.value\n"
-                 "page.wait_for_load_state()")
-        state, screenshot = self.agent.observe()
-        self.assertEqual(len(json.loads(state)["tabs"]), 2)
-        self.assertTrue(base64.b64decode(screenshot.split(",")[1]).startswith(b"\xff\xd8"))
-        self.act("page.close()")
+    def point(self, locator):
+        box = locator.bounding_box()
+        return dict(x=box["x"] + box["width"] / 2, y=box["y"] + box["height"] / 2)
+
+    def test_coordinate_form_keyboard_and_observation(self):
+        page = self.agent.page
+        self.act("click", **self.point(page.get_by_label("Email")))
+        self.act("type_text", text="agent@example.com")
+        self.act("press_key", key="Tab")
+        self.act("press_key", key="ArrowDown")
+        self.act("press_key", key="Tab")
+        self.act("press_key", key="Space")
+        self.act("click", **self.point(page.get_by_role("button", name="Register")))
+        self.assertEqual(page.get_by_role("status").inner_text(),
+                         "Registered: agent@example.com / Robotics")
+        self.act("click", **self.point(page.get_by_label("Email")))
+        self.act("key_down", key="Shift")
+        self.act("press_key", key="ArrowLeft")
+        self.act("key_up", key="Shift")
+        self.act("press_key", key="ControlOrMeta+A")
+        self.act("type_text", text="replaced@example.com")
+        self.assertEqual(page.get_by_label("Email").input_value(), "replaced@example.com")
+        self.act("click", **self.point(page.frames[1].get_by_role("button")))
+        self.assertEqual(page.frames[1].get_by_role("button").inner_text(), "42")
+        self.act("hover", x=100, y=500)
+        self.act("scroll", dx=0, dy=400)
+        page.wait_for_function("scrollY > 0")
+        state, image = self.agent.observe()
+        self.assertEqual(set(json.loads(state)), {"active_tab", "tabs", "viewport"})
+        self.assertTrue(base64.b64decode(image.split(",")[1]).startswith(b"\xff\xd8"))
+        self.assertIn("Screenshot follows", self.act("screenshot"))
+
+    def test_mouse_events(self):
+        self.agent.page.set_content("""<div style='width:600px;height:600px'>Target</div>
+        <script>window.events=[];
+        for (const name of ['dblclick','contextmenu','mousemove','mousedown','mouseup'])
+          document.addEventListener(name, e => {events.push(name); e.preventDefault()});
+        </script>""")
+        self.act("hover", x=50, y=50)
+        self.act("double_click", x=50, y=50)
+        self.act("right_click", x=50, y=50)
+        self.act("mouse_down")
+        self.act("hover", x=100, y=100)
+        self.act("mouse_up")
+        self.act("drag", x1=100, y1=100, x2=200, y2=200)
+        events = self.agent.page.evaluate("events")
+        self.assertTrue({"dblclick", "contextmenu", "mousemove", "mousedown", "mouseup"}
+                        .issubset(events))
+        self.assertEqual(events.count("mousedown"), events.count("mouseup"))
+
+    def test_tabs_popups_stable_ids_and_navigation(self):
+        first = self.act("list_tabs")[0]["id"]
+        second = self.act("new_tab", url=self.url + "/second")
+        third = self.act("new_tab", url=self.url + "/third")
+        self.act("close_tab", tab_id=second)
+        self.assertEqual([t["id"] for t in self.act("list_tabs")], [first, third])
+        self.act("switch_tab", tab_id=first)
+        self.act("click", **self.point(self.agent.page.get_by_text("Popup", exact=True)))
+        self.act("wait", seconds=0.1)
+        tabs = self.act("list_tabs")
+        popup = next(t["id"] for t in tabs if t["id"] not in (first, third))
+        self.assertEqual(next(t["id"] for t in tabs if t["active"]), first)
+        self.act("switch_tab", tab_id=popup)
+        self.act("navigate", url=self.url + "/next")
+        self.act("back")
+        self.assertTrue(self.agent.page.url.endswith("/popup"))
+        self.act("forward")
+        self.act("reload")
+        self.assertTrue(self.agent.page.url.endswith("/next"))
+        self.act("close_tab", tab_id=first)
+        self.act("close_tab", tab_id=third)
+        self.act("close_tab", tab_id=popup)
+        tabs = self.act("list_tabs")
+        self.assertEqual(len(tabs), 1)
+        self.assertNotIn(tabs[0]["id"], (first, second, third, popup))
+        self.assertEqual(tabs[0]["url"], "about:blank")
+        self.agent.page.close()  # Simulate the active tab being closed externally.
         self.assertEqual(len(json.loads(self.agent.observe()[0])["tabs"]), 1)
-        self.assertIn("Workshop signup", self.act(
-            "print(cdp.send('Runtime.evaluate', {'expression': 'document.body.innerText'}))"))
-        self.act("context.tracing.start(screenshots=True, snapshots=True)\npage.reload()\n"
-                 f"context.tracing.stop(path={str(Path(self.folder.name) / 'trace.zip')!r})")
-        self.assertTrue((Path(self.folder.name) / "trace.zip").is_file())
-        self.assertIn("ZeroDivisionError", self.agent.act("1 / 0"))
+
+    def test_restricted_dispatch(self):
+        invalid = [
+            ("__getattribute__", {"name": "page"}), ("stop", {}), ("tools", {}),
+            ("evaluate", {"expression": "document.title"}), ("run_browser", {"code": "1+1"}),
+            ("navigate", {"url": "javascript:alert(1)"}),
+            ("navigate", {"url": "file:///etc/passwd"}),
+            ("new_tab", {"url": "data:text/html,hello"}),
+            ("click", {"x": True, "y": 1}), ("click", {"x": "1", "y": 1}),
+            ("click", {"x": float("nan"), "y": 1}), ("click", {"x": -1, "y": 1}),
+            ("click", {"x": 1280, "y": 1}), ("click", {"x": 1}),
+            ("click", {"x": 1, "y": 1, "force": True}), ("click", []),
+            ("wait", {"seconds": 11}), ("wait", {"seconds": -1}),
+            ("screenshot", {"path": "/tmp/forbidden.png"}), ("switch_tab", {"tab_id": "missing"}),
+        ]
+        for name, arguments in invalid:
+            with self.subTest(name=name, arguments=arguments):
+                self.assertIn("error", self.agent.act(name, arguments))
+        self.assertEqual(len(self.agent.list_tabs()), 1)
+        from agent import ACTIONS
+        self.assertEqual({t["name"] for t in self.agent.tools()}, set(ACTIONS))
+        self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
 
     def test_browser_survives_separate_python_process(self):
         self.agent.stop(close_browser=True)
         code = ("from agent import WebAgent; "
-                f"a=WebAgent({self.folder.name!r}).start(); "
-                f"a.scope['page'].goto({self.url!r}); "
-                "a.act(\"page.evaluate('window.survived = 42')\"); a.stop()")
+                f"a=WebAgent({self.folder.name!r}).start(); a.navigate({self.url!r}); "
+                "a.press_key('Tab'); a.type_text('survived@example.com'); a.stop()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
                        check=True, timeout=30)
         self.assertTrue(self.agent._endpoint())
         self.agent.start()
-        self.assertIn("42", self.act("print(page.evaluate('window.survived'))"))
+        self.assertEqual(self.agent.page.get_by_label("Email").input_value(),
+                         "survived@example.com")
         self.agent.stop(close_browser=True)
         self.assertIsNone(self.agent._endpoint())
 
     def test_responses_wire_format_and_error_recovery(self):
         Fixture.requests = []
+        self.agent.page.get_by_label("Email").focus()
         Fixture.replies = [
-            [tool_call("1 / 0")],
-            [tool_call("page.get_by_label('Email').fill('model@example.com')\n"
-                       "print(page.get_by_label('Email').input_value())", "call_2")],
+            [tool_call("run_browser", {"code": "1 / 0"})],
+            [tool_call("type_text", {"text": "model@example.com"}, "call_2")],
             [dict(type="message", id="msg_1", role="assistant", status="completed",
                   content=[dict(type="output_text", text="Done", annotations=[])])],
         ]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
             result = self.agent.run("Fill the email", client, "test", max_steps=3)
         self.assertEqual(result, "Done")
-        self.assertEqual(self.agent.scope["page"].get_by_label("Email").input_value(),
-                         "model@example.com")
+        self.assertEqual(self.agent.page.get_by_label("Email").input_value(), "model@example.com")
         self.assertEqual(len(Fixture.requests), 3)
         for path, request in Fixture.requests:
             self.assertEqual(path, "/v1/responses")
             self.assertFalse(request["store"])
+            self.assertIn(Path(__file__).with_name("agent.py").read_text(),
+                          request["input"][0]["content"])
             images = [part for item in request["input"] if isinstance(item.get("content"), list)
                       for part in item["content"] if part["type"] == "input_image"]
             self.assertEqual(len(images), 1)
         outputs = [item for item in Fixture.requests[-1][1]["input"]
                    if item.get("type") == "function_call_output"]
-        self.assertIn("ZeroDivisionError", outputs[0]["output"])
-        self.assertIn("model@example.com", outputs[1]["output"])
+        self.assertIn("Unknown action", outputs[0]["output"])
+        self.assertEqual(outputs[1]["output"], "null")
 
     def test_step_limit(self):
-        Fixture.replies = [[tool_call("print('still working')")]]
+        Fixture.replies = [[tool_call("wait", {"seconds": 0})]]
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
             with self.assertRaisesRegex(RuntimeError, "unfinished"):
                 self.agent.run("Keep going", client, "test", max_steps=1)

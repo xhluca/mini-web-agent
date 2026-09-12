@@ -20,14 +20,14 @@ def main():
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-live-") as profile:
             agent = WebAgent(profile).start()
             try:
-                agent.scope["page"].goto(f"http://127.0.0.1:{server.server_port}")
+                agent.page.goto(f"http://127.0.0.1:{server.server_port}")
                 task = ("Using the visible form controls, register model@example.com for Robotics, "
                         "agree to the terms, and click Register. Read the confirmation and report "
                         "it. Do not modify the page using JavaScript or replace its HTML.")
                 with OpenAI(timeout=60, max_retries=0) as client:
-                    answer = agent.run(task, client, model, max_steps=8,
+                    answer = agent.run(task, client, model, max_steps=25,
                                        on_step=lambda n, a, r: print(n, a, r, flush=True))
-                actual = agent.scope["page"].get_by_role("status").inner_text()
+                actual = agent.page.get_by_role("status").inner_text()
                 assert actual == "Registered: model@example.com / Robotics", actual
                 assert "model@example.com" in answer and "Robotics" in answer, answer
                 print("PASS:", answer)
