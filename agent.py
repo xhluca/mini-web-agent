@@ -284,8 +284,6 @@ class WebAgent:
 
     def act(self, name, arguments):
         """Dispatch only allowlisted functions with validated JSON arguments; never execute code."""
-        if not self.browser:
-            raise RuntimeError("Call connect() before act()")
         try:
             if name not in ACTIONS or not isinstance(arguments, dict):
                 raise ValueError("Unknown action or non-object arguments")
@@ -314,8 +312,6 @@ class WebAgent:
 
     def shutdown(self):
         """Close the connected Chrome browser, then disconnect Playwright."""
-        if not self.browser:
-            raise RuntimeError("Call connect() before shutdown()")
         try:
             try:
                 self.browser.new_browser_cdp_session().send("Browser.close")
