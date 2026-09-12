@@ -88,7 +88,6 @@ class Actions:
         page.keyboard.up(key)
 
     def wait(page: Page, seconds: float) -> None:
-        """Wait between 0 and 10 seconds while processing browser events."""
         if not 0 <= seconds <= 10:
             raise ValueError("seconds must be between 0 and 10")
         page.wait_for_timeout(seconds * 1000)
