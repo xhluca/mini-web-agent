@@ -237,16 +237,16 @@ class BrowserTests(unittest.TestCase):
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             chosen = probe.getsockname()[1]
-        with patch("agent.read_assigned_port") as select_port:
-            self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch().connect()
-            select_port.assert_not_called()
+        with patch("agent.read_cdp_address") as read_address:
+            self.agent = WebAgent(self.folder.name, cdp_port=chosen).launch()
+            read_address.assert_not_called()
+        self.agent.connect()
         self.assertEqual(self.agent.cdp_port, chosen)
         self.agent.disconnect()
         other = WebAgent(self.agent.profile)
         self.assertEqual(other.cdp_port, chosen)
-        with patch("agent.read_assigned_port") as read_port:
-            other.connect()
-            read_port.assert_not_called()
+        other.connect()
+        self.assertEqual(other.cdp_port, chosen)
         try:
             self.assertEqual(other.cdp_port, chosen)
             self.assertIn(f":{chosen}/", probe_browser_endpoint(other.profile))

@@ -135,7 +135,7 @@ def probe_browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
     try:
         target = ""
         if not port:
-            port, target = Path(profile).joinpath("DevToolsActivePort").read_text().splitlines()[:2]
+            port, target = read_cdp_address(profile)
 
         endpoint = f"http://127.0.0.1:{int(port)}"
         with urlopen(endpoint + "/json/version", timeout=0.5) as response:
@@ -162,8 +162,14 @@ def check_port_available(port: int) -> None:
             probe.bind(("127.0.0.1", port))
 
 
-def read_assigned_port(profile: Path) -> int:
-    return int(profile.joinpath("DevToolsActivePort").read_text().splitlines()[0])
+def devtools_file(profile: str | Path) -> Path:
+    return Path(profile).joinpath("DevToolsActivePort")
+
+
+def read_cdp_address(profile: str | Path) -> tuple[int, str]:
+    port, websocket_path = devtools_file(profile).read_text().splitlines()[:2]
+    return int(port), websocket_path
+
 
 def tab_at(page: Page, index: int) -> Page:
     if index < 0:
@@ -236,8 +242,8 @@ class WebAgent:
         self.on_message = on_message
         self.on_reply = on_reply
         self.cdp_port = cdp_port
-        if cdp_port == 0 and self.profile.joinpath("DevToolsActivePort").exists():
-            self.cdp_port = read_assigned_port(self.profile)
+        if cdp_port == 0 and devtools_file(self.profile).exists():
+            self.cdp_port, _ = read_cdp_address(self.profile)
         self.playwright: Playwright | None = None
         self.process: subprocess.Popen[bytes] | None = None
         self.browser: Browser | None = None
@@ -265,10 +271,10 @@ class WebAgent:
 
             wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
             if port == 0:
-                self.cdp_port = read_assigned_port(self.profile)
+                self.cdp_port, _ = read_cdp_address(self.profile)
             else:
                 target = urlsplit(probe_browser_endpoint(self.profile, port)).path
-                self.profile.joinpath("DevToolsActivePort").write_text(f"{port}\n{target}\n")
+                devtools_file(self.profile).write_text(f"{port}\n{target}\n")
         except BaseException as error:
             if self.process and self.process.poll() is None:
                 self.process.terminate()
@@ -283,8 +289,8 @@ class WebAgent:
         if self.browser:
             return self
 
-        target = self.profile.joinpath("DevToolsActivePort").read_text().splitlines()[1]
-        endpoint = f"ws://127.0.0.1:{self.cdp_port}{target}"
+        _, websocket_path = read_cdp_address(self.profile)
+        endpoint = f"ws://127.0.0.1:{self.cdp_port}{websocket_path}"
         if not self.playwright:
             self.playwright = sync_playwright().start()
 
