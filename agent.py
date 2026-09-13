@@ -132,10 +132,12 @@ def probe_browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
     except (OSError, ValueError, KeyError):
         return None
 
-def wait_for_browser(profile: str | Path, running: bool, attempts: int = 20, port: int = 0) -> None:
+def wait_for_browser(profile: str | Path, running: bool, attempts: int = 20,
+                     port: int = 0) -> str | None:
     for _ in range(attempts):
-        if bool(probe_browser_endpoint(profile, port)) == running:
-            return
+        endpoint = probe_browser_endpoint(profile, port)
+        if bool(endpoint) == running:
+            return endpoint
         time.sleep(0.5)
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
@@ -227,11 +229,11 @@ class WebAgent:
                 self.process = subprocess.Popen(
                     args, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True
                 )
-            wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
+            endpoint = wait_for_browser(self.profile, True, attempts=int(timeout * 2), port=port)
             if port == 0:
                 self.port, _ = read_cdp_address(self.profile)
             else:
-                target = urlsplit(probe_browser_endpoint(self.profile, port)).path
+                target = urlsplit(endpoint).path
                 devtools_file(self.profile).write_text(f"{port}\n{target}\n")
         except BaseException as error:
             terminate_process(self.process)
@@ -244,8 +246,7 @@ class WebAgent:
         """Attach Playwright to this profile's running Chrome; never launch a browser."""
         if self.browser:
             return self
-        _, websocket_path = read_cdp_address(self.profile)
-        endpoint = f"ws://127.0.0.1:{self.port}{websocket_path}"
+        endpoint = f"http://127.0.0.1:{self.port}"
         if not self.playwright:
             self.playwright = sync_playwright().start()
 

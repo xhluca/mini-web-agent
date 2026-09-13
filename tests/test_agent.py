@@ -333,6 +333,46 @@ class BrowserTests(unittest.TestCase):
         self.agent.connect().shutdown()
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
+    def test_launch_reuses_successful_endpoint_probe(self):
+        self.agent.shutdown()
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        self.agent = WebAgent(self.folder.name, port=port, action_space=get_action_space())
+        discovered = []
+
+        def transient_probe(*args):
+            if discovered:
+                return None
+            endpoint = probe_browser_endpoint(*args)
+            if endpoint:
+                discovered.append(endpoint)
+            return endpoint
+
+        with patch("agent.probe_browser_endpoint", side_effect=transient_probe):
+            self.agent.launch()
+        saved = self.agent.profile.joinpath("DevToolsActivePort").read_text().splitlines()
+        self.assertEqual(saved[1], discovered[0].split(str(port), 1)[1])
+        self.assertTrue(saved[1].startswith("/devtools/browser/"))
+        self.agent.connect()
+        self.assertTrue(self.agent.browser.is_connected())
+
+    def test_connect_recovers_from_corrupt_saved_websocket_path(self):
+        self.agent.disconnect()
+        address = self.agent.profile.joinpath("DevToolsActivePort")
+        saved = address.read_text()
+        try:
+            address.write_text(f"{self.agent.port}\nb''\n")
+            other = WebAgent(self.agent.profile, action_space=get_action_space())
+            try:
+                other.connect()
+                self.assertTrue(other.browser.is_connected())
+                self.assertEqual(other.page.url, self.url + "/")
+            finally:
+                other.disconnect()
+        finally:
+            address.write_text(saved)
+
     def test_random_and_explicit_ports(self):
         from urllib.request import urlopen
 

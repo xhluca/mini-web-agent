@@ -126,7 +126,8 @@ Browser lifecycle and model execution are separate:
 | `agent.shutdown()` | Close Chrome and disconnect, even if Chrome was already running |
 
 To retain a browser for a later task, explicitly call `disconnect()` instead of `shutdown()`.
-A new agent can attach using the same profile. The profile records its CDP address.
+A new agent can attach using the same profile. The profile records its CDP port;
+Playwright discovers the current WebSocket endpoint over HTTP when connecting.
 
 ## The action space
 
