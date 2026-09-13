@@ -440,12 +440,13 @@ class BrowserTests(unittest.TestCase):
         Fixture.requests = []
         Fixture.replies = [[]]
         result = subprocess.run(
-            [sys.executable, "agent.py", "Test CLI", "--model", "test", "--connect",
+            [sys.executable, "agent.py", "Test CLI", "--model", "test", "--connect", "--headed",
              "--profile", str(self.agent.profile), "--max-steps", "1"],
             cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
             env=dict(os.environ, OPENAI_API_KEY="local-test", OPENAI_BASE_URL=self.url + "/v1"),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--headed is ignored with --connect", result.stdout)
         self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.assertIsNone(self.agent.process.poll())
 
@@ -480,7 +481,7 @@ class BrowserTests(unittest.TestCase):
             events = []
             result = run(self.agent,
                 "Fill the email", client, "test", max_steps=3,
-                on_action=lambda step, action, result: events.append((step, action, result)),
+                callbacks=[dict(type="after", function=lambda *event: events.append(event))],
                 instructions=get_instructions(),
             )
         self.assertEqual([event[0] for event in events], [0, 1, 2])
@@ -639,7 +640,7 @@ class BrowserTests(unittest.TestCase):
             with patch.object(self.agent, "act", wraps=self.agent.act) as act:
                 result = run(self.agent, "Finish", client, "test", max_steps=2,
                              instructions=get_instructions(),
-                             on_action=lambda *event: events.append(event))
+                             callbacks=[dict(type="after", function=lambda *event: events.append(event))])
                 act.assert_called_once_with("finish", '{"message": "Done"}')
         self.assertEqual(result, "Done")
         self.assertEqual(len(events), 1)

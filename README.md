@@ -59,7 +59,8 @@ Press **Ctrl+C** to interrupt; the CLI's cleanup closes Chrome if it launched it
 only disconnects if you used `--connect`.
 
 Omit `--headed` to run Chrome headless. In Python, use `agent.launch(headed=True).connect()`.
-With `--connect`, the existing browser keeps its current mode; `--headed` applies only to launch.
+With `--connect`, the existing browser keeps its current mode. Adding `--headed` prints a
+warning and continues without changing browser visibility.
 
 Chromium uses Playwright's bundled executable. Minimal Linux
 installations may also need `python -m playwright install-deps chromium`.
@@ -98,7 +99,7 @@ try:
             agent, 'Find the heading on https://example.com.', client,
             model='google/gemini-3.8-flash', instructions=get_instructions(),
             max_steps=20,
-            on_action=lambda step, action, result: print(step, action, result),
+            callbacks=[dict(type="after", function=print)],
         )
         print(answer)
 finally:
@@ -110,7 +111,8 @@ after launch to get the actual port. The default is `port=0`.
 
 `action_space` and `instructions` are required inputs. Supply your own dictionary or
 prompt, or use the getters. The same action dictionary controls both tool schemas and dispatch.
-`on_action` receives the model-turn index, action name/arguments, and result dictionary.
+Each entry in `callbacks` has a `type` (`"before"` or `"after"`) and a `function`. Each receives
+the model-turn index, action name/arguments, and result (`None` before execution).
 User-facing messages and replies use `on_message` and `on_reply`, defaulting to `print` and `input`.
 
 Browser lifecycle and model execution are separate:
@@ -143,12 +145,18 @@ The 24 actions are ordinary functions grouped in `Actions`:
 
 Coordinates match the 1280×800 screenshot viewport. Keyboard input goes to the focused
 control. Tab indices come from the latest observation and can shift after a tab closes.
-With `--cursor`, an arrow cursor visualizes completed pointer actions through `on_action`.
+With `--cursor`, an arrow cursor visualizes pointer actions before execution through `callbacks`.
 It glides between targets, traces drags, and pulses on clicks, with a subtle gradient and shadow.
 It does not intercept clicks and respects reduced-motion preferences. The optional overlay
 lives in [cursor.py](cursor.py), loaded only when selected; the core agent stays under 400 lines.
-For Python callers, use `on_action=partial(show_cursor, agent)` with
-`from functools import partial` and `from cursor import show_cursor`.
+For Python callers, import `partial` from `functools` and `show_cursor` from `cursor`, then pass:
+```python
+callbacks=[
+    dict(type="after", function=print),
+    dict(type="before", function=partial(show_cursor, agent)),
+]
+```
+The CLI animates before execution and prints the result afterward.
 The source documents each action's arguments.
 
 ## A small loop, with recovery

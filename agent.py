@@ -305,7 +305,7 @@ class WebAgent:
         wait_for_browser(self.profile, running=False)
 
 def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: str,
-        max_steps: int = 100, max_output_tokens=8192, on_action: Callable | None = None) -> str:
+        max_steps: int = 100, max_output_tokens=8192, callbacks: list[dict] | None = None) -> str:
     if max_steps < 1:
         raise ValueError("max_steps must be positive")
 
@@ -335,10 +335,12 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
             continue
 
         for call in function_calls:
+            action = dict(name=call.name, arguments=call.arguments)
+            for callback in filter(lambda c: c["type"] == "before", callbacks or []):
+                callback["function"](step, action, None)
             result = agent.act(call.name, call.arguments)
-
-            if on_action:
-                on_action(step, {"name": call.name, "arguments": call.arguments}, result)
+            for callback in filter(lambda c: c["type"] == "after", callbacks or []):
+                callback["function"](step, action, result)
 
             if call.name == "finish" and result["state"] == "success":
                 return result["output"]
@@ -366,20 +368,16 @@ if __name__ == "__main__":
     parser.add_argument("--headed", action="store_true", help="Show the Chrome window")
     parser.add_argument("--cursor", action="store_true", help="Animate a visible action cursor")
     args = parser.parse_args()
-    if args.cursor:
-        from cursor import show_cursor
-
-    def on_action(step, action, result):
-        print(step, action, result, flush=True)
-        if args.cursor:
-            show_cursor(agent, step, action, result)
-
-    if args.connect and (args.port or args.headed):
-        parser.error(
-            "--port and --headed apply to launch; --connect uses the existing browser"
-        )
+    if args.connect and args.port:
+        parser.error("--port applies to launch; --connect uses the existing browser")
+    if args.connect and args.headed:
+        print("Warning: --headed is ignored with --connect; browser visibility is unchanged.")
 
     agent = WebAgent(args.profile, port=args.port, action_space=get_action_space())
+    callbacks = [dict(type="after", function=partial(print, flush=True))]
+    if args.cursor:
+        from cursor import show_cursor
+        callbacks.append(dict(type="before", function=partial(show_cursor, agent)))
     try:
         if not args.connect:
             agent.launch(headed=args.headed)
@@ -388,7 +386,7 @@ if __name__ == "__main__":
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
                 agent, args.task, client, args.model, get_instructions(),
-                max_steps=args.max_steps, on_action=on_action,
+                max_steps=args.max_steps, callbacks=callbacks,
             ))
     finally:
         agent.shutdown() if not args.connect else agent.disconnect()

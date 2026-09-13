@@ -1,4 +1,4 @@
-"""Optional animated cursor visualization for the agent's on_action callback."""
+"""Optional animated cursor visualization for the agent's action callback."""
 
 import json
 from playwright.sync_api import Error
@@ -17,18 +17,18 @@ CURSOR_SCRIPT = """async ({name, args}) => {
         root.innerHTML = `<style>
             :host { pointer-events: none !important; }
             svg { position:absolute;left:-4px;top:-2px;overflow:visible;
-                  filter:drop-shadow(0 2px 2px #17243a55);transform-origin:4px 2px; }
+                  filter:drop-shadow(0 2px 2px #15243b44);transform-origin:4px 2px; }
             .pulse { position:absolute;left:-12px;top:-12px;width:24px;height:24px;
-                     border:2px solid #6a99de;border-radius:50%;box-sizing:border-box; }
+                     border:1px solid #78a9df;border-radius:50%;box-sizing:border-box; }
         </style><svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true">
             <defs><linearGradient id="fill" x1="0" y1="0" x2="1" y2="1">
-                <stop stop-color="#fff"/><stop offset=".55" stop-color="#e4edf8"/>
-                <stop offset="1" stop-color="#a7bedc"/>
+                <stop stop-color="#fff"/><stop offset=".55" stop-color="#f1f5fb"/>
+                <stop offset="1" stop-color="#b8c9df"/>
             </linearGradient></defs>
-            <path d="M4 2 L4 27 L10 21 L15 33 L20 30.5 L15 19.5 L26 19 Z"
-                  fill="url(#fill)" stroke="#26364e" stroke-width="1.5"
+            <path d="M4 2 L5 26 L11 20 L16 31 L20 29 L15 18 L24 18 Z"
+                  fill="url(#fill)" stroke="#33445e" stroke-width="1.25"
                   stroke-linejoin="round"/>
-            <path d="M6 7 L6 21 L10 17" fill="none" stroke="#fff" stroke-opacity=".8"/>
+            <path d="M6 7 L7 20 L10 17" fill="none" stroke="#fff" stroke-opacity=".8"/>
         </svg>`;
         document.documentElement.appendChild(cursor);
     }
@@ -51,10 +51,10 @@ CURSOR_SCRIPT = """async ({name, args}) => {
         const pulse = document.createElement('div');
         pulse.className = 'pulse';
         root.appendChild(pulse);
-        const timing = {duration: 220, iterations: name === 'double_click' ? 2 : 1};
-        const ripple = pulse.animate([{transform: 'scale(.3)', opacity: .6},
+        const timing = {duration: 280, iterations: name === 'double_click' ? 2 : 1};
+        const ripple = pulse.animate([{transform: 'scale(.35)', opacity: .45},
                                       {transform: 'scale(1.2)', opacity: 0}], timing);
-        arrow.animate([{transform: 'scale(1)'}, {transform: 'scale(.88)'},
+        arrow.animate([{transform: 'scale(1)'}, {transform: 'scale(.93)'},
                        {transform: 'scale(1)'}], timing);
         await ripple.finished;
         pulse.remove();
@@ -62,14 +62,14 @@ CURSOR_SCRIPT = """async ({name, args}) => {
 }"""
 
 
-def show_cursor(agent, step: int, action: dict, result: dict) -> None:
-    """Visualize a completed pointer action; suitable for partial(show_cursor, agent)."""
-    if result["state"] != "success" or action["name"] not in POINTER_ACTIONS:
+def show_cursor(agent, step: int, action: dict, result: dict | None) -> None:
+    """Animate the pointer; use partial(show_cursor, agent) as the callback."""
+    if (result and result["state"] != "success") or action["name"] not in POINTER_ACTIONS:
         return
-    arguments = action["arguments"]
-    if isinstance(arguments, str):
-        arguments = json.loads(arguments)
     try:
+        arguments = action["arguments"]
+        if isinstance(arguments, str):
+            arguments = json.loads(arguments)
         agent.page.evaluate(CURSOR_SCRIPT, {"name": action["name"], "args": arguments})
-    except Error:
+    except (Error, ValueError, TypeError):
         pass  # A closing or navigating page should not let optional visuals interrupt the task.
