@@ -213,7 +213,8 @@ class BrowserTests(unittest.TestCase):
         for tool in prepare_tools(self.agent.action_space):
             self.assertNotIn("page", tool["parameters"]["properties"])
             self.assertNotIn("self", tool["parameters"]["properties"])
-        self.assertNotIn("exec(", Path(__file__).with_name("agent.py").read_text())
+        self.assertNotIn("exec(",
+                         Path(__file__).resolve().parents[1].joinpath("agent.py").read_text())
 
     def test_nonfinite_coordinates_do_not_break_playwright(self):
         for value in (float("nan"), float("inf"), float("-inf")):
@@ -330,7 +331,7 @@ class BrowserTests(unittest.TestCase):
                 "action_space=get_action_space()).connect(); "
                 f"Actions.navigate(a.page, {self.url!r}); Actions.press_key(a.page, 'Tab'); "
                 "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
-        subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parent,
+        subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1],
                        check=True, timeout=30)
         self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.agent.connect()
@@ -352,7 +353,7 @@ class BrowserTests(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, "agent.py", "Test CLI", "--model", "test", "--connect",
              "--profile", str(self.agent.profile), "--max-steps", "1"],
-            cwd=Path(__file__).parent, capture_output=True, text=True, timeout=30,
+            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
             env=dict(os.environ, OPENAI_API_KEY="local-test", OPENAI_BASE_URL=self.url + "/v1"),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -366,7 +367,7 @@ class BrowserTests(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, "agent.py", "Test CLI", "--model", "test",
                  "--profile", profile, "--max-steps", "1"],
-                cwd=Path(__file__).parent, capture_output=True, text=True, timeout=30,
+                cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
                 env=dict(os.environ, OPENAI_API_KEY="local-test",
                          OPENAI_BASE_URL=self.url + "/v1"),
             )
@@ -406,7 +407,7 @@ class BrowserTests(unittest.TestCase):
         for turn, (path, request) in enumerate(Fixture.requests, start=1):
             self.assertEqual(path, "/v1/responses")
             self.assertFalse(request["store"])
-            self.assertIn(Path(__file__).with_name("agent.py").read_text(),
+            self.assertIn(Path(__file__).resolve().parents[1].joinpath("agent.py").read_text(),
                           request["input"][0]["content"])
             images = [part for item in request["input"]
                       for part in item.get("content", item.get("output", []))

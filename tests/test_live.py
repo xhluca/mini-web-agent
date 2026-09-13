@@ -1,4 +1,4 @@
-"""Opt-in paid smoke test: python test_live.py [model]. Uses OPENAI_* environment variables."""
+"""Opt-in paid smoke test: python -m tests.test_live [model]. Uses OPENAI_* environment variables."""
 
 from http.server import ThreadingHTTPServer
 import sys
@@ -8,7 +8,7 @@ import threading
 from openai import OpenAI
 
 from agent import WebAgent, get_action_space, get_instructions, run
-from test_agent import Fixture
+from tests.test_agent import Fixture
 
 
 def main():

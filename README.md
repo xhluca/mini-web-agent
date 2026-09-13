@@ -145,8 +145,8 @@ from websites or prevent actions available through ordinary clicks and typing.
 ## Check it
 
 ```bash
-python -m unittest -v test_agent.py
-python test_live.py  # Optional paid OpenRouter test using the configured environment.
+python -m unittest discover -s tests -v
+python -m tests.test_live  # Optional paid OpenRouter test using the configured environment.
 ```
 
 The local suite uses real Chromium and a local Responses fixture to check browser actions,
