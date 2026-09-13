@@ -81,7 +81,8 @@ The CLI prints actions and results. It closes Chrome when it launched it; with
 Use `--port 9222` to request a fixed port when launching. `--connect` reads the address
 from the selected profile and cannot be combined with a nonzero `--port`. A new profile
 with `--port 0` lets Chrome choose a port; an existing profile reuses its recorded port.
-The CLI prints the active CDP address after connecting.
+New CLI launches start with one blank tab, closing restored tabs while retaining profile data.
+`--connect` preserves existing tabs. The CLI prints the active CDP address after connecting.
 
 ## Use it from Python
 
@@ -144,7 +145,7 @@ The 24 actions are ordinary functions grouped in `Actions`:
 | Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
 
 Coordinates match the 1280×800 screenshot viewport. Keyboard input goes to the focused
-control. Tab indices come from the latest observation and can shift after a tab closes.
+control, with 10 ms between typed characters. Tab indices come from the latest observation and can shift after a tab closes.
 With `--cursor`, an arrow cursor visualizes pointer actions before execution through `callbacks`.
 It glides between targets, traces drags, and pulses on clicks, with a subtle gradient and shadow.
 It does not intercept clicks and respects reduced-motion preferences. The optional overlay

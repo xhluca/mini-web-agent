@@ -60,7 +60,7 @@ class Actions:
 
     def type_text(page: Page, text: str) -> None:
         """Type into the focused control. Use press_key('ControlOrMeta+A') to replace text."""
-        page.keyboard.type(text)
+        page.keyboard.type(text, delay=10)
 
     def press_key(page: Page, key: str) -> None:
         """Press a key or chord, e.g. Enter, Tab, ArrowDown, ControlOrMeta+A."""
@@ -382,6 +382,11 @@ if __name__ == "__main__":
         if not args.connect:
             agent.launch(headed=args.headed)
         agent.connect()
+        if not args.connect:
+            agent.page = prepare_page(agent.page.context.new_page())
+            for tab in agent.page.context.pages:
+                if tab != agent.page:
+                    tab.close()
         print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(

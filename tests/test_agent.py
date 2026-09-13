@@ -447,6 +447,7 @@ class BrowserTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--headed is ignored with --connect", result.stdout)
+        self.assertEqual(self.agent.page.url, self.url + "/")
         self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.assertIsNone(self.agent.process.poll())
 
@@ -465,6 +466,9 @@ class BrowserTests(unittest.TestCase):
         port = int(result.stdout.split("CDP: http://127.0.0.1:")[1].splitlines()[0])
         self.assertIsNone(probe_browser_endpoint(profile, port))
         self.assertIn("Stopped after 1 model turns", result.stdout)
+        state = json.loads(Fixture.requests[0][1]["input"][2]["content"][0]["text"])
+        self.assertEqual(len(state["tabs"]), 1)
+        self.assertEqual(state["tabs"][0]["url"], "about:blank")
         self.assertEqual(len(Fixture.requests), 1)
         self.assertIn("Complete the user's browser task",
                       Fixture.requests[0][1]["input"][0]["content"])
