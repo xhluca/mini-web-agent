@@ -126,21 +126,18 @@ Tool implementation:
 
 def probe_browser_endpoint(profile: str | Path, port: int = 0) -> str | None:
     try:
-        target = ""
-        if not port:
-            port, target = read_cdp_address(profile)
-        endpoint = f"http://127.0.0.1:{int(port)}"
-        with urlopen(endpoint + "/json/version", timeout=0.5) as response:
+        port, target = (port, "") if port else read_cdp_address(profile)
+        with urlopen(f"http://127.0.0.1:{int(port)}/json/version", timeout=0.5) as response:
             actual = json.load(response)["webSocketDebuggerUrl"]
         return actual if actual.endswith(target) else None
     except (OSError, ValueError, KeyError):
         return None
 
-def wait_for_browser(profile: str | Path, running: bool, attempts: int = 50, port: int = 0) -> None:
+def wait_for_browser(profile: str | Path, running: bool, attempts: int = 20, port: int = 0) -> None:
     for _ in range(attempts):
         if bool(probe_browser_endpoint(profile, port)) == running:
             return
-        time.sleep(0.1)
+        time.sleep(0.5)
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
 def check_port_available(port: int) -> None:
@@ -184,9 +181,8 @@ def prepare_page(page: Page) -> Page:
         context = page.context
         page = context.pages[0] if context.pages else context.new_page()
 
-    viewport = {"width": 1280, "height": 800}
-    if page.viewport_size != viewport:
-        page.set_viewport_size(viewport)
+    if page.viewport_size != {"width": 1280, "height": 800}:
+        page.set_viewport_size({"width": 1280, "height": 800})
     return page
 
 class WebAgent:
@@ -327,14 +323,14 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
             continue
 
         history.extend(response.output)
-        calls = [item for item in response.output if item.type == "function_call"]
+        function_calls = [item for item in response.output if item.type == "function_call"]
 
-        if not calls:
+        if not function_calls:
             history.append({"role": "user", "content": 
                             "Use provided tools. Call finish if task is complete."})
             continue
 
-        for call in calls:
+        for call in function_calls:
             result = agent.act(call.name, call.arguments)
 
             if on_action:
