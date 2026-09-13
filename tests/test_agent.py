@@ -71,6 +71,23 @@ def tool_call(name, arguments=None, call_id="call_1"):
                 name=name, arguments=json.dumps(arguments or {}), status="completed")
 
 
+class LaunchModeTests(unittest.TestCase):
+    def test_headed_and_default_launch_arguments(self):
+        for headed in (False, True):
+            with self.subTest(headed=headed), tempfile.TemporaryDirectory() as profile:
+                with (patch("agent.sync_playwright") as playwright,
+                      patch("agent.subprocess.Popen") as popen,
+                      patch("agent.wait_for_browser"),
+                      patch("agent.read_cdp_address", return_value=(9222, "/devtools/browser/test"))):
+                    playwright.return_value.start.return_value.chromium.executable_path = "chrome"
+                    agent = WebAgent(profile, action_space=get_action_space())
+                    agent.launch(headed=True) if headed else agent.launch()
+                    arguments = popen.call_args.args[0]
+                    self.assertEqual("--headless=new" in arguments, not headed)
+                    self.assertTrue(popen.call_args.kwargs["start_new_session"])
+                    agent.disconnect()
+
+
 class BrowserTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

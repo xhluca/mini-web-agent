@@ -57,10 +57,18 @@ there, and you can type replies when it asks a question. `-u` keeps Python outpu
 Press **Ctrl+C** to interrupt; the CLI's cleanup closes Chrome if it launched it, or
 only disconnects if you used `--connect`.
 
-Foreground refers to the Python agent. Chrome still runs as a separate detached process
-and is headless, so this does not open a visible browser window. The CLI has no headed-mode option.
+Foreground refers to the Python agent. Chrome runs as a separate detached process and
+is headless by default. To watch it in a browser window, add `--headed`:
 
-Chromium is always headless and uses Playwright's bundled executable. Minimal Linux
+```bash
+python -u agent.py --headed --model google/gemini-3.8-flash \
+  'Open https://example.com and tell me the heading.'
+```
+
+Headed mode uses your desktop display. In Python, use `agent.launch(headed=True).connect()`.
+With `--connect`, the existing browser keeps its current mode; `--headed` applies only to launch.
+
+Chromium uses Playwright's bundled executable. Minimal Linux
 installations may also need `python -m playwright install-deps chromium`.
 
 The CLI prints actions and results. It closes Chrome when it launched it; with
@@ -73,6 +81,7 @@ The CLI prints actions and results. It closes Chrome when it launched it; with
 | `--profile` | Persistent Chrome profile; defaults to `.chrome` |
 | `--port` | Port for a new launch; a new profile defaults to a random localhost port |
 | `--connect` | Attach to Chrome already running with the selected profile |
+| `--headed` | Show the browser window; new launches are headless by default |
 
 Use `--port 9222` to request a fixed port when launching. `--connect` reads the address
 from the selected profile and cannot be combined with a nonzero `--port`. A new profile

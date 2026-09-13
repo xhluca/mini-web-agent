@@ -207,8 +207,8 @@ class WebAgent:
         if port == 0 and devtools_file(self.profile).exists():
             self.port, _ = read_cdp_address(self.profile)
 
-    def launch(self, timeout: float = 20) -> "WebAgent":
-        """Launch detached headless Chrome. Call connect() separately to control it."""
+    def launch(self, timeout: float = 20, *, headed: bool = False) -> "WebAgent":
+        """Launch detached Chrome. Call connect() separately to control it."""
         port = self.port
         check_port_available(port)
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -217,8 +217,10 @@ class WebAgent:
         args = [
             executable, f"--user-data-dir={self.profile}", f"--remote-debugging-port={port}",
             "--remote-debugging-address=127.0.0.1", "--no-first-run",
-            "--no-default-browser-check", "--headless=new", "about:blank",
+            "--no-default-browser-check", "about:blank",
         ]
+        if not headed:
+            args.append("--headless=new")
 
         try:
             with self.profile.joinpath("chrome.log").open("ab") as log:
@@ -360,17 +362,18 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=0, help="Port used for CDP access (0 for auto)")
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
+    parser.add_argument("--headed", action="store_true", help="Show the Chrome window")
     args = parser.parse_args()
 
-    if args.connect and args.port:
+    if args.connect and (args.port or args.headed):
         parser.error(
-            "--port applies to launch; --connect discovers the profile's existing port"
+            "--port and --headed apply to launch; --connect uses the existing browser"
         )
 
     agent = WebAgent(args.profile, port=args.port, action_space=get_action_space())
     try:
         if not args.connect:
-            agent.launch()
+            agent.launch(headed=args.headed)
         agent.connect()
         print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
