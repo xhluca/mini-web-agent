@@ -43,29 +43,22 @@ python agent.py --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-### Run in the foreground
+### Run in the foreground with a visible browser
 
 Run the command directly in your terminal, without `&` or `nohup`:
-
-```bash
-python -u agent.py --model google/gemini-3.8-flash \
-  'Open https://example.com and tell me the heading.'
-```
-
-The agent stays attached to your terminal: actions, results, and the final answer appear
-there, and you can type replies when it asks a question. `-u` keeps Python output unbuffered.
-Press **Ctrl+C** to interrupt; the CLI's cleanup closes Chrome if it launched it, or
-only disconnects if you used `--connect`.
-
-Foreground refers to the Python agent. Chrome runs as a separate detached process and
-is headless by default. To watch it in a browser window, add `--headed`:
 
 ```bash
 python -u agent.py --headed --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-Headed mode uses your desktop display. In Python, use `agent.launch(headed=True).connect()`.
+`--headed` opens Chrome on your desktop display so you can watch the agent work.
+The agent stays attached to your terminal: actions, results, and the final answer appear
+there, and you can type replies when it asks a question. `-u` keeps Python output unbuffered.
+Press **Ctrl+C** to interrupt; the CLI's cleanup closes Chrome if it launched it, or
+only disconnects if you used `--connect`.
+
+Omit `--headed` to run Chrome headless. In Python, use `agent.launch(headed=True).connect()`.
 With `--connect`, the existing browser keeps its current mode; `--headed` applies only to launch.
 
 Chromium uses Playwright's bundled executable. Minimal Linux
