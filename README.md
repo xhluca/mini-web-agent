@@ -1,265 +1,154 @@
-# mini-web-agent
+# Frontier web agents in less than 400 lines
 
-A small screenshot-driven Python web agent with **predefined browser functions**.
-Only two direct dependencies: `playwright` and `openai`. The core and CLI live in
-`agent.py`; lines are at most 100 characters. The model calls predefined
-functions through an explicit action dictionary.
+**mini-web-agent** puts a vision model in control of a real browser with a Python file
+small enough to read in one sitting. Two dependencies: **Playwright** and **OpenAI**.
 
-Chrome runs in a detached `subprocess.Popen(..., start_new_session=True)` process.
-Playwright attaches over CDP. The loop sends viewport screenshots and tab metadata
-through the **Responses API**, dispatches named function calls, and observes again.
-There are no accessibility trees, DOM observations, or model-generated code execution.
+The model sees screenshots, chooses predefined actions, and checks the result.
+Chrome runs as a detached process. Playwright controls it over CDP. The OpenAI SDK
+handles model calls through OpenRouter's Responses API.
 
-## Install and run
+The aim is to keep the machinery around the model understandable. Browser control,
+tool definitions, conversation history, and the agent loop all live in [agent.py](agent.py).
+The implementation stays below 400 lines, with a 100-character line limit.
 
-From this directory, with Python 3.10+:
+## The philosophy
+
+- **Let the model work from what it sees.** Screenshots and tab metadata are its observations.
+- **Make actions explicit.** Click, hover, drag, type, scroll, switch tabs, ask a question, finish.
+  The model chooses from Python functions; it cannot submit code for execution.
+- **Keep the loop visible.** Observe, request actions, execute them, return results, repeat.
+- **Use the source as documentation.** The default prompt includes the script itself.
+  Tool schemas come from function signatures and docstrings.
+- **Keep state straightforward.** Playwright supplies the tab list. History grows by appending
+  messages, preserving earlier screenshots and the prompt prefix for provider caching.
+
+The line count applies to the complete agent and CLI. Tests live separately so the
+implementation can stay small while its behavior remains independently checkable.
+
+## Run it
+
+Use Python 3.10+ on Linux or macOS:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install 'openai>=2.0,<4' 'playwright>=1.58,<2'
 python -m playwright install chromium
+
 read -rsp 'OpenRouter key: ' OPENAI_API_KEY
 export OPENAI_API_KEY
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+
 python agent.py --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-`--max-steps 30` bounds model turns. `--profile /absolute/path` chooses the persistent
-Chrome profile (default `.chrome` in the working directory). The CLI closes Chrome
-when it launched it and leaves an existing browser running when used with `--connect`.
-Use `--connect` to attach to an already running browser instead of launching a new one.
-For a new profile, Chrome chooses a random localhost CDP port by default. Use `--cdp-port 9222` to request a
-specific port when launching. The CLI prints the CDP URL after connecting.
+Chromium is always headless and uses Playwright's bundled executable. Minimal Linux
+installations may also need `python -m playwright install-deps chromium`.
 
-```python
-from agent import WebAgent, get_action_space
+The CLI prints actions and results. It closes Chrome when it launched it; with
+`--connect`, it leaves the existing browser running.
 
-agent = WebAgent('.chrome', cdp_port=0, action_space=get_action_space()).launch()
-print(agent.cdp_port)                          # Actual assigned port.
-agent.connect()
-```
+| Option | Purpose |
+| --- | --- |
+| `--model` | OpenRouter model ID; required |
+| `--max-steps` | Maximum model turns; defaults to 100 |
+| `--profile` | Persistent Chrome profile; defaults to `.chrome` |
+| `--cdp-port` | Port for a new launch; a new profile defaults to a random localhost port |
+| `--connect` | Attach to Chrome already running with the selected profile |
 
-Choose a fixed port with `WebAgent('.chrome', cdp_port=9222, action_space=get_action_space()).launch()`.
-Construction reads an existing profile's recorded port when no explicit port is given.
-For a new profile, `agent.cdp_port` starts at `0`; `launch()` fills in Chrome's chosen
-port. `connect()` uses that value without changing it. Set `agent.cdp_port = 0` before
-launching if you want a fresh random port for an existing profile.
-An occupied explicitly requested port raises an error. CDP remains bound to localhost.
+## Use it from Python
 
-The launcher always uses Playwright's bundled Chromium executable.
-Chrome launches with `--headless=new` hardcoded; there is no headed mode or flag override.
-Minimal Linux installations may need `playwright install-deps chromium`.
-For OpenAI itself, unset `OPENAI_BASE_URL` and use an OpenAI key and available vision model.
-Both providers use `client.responses.create()`; no Chat Completions adapter is included.
-
-## Callable interface
+Use the same environment variables as above:
 
 ```python
 from openai import OpenAI
 from agent import WebAgent, get_action_space, get_instructions, run
 
-agent = WebAgent('.chrome', action_space=get_action_space()).launch().connect()
+agent = WebAgent('.chrome', action_space=get_action_space())
 try:
-    agent.act('navigate', {'url': 'https://example.com'})
-    text, screenshot_data_url = agent.observe()
-    print(text)  # Active tab index and tab titles/URLs.
+    agent.launch().connect()
     with OpenAI(timeout=60, max_retries=1) as client:
-        print(run(agent,
-            'Read the page and report its heading.',
-            client,
-            model='google/gemini-3.8-flash',
-            max_steps=15,
-            instructions=get_instructions(),
+        answer = run(
+            agent, 'Find the heading on https://example.com.', client,
+            model='google/gemini-3.8-flash', instructions=get_instructions(),
+            max_steps=20,
             on_action=lambda step, action, result: print(step, action, result),
-        ))
+        )
+        print(answer)
 finally:
-    agent.shutdown()  # Close Chrome because this agent launched it.
-
-# Explicitly close an existing browser when that is what you intend.
-WebAgent('.chrome', action_space=get_action_space()).connect().shutdown()
+    agent.shutdown()
 ```
 
-The lifecycle is explicit:
+`action_space` and `instructions` are required inputs. Supply your own dictionary or
+prompt, or use the getters. The same action dictionary controls both tool schemas and dispatch.
+`on_action` receives the model-turn index, action name/arguments, and result dictionary.
+User-facing messages and replies use `on_message` and `on_reply`, defaulting to `print` and `input`.
 
-- `launch()` starts detached Chrome and returns the agent; it does not attach Playwright.
-- `connect()` attaches to running Chrome and returns the agent; it never launches Chrome.
-- `disconnect()` detaches Playwright and leaves Chrome running.
-- `shutdown()` closes Chrome and disconnects, including an explicitly connected browser.
-  For a browser this agent launched, it also works before connecting or after disconnecting.
-  The CLI chooses `shutdown()` for browsers it launched and `disconnect()` for attached browsers.
+Browser lifecycle and model execution are separate:
 
-Use `WebAgent(profile, action_space=action_space).launch().connect()` for a new browser and
-`WebAgent(profile, action_space=action_space).connect()` to reuse one. Launch/connect do not preflight browser
-liveness. Lifecycle failures include an explicit message and retain the original exception
-as their cause; profile-file errors propagate directly.
-
-All model actions live in the plain `Actions` class before the helper functions.
-Call functions through the class, such as `Actions.click(...)`; do not instantiate it.
-Page actions take an explicit Playwright page:
-
-```python
-from agent import Actions
-
-Actions.click(agent.page, 100, 200)
-Actions.double_click(agent.page, 100, 200)
-Actions.hover(agent.page, 300, 400)
-Actions.type_text(agent.page, 'hello')
-```
-
-Navigation, keyboard, scrolling, dragging, and waiting follow the same
-pattern. Tab operations use the same namespace:
-
-```python
-from agent import Actions
-
-Actions.list_tabs(agent.page)
-Actions.new_tab(agent, 'https://example.com')
-Actions.switch_tab(agent, 0)
-Actions.close_tab(agent, 1)
-```
-
-Tab-changing actions take the agent, update its active page, and return an index or
-updated tab list directly. All model calls go through `act(name, arguments)`, which
-accepts an argument dictionary or JSON string. Dispatch supplies the page or agent
-according to the function signature; the model cannot override that Python object.
-These calls are synchronous and belong on one thread. `act` always returns a dictionary:
-`{"state": "success", "output": ...}` or `{"state": "error", "output": "..."}`.
-`run` serializes it once as tool-result text and checks `state` before accepting
-`finish`. The `output` field preserves return values, including `null` for actions returning `None`.
-
-## Model-callable functions
-
-| Category | Functions |
+| Function | What it does |
 | --- | --- |
-| Navigation | `navigate(url)`, `back()`, `forward()`, `reload()` |
-| Clicks | `click(x, y)`, `double_click(x, y)`, `right_click(x, y)` |
-| Pointer | `hover(x, y)`, `mouse_down()`, `mouse_up()`, `drag(x1, y1, x2, y2)` |
-| Scrolling | `scroll(dx, dy)`; positive values scroll right/down at the pointer |
-| Keyboard | `type_text(text)`, `press_key(key)`, `key_down(key)`, `key_up(key)` |
-| Timing | `wait(seconds)`; between 0 and 10 seconds |
-| Conversation | `send_message(message)`, `wait_for_reply()`, `finish(message)` |
-| Observation | `list_tabs()` (one screenshot per action batch) |
-| Tabs | `new_tab(url='about:blank')`, `switch_tab(index)`, `close_tab(index)` |
+| `agent.launch()` | Start detached Chrome |
+| `agent.connect()` | Attach Playwright to Chrome |
+| `agent.observe()` | Return tab metadata as JSON and a screenshot data URL |
+| `agent.act(name, arguments)` | Execute an allowed action and return its result dictionary |
+| `run(agent, task, client, model, instructions, ...)` | Run the model loop until completion or its limit |
+| `agent.disconnect()` | Detach Playwright, leaving Chrome running |
+| `agent.shutdown()` | Close Chrome and disconnect, even if Chrome was already running |
 
-Coordinates are CSS pixels within a 1280×800 viewport. Screenshots use the same CSS
-scale, including on high-DPI displays. Keyboard actions target the focused control.
-`press_key` accepts Playwright key names/chords such as `Tab`, `ArrowDown`, `Enter`,
-and `ControlOrMeta+A`. Mouse down/up hold/release the left button; `right_click` is a
-complete right-button click. Release held keys/buttons before switching tabs.
-Visible controls inside frames are reachable by coordinates without selecting a frame.
+To retain a browser for a later task, explicitly call `disconnect()` instead of `shutdown()`.
+A new agent can attach using the same profile. The profile records its CDP address.
 
-Tabs use zero-based indices from Playwright's `context.pages`, with no separate
-registry or counter. Each observation includes the latest indices, titles, URLs, and
-active flag. Closing a tab shifts later indices, so use the newest list. Popups appear
-automatically without changing the agent's active tab. `new_tab` activates its new tab.
-Closing the active tab selects a remaining one; closing the last creates a blank tab.
+## The action space
 
-The standalone `screenshot(page)` helper returns a data URL to host callers.
-It is not a model tool; observations automatically include a screenshot.
-The initial observation is a user message. After each batch of tool calls, one observation
-accompanies the last action result as image and text content in `function_call_output`.
-The loop only appends to history.
-Earlier screenshots, metadata, reasoning, and tool results remain unchanged to preserve
-the prompt prefix for provider KV caching. This favors cache reuse over limiting context
-growth; actual cache hits depend on the provider. Requests use `store=False` and explicit
-history for OpenRouter's stateless Responses endpoint.
+The 24 actions are ordinary functions grouped in `Actions`:
 
-`send_message(message)` calls `on_message` and the loop continues. `wait_for_reply()`
-blocks in `on_reply` until it returns a string, then supplies that reply to the model.
-In the CLI these default to `print` and `input`. Neither action clicks or types into
-the website. `wait(seconds)` remains a separate browser-delay action.
+| Interaction | Actions |
+| --- | --- |
+| Navigation | `navigate`, `back`, `forward`, `reload` |
+| Pointer | `click`, `double_click`, `right_click`, `hover`, `mouse_down`, `mouse_up`, `drag` |
+| Scroll and keyboard | `scroll`, `type_text`, `press_key`, `key_down`, `key_up` |
+| Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
+| Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
 
-`finish(message)` ends the current run immediately and returns its final message;
-later actions in the same model response are skipped. Browser shutdown remains the
-caller's choice. Responses without tool calls receive corrective feedback, and the loop retries
-within the existing turn limit. At the limit, `run()` returns an unfinished-task message
-that the CLI prints without a traceback. Only `finish` ends the run successfully. Configure `on_message` and `on_reply` on `WebAgent`.
-Calling `act()` performs these actions directly, including delivery and waiting.
-`finish(message)` simply returns its message without changing agent state.
-`run()` returns after a successful `finish` call, including an empty final string;
-invalid calls return errors and the loop continues. Conversation actions return
-plain values: `None` for sending, a string for replies and completion.
+Coordinates match the 1280×800 screenshot viewport. Keyboard input goes to the focused
+control. Tab indices come from the latest observation and can shift after a tab closes.
+The source documents each action's arguments.
 
-Incomplete model responses are discarded and retried with shorter-response feedback,
-within the existing model-turn limit. Their partial tool calls are never executed or replayed.
+## A small loop, with recovery
 
-## Restriction and self-documentation
+The first screenshot is a user message. After an action batch, one new screenshot and
+the current tab metadata accompany the last tool result. Each action gets its own result:
 
-The system prompt includes `Path(__file__).read_text()` so the implementation itself
-documents the functions. Tool schemas are derived from their signatures/docstrings. Endpoint discovery, browser
-readiness waits and schema construction are module-level
-helpers with explicit inputs. Page actions are module-level functions too; the class
-holds browser/tab state, dispatches calls, and runs the agent loop.
-`get_action_space()` returns the default action dictionary. Pass a subset or custom dictionary
-to `WebAgent(action_space=...)`; that dictionary drives both tool schemas and dispatch.
-`get_instructions()` returns the default prompt, including the script source. Pass
-`run(..., instructions=...)` to supply it. Both parameters are required; the CLI calls
-the getters explicitly inside its `if __name__ == "__main__":` block.
-Seeing a function in the source does not make it callable. `launch`, `connect`, `disconnect`, `shutdown`, `run`, and internal methods are host-only.
+```python
+{"state": "success", "output": ...}
+{"state": "error", "output": "..."}
+```
 
-Dispatch uses the action dictionary and Python keyword arguments. Python and Playwright
-errors are returned to the model for recovery. `act()` rejects `NaN`
-and infinities in numeric arguments before they reach Playwright. There is no custom argument type or
-viewport-bound validation. Individual actions retain their existing checks, such as
-non-negative tab indices and the 0–10 second wait limit.
-Navigation URLs are passed directly to Playwright without scheme restrictions.
-There is no separate Python executor, JavaScript evaluator, raw CDP command,
-selector API, arbitrary callback, or filesystem tool. Screenshots stay in memory.
+`run()` serializes these dictionaries when sending tool results. Errors give the model
+feedback to recover. Missing tool calls receive a reminder; incomplete responses are
+discarded and retried without executing or replaying partial actions. Every retry counts
+against `max_steps`. A successful `finish` returns the final answer; exhausting the limit
+returns an unfinished-task message.
 
-This restricts the model's tool interface; it is not browser isolation or a website
-allowlist. Clicks and keyboard input can still submit forms, trigger downloads, and
-perform authenticated actions. Remote pages still execute their own JavaScript.
-The source code and screenshots are sent to the configured model provider.
+History retains earlier screenshots and reasoning to preserve the cacheable prefix.
+That also means context grows with the task; cache hits depend on the provider.
 
-## Deliberate limits
+## Scope
 
-Uploads/download management, explicit dialog handling, DOM reading, and native OS
-controls are outside the model action set. Playwright's default dialog behavior applies.
-Use screenshots plus `wait` for loading/animation state. Coordinate targeting can be
-less reliable than locators; native menus may not be represented in page screenshots.
+This is a compact browser agent you can inspect and modify. It has no DOM-reading tool,
+accessibility-tree parser, generated-code executor, upload/download manager, or OS controls.
+The action dictionary limits the model's callable functions; it does not isolate the browser
+from websites or prevent actions available through ordinary clicks and typing.
 
-A dedicated profile's `DevToolsActivePort` provides the random localhost port and
-browser token; both are checked before attaching. Use one controller per profile.
-Startup diagnostics are in `<profile>/chrome.log`. CDP attachment has lower fidelity
-than Playwright's own protocol, so advanced browser features can have limitations.
-The launcher targets Linux/macOS. An explicitly disconnected Chrome survives Python exit;
-the CLI cleans up browsers it launches. Chrome does not survive machine shutdown
-or a supervisor killing its cgroup.
-
-## Tests
+## Check it
 
 ```bash
 python -m unittest -v test_agent.py
-python test_live.py  # Opt-in paid Gemini test using OPENAI_* environment variables.
+python test_live.py  # Optional paid OpenRouter test using the configured environment.
 ```
 
-The integration suite uses real Chromium and a local HTTP/Responses fixture. It checks
-coordinate form input, keyboard and mouse events, iframe interaction, screenshots,
-navigation, popup discovery, updated tab indices, closing the last tab, rejected tool
-names/arguments, persistence across Python processes, source self-documentation,
-Responses serialization, error recovery, and turn limits. Test code uses DOM assertions
-to verify outcomes independently; the model receives no DOM information.
-
-The live test asks Gemini 3.8 Flash to complete a signup form using the restricted tools,
-then verifies both the resulting DOM and the model's reported confirmation.
-
-Validated with Python 3.13.11, OpenAI SDK 3.13.0, and Playwright 1.62.0: all twelve
-integration tests pass. The screenshot-only Gemini 3.8 Flash test through OpenRouter's
-Responses API also passed, using 14 predefined actions across 15 model turns. The API
-key was used only in the test process environment and was not saved in the project.
-
-## References
-
-- [OpenAI Responses guidance](https://developers.openai.com/api/docs/guides/migrate-to-responses)
-- [OpenRouter Responses API](https://openrouter.ai/docs/api_reference/responses/overview)
-- [Playwright Page API](https://playwright.dev/python/docs/api/class-page)
-
-The conversation loop is the standalone `run(agent, task, client, model, ...)` function.
-
-`run(agent, ..., on_action=callback)` calls the callback after each model-requested action,
-including failures and `finish`. It receives the zero-based model turn, an action
-dictionary (`name` and raw JSON `arguments`), and the result dictionary.
-Its return value is ignored.
-The CLI uses this callback to print actions and results immediately.
+The local suite uses real Chromium and a local Responses fixture to check browser actions,
+tabs, process cleanup, tool results, and recovery. The live test asks the model to complete
+a signup form, then verifies the form result independently through the DOM.
