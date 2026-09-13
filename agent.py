@@ -179,6 +179,9 @@ def screenshot(page: Page) -> str:
     data = page.screenshot(type="jpeg", quality=85, scale="css")
     return "data:image/jpeg;base64," + base64.b64encode(data).decode()
 
+def convert_to_content(text, image):
+    return [{"type": "input_text", "text": text}, {"type": "input_image", "image_url": image}]
+
 class WebAgent:
     def __init__(self, profile: str | Path = ".chrome", port: int = 0,
                  on_message: Callable = print, on_reply: Callable = input,
@@ -206,8 +209,8 @@ class WebAgent:
         executable = self.playwright.chromium.executable_path
         args = [
             executable, f"--user-data-dir={self.profile}", "--remote-debugging-address=127.0.0.1",
-            f"--remote-debugging-port={self.port}","--no-first-run",
-            "--no-default-browser-check", "about:blank",
+            f"--remote-debugging-port={self.port}","--no-first-run", "--no-default-browser-check",
+            "about:blank",
         ]
         if not headed:
             args.append("--headless=new")
@@ -258,6 +261,12 @@ class WebAgent:
             self._page.set_viewport_size({"width": 1280, "height": 800})
         return self._page
 
+    def reset_tabs(self) -> None:
+        self._page = self.get_page().context.new_page()
+        for tab in self.get_page().context.pages:
+            if tab != self._page:
+                tab.close()
+
     def act(self, name: str, arguments: dict[str, Any] | str) -> dict:
         try:
             if isinstance(arguments, str):
@@ -299,9 +308,6 @@ class WebAgent:
         finally:
             self.disconnect()
         wait_for_browser(self.profile, running=False)
-
-def convert_to_content(text, image):
-    return [{"type": "input_text", "text": text}, {"type": "input_image", "image_url": image}]
 
 def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: str,
         max_steps: int = 100, max_output_tokens=8192, callbacks: list[dict] | None = None) -> str:
@@ -378,10 +384,7 @@ if __name__ == "__main__":
             agent.launch(headed=args.headed)
         agent.connect()
         if not args.connect:
-            agent._page = agent.get_page().context.new_page()
-            for tab in agent.get_page().context.pages:
-                if tab != agent.get_page():
-                    tab.close()
+            agent.reset_tabs()
         print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
