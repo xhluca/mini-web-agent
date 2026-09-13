@@ -140,6 +140,11 @@ def wait_for_browser(profile: str | Path, running: bool, attempts: int = 20, por
         time.sleep(0.5)
     raise TimeoutError(f"Chrome did not {'start' if running else 'stop'}; see chrome.log")
 
+def terminate_process(process: subprocess.Popen[bytes] | None) -> None:
+    if process and process.poll() is None:
+        process.terminate()
+        process.wait(timeout=5)
+
 def check_port_available(port: int) -> None:
     if port:
         with socket.socket() as probe:
@@ -228,9 +233,7 @@ class WebAgent:
                 target = urlsplit(probe_browser_endpoint(self.profile, port)).path
                 devtools_file(self.profile).write_text(f"{port}\n{target}\n")
         except BaseException as error:
-            if self.process and self.process.poll() is None:
-                self.process.terminate()
-                self.process.wait(timeout=5)
+            terminate_process(self.process)
             self.disconnect()
             raise RuntimeError(f"Failed to launch Chrome: {error}") from error
 
@@ -289,8 +292,7 @@ class WebAgent:
         """Close Chrome, then disconnect Playwright."""
         try:
             if self.process:
-                self.process.terminate()
-                self.process.wait(timeout=5)
+                terminate_process(self.process)
             elif self.browser:
                 self.browser.new_browser_cdp_session().send("Browser.close")
         except Error as error:
