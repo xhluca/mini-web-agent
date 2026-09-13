@@ -141,6 +141,8 @@ The 24 actions are ordinary functions grouped in `Actions`:
 
 Coordinates match the 1280×800 screenshot viewport. Keyboard input goes to the focused
 control. Tab indices come from the latest observation and can shift after a tab closes.
+A red cursor ring marks pointer actions in both the browser window and screenshots.
+It follows clicks, hovering, and drag endpoints without intercepting page interaction.
 The source documents each action's arguments.
 
 ## A small loop, with recovery

@@ -149,6 +149,29 @@ class BrowserTests(unittest.TestCase):
         self.assertTrue(base64.b64decode(image.split(",")[1]).startswith(b"\xff\xd8"))
         self.assertEqual(self.agent.act("screenshot", {})["state"], "error")
 
+    def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
+        page = self.agent.page
+        for name, x, y in (("hover", 100, 500), ("click", 120, 500),
+                           ("double_click", 140, 500), ("right_click", 160, 500)):
+            self.act(name, x=x, y=y)
+            cursor = page.locator("mini-agent-cursor")
+            box = cursor.bounding_box()
+            self.assertAlmostEqual(box["x"] + box["width"] / 2, x)
+            self.assertAlmostEqual(box["y"] + box["height"] / 2, y)
+            self.assertEqual(cursor.evaluate("e => getComputedStyle(e).pointerEvents"), "none")
+        self.act("press_key", key="Escape")
+        self.act("click", **self.point(page.get_by_label("Email")))
+        self.act("type_text", text="cursor@example.com")
+        self.assertEqual(page.get_by_label("Email").input_value(), "cursor@example.com")
+        self.act("drag", x1=100, y1=500, x2=200, y2=500)
+        self.assertEqual(page.locator("mini-agent-cursor").evaluate("e => e.style.left"), "200px")
+        self.act("reload")
+        self.act("hover", x=80, y=80)
+        self.assertEqual(page.locator("mini-agent-cursor").count(), 1)
+        self.act("click", **self.point(page.frames[1].get_by_role("button")))
+        self.assertEqual(page.frames[1].get_by_role("button").inner_text(), "42")
+        page.screenshot(path="/tmp/mini-web-agent-cursor.png")
+
     def test_mouse_events(self):
         self.agent.page.set_content("""<div style='width:600px;height:600px'>Target</div>
         <script>window.events=[];
