@@ -287,7 +287,7 @@ class BrowserTests(unittest.TestCase):
     def test_random_and_explicit_ports(self):
         from urllib.request import urlopen
 
-        port = self.agent.cdp_port
+        port = self.agent.port
         self.assertGreater(port, 0)
         with urlopen(f"http://127.0.0.1:{port}/json/version") as response:
             self.assertEqual(response.status, 200)
@@ -296,18 +296,18 @@ class BrowserTests(unittest.TestCase):
             probe.bind(("127.0.0.1", 0))
             chosen = probe.getsockname()[1]
         with patch("agent.read_cdp_address") as read_address:
-            self.agent = WebAgent(self.folder.name, cdp_port=chosen,
+            self.agent = WebAgent(self.folder.name, port=chosen,
                 action_space=get_action_space()).launch()
             read_address.assert_not_called()
         self.agent.connect()
-        self.assertEqual(self.agent.cdp_port, chosen)
+        self.assertEqual(self.agent.port, chosen)
         self.agent.disconnect()
         other = WebAgent(self.agent.profile, action_space=get_action_space())
-        self.assertEqual(other.cdp_port, chosen)
+        self.assertEqual(other.port, chosen)
         other.connect()
-        self.assertEqual(other.cdp_port, chosen)
+        self.assertEqual(other.port, chosen)
         try:
-            self.assertEqual(other.cdp_port, chosen)
+            self.assertEqual(other.port, chosen)
             self.assertIn(f":{chosen}/", probe_browser_endpoint(other.profile))
         finally:
             other.shutdown()
@@ -318,9 +318,9 @@ class BrowserTests(unittest.TestCase):
         self.agent.shutdown()
         for port in [-1, 65536, True, "9222"]:
             with self.assertRaises(ValueError):
-                WebAgent(self.folder.name, cdp_port=port, action_space=get_action_space())
+                WebAgent(self.folder.name, port=port, action_space=get_action_space())
         with self.assertRaises(OSError):
-            WebAgent(self.folder.name, cdp_port=self.server.server_port,
+            WebAgent(self.folder.name, port=self.server.server_port,
                 action_space=get_action_space()).launch()
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
 
@@ -366,7 +366,7 @@ class BrowserTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-cli-") as profile:
             result = subprocess.run(
                 [sys.executable, "agent.py", "Test CLI", "--model", "test",
-                 "--profile", profile, "--max-steps", "1"],
+                 "--profile", profile, "--port", "0", "--max-steps", "1"],
                 cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
                 env=dict(os.environ, OPENAI_API_KEY="local-test",
                          OPENAI_BASE_URL=self.url + "/v1"),

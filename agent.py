@@ -1,6 +1,5 @@
 import argparse
 import base64
-from collections.abc import Callable
 from functools import partial
 import inspect
 import json
@@ -9,7 +8,7 @@ from pathlib import Path
 import socket
 import subprocess
 import time
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
@@ -191,26 +190,26 @@ def prepare_page(page: Page) -> Page:
     return page
 
 class WebAgent:
-    def __init__(self, profile: str | Path = ".chrome", cdp_port: int = 0,
+    def __init__(self, profile: str | Path = ".chrome", port: int = 0,
                  on_message: Callable = print, on_reply: Callable = input,
                  *, action_space: dict[str, Callable]):
         self.profile = Path(profile).expanduser().resolve()
         self.action_space = action_space
         self.on_message = on_message
         self.on_reply = on_reply
-        self.cdp_port = cdp_port
+        self.port = port
         self.playwright: Playwright | None = None
         self.process: subprocess.Popen[bytes] | None = None
         self.browser: Browser | None = None
 
-        if type(cdp_port) is not int or not 0 <= cdp_port <= 65535:
-            raise ValueError("cdp_port must be an integer from 0 to 65535; 0 selects a random port")
-        if cdp_port == 0 and devtools_file(self.profile).exists():
-            self.cdp_port, _ = read_cdp_address(self.profile)
+        if type(port) is not int or not 0 <= port <= 65535:
+            raise ValueError("port must be an integer from 0 to 65535; 0 selects a random port")
+        if port == 0 and devtools_file(self.profile).exists():
+            self.port, _ = read_cdp_address(self.profile)
 
     def launch(self, timeout: float = 20) -> "WebAgent":
         """Launch detached headless Chrome. Call connect() separately to control it."""
-        port = self.cdp_port
+        port = self.port
         check_port_available(port)
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.playwright = sync_playwright().start()
@@ -228,7 +227,7 @@ class WebAgent:
                 )
             wait_for_browser(self.profile, running=True, attempts=int(timeout * 10), port=port)
             if port == 0:
-                self.cdp_port, _ = read_cdp_address(self.profile)
+                self.port, _ = read_cdp_address(self.profile)
             else:
                 target = urlsplit(probe_browser_endpoint(self.profile, port)).path
                 devtools_file(self.profile).write_text(f"{port}\n{target}\n")
@@ -244,7 +243,7 @@ class WebAgent:
         if self.browser:
             return self
         _, websocket_path = read_cdp_address(self.profile)
-        endpoint = f"ws://127.0.0.1:{self.cdp_port}{websocket_path}"
+        endpoint = f"ws://127.0.0.1:{self.port}{websocket_path}"
         if not self.playwright:
             self.playwright = sync_playwright().start()
 
@@ -358,22 +357,22 @@ if __name__ == "__main__":
     parser.add_argument("task")
     parser.add_argument("--model", required=True)
     parser.add_argument("--profile", default=".chrome")
-    parser.add_argument("--cdp-port", type=int, default=0, help="CDP port; use 0 for random port")
+    parser.add_argument("--port", type=int, default=0, help="Port used for CDP access (0 for auto)")
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     args = parser.parse_args()
 
-    if args.connect and args.cdp_port:
+    if args.connect and args.port:
         parser.error(
-            "--cdp-port applies to launch; --connect discovers the profile's existing port"
+            "--port applies to launch; --connect discovers the profile's existing port"
         )
 
-    agent = WebAgent(args.profile, cdp_port=args.cdp_port, action_space=get_action_space())
+    agent = WebAgent(args.profile, port=args.port, action_space=get_action_space())
     try:
         if not args.connect:
             agent.launch()
         agent.connect()
-        print(f"CDP: http://127.0.0.1:{agent.cdp_port}", flush=True)
+        print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
                 agent, args.task, client, args.model, get_instructions(),

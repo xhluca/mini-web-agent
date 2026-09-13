@@ -71,8 +71,13 @@ The CLI prints actions and results. It closes Chrome when it launched it; with
 | `--model` | OpenRouter model ID; required |
 | `--max-steps` | Maximum model turns; defaults to 100 |
 | `--profile` | Persistent Chrome profile; defaults to `.chrome` |
-| `--cdp-port` | Port for a new launch; a new profile defaults to a random localhost port |
+| `--port` | Port for a new launch; a new profile defaults to a random localhost port |
 | `--connect` | Attach to Chrome already running with the selected profile |
+
+Use `--port 9222` to request a fixed port when launching. `--connect` reads the address
+from the selected profile and cannot be combined with a nonzero `--port`. A new profile
+with `--port 0` lets Chrome choose a port; an existing profile reuses its recorded port.
+The CLI prints the active CDP address after connecting.
 
 ## Use it from Python
 
@@ -96,6 +101,9 @@ try:
 finally:
     agent.shutdown()
 ```
+
+In Python, pass `port=9222` to `WebAgent` for a fixed port and read `agent.port`
+after launch to get the actual port. The default is `port=0`.
 
 `action_space` and `instructions` are required inputs. Supply your own dictionary or
 prompt, or use the getters. The same action dictionary controls both tool schemas and dispatch.
