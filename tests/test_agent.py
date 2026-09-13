@@ -341,10 +341,10 @@ class BrowserTests(unittest.TestCase):
         self.agent = WebAgent(self.folder.name, port=port, action_space=get_action_space())
         discovered = []
 
-        def transient_probe(*args):
+        def transient_probe(*args, **kwargs):
             if discovered:
                 return None
-            endpoint = probe_browser_endpoint(*args)
+            endpoint = probe_browser_endpoint(*args, **kwargs)
             if endpoint:
                 discovered.append(endpoint)
             return endpoint
@@ -464,7 +464,7 @@ class BrowserTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         port = int(result.stdout.split("CDP: http://127.0.0.1:")[1].splitlines()[0])
-        self.assertIsNone(probe_browser_endpoint(profile, port))
+        self.assertIsNone(probe_browser_endpoint(profile, port=port))
         self.assertIn("Stopped after 1 model turns", result.stdout)
         state = json.loads(Fixture.requests[0][1]["input"][2]["content"][0]["text"])
         self.assertEqual(len(state["tabs"]), 1)

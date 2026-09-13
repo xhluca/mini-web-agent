@@ -145,7 +145,7 @@ The 24 actions are ordinary functions grouped in `Actions`:
 | Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
 | Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
 
-Coordinates match the 1280×800 screenshot viewport. Keyboard input goes to the focused
+Coordinates match the screenshot viewport (default 1280×800; set `w` and `h` on `WebAgent`). Keyboard input goes to the focused
 control, with 10 ms between typed characters. Tab indices come from the latest observation and can shift after a tab closes.
 With `--cursor`, an arrow cursor visualizes pointer actions before execution through `callbacks`.
 It glides between targets, traces drags, and pulses on clicks, with a subtle gradient and shadow.
