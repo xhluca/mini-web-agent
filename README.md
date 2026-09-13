@@ -122,6 +122,7 @@ Browser lifecycle and model execution are separate:
 | --- | --- |
 | `agent.launch()` | Start detached Chrome |
 | `agent.connect()` | Attach Playwright to Chrome |
+| `agent.get_page()` | Get the active page, recover a closed tab, and set its viewport |
 | `agent.observe()` | Return tab metadata as JSON and a screenshot data URL |
 | `agent.act(name, arguments)` | Execute an allowed action and return its result dictionary |
 | `run(agent, task, client, model, instructions, ...)` | Run the model loop until completion or its limit |

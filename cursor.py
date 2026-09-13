@@ -70,6 +70,6 @@ def show_cursor(agent, step: int, action: dict, result: dict | None) -> None:
         arguments = action["arguments"]
         if isinstance(arguments, str):
             arguments = json.loads(arguments)
-        agent.page.evaluate(CURSOR_SCRIPT, {"name": action["name"], "args": arguments})
+        agent.get_page().evaluate(CURSOR_SCRIPT, {"name": action["name"], "args": arguments})
     except (Error, ValueError, TypeError):
         pass  # A closing or navigating page should not let optional visuals interrupt the task.

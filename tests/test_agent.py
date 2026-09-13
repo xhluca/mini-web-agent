@@ -77,8 +77,8 @@ class LaunchModeTests(unittest.TestCase):
             with self.subTest(headed=headed), tempfile.TemporaryDirectory() as profile:
                 with (patch("agent.sync_playwright") as playwright,
                       patch("agent.subprocess.Popen") as popen,
-                      patch("agent.wait_for_browser"),
-                      patch("agent.read_cdp_address", return_value=(9222, "/devtools/browser/test"))):
+                      patch("agent.wait_for_browser",
+                            return_value="ws://127.0.0.1:9222/devtools/browser/test")):
                     playwright.return_value.start.return_value.chromium.executable_path = "chrome"
                     agent = WebAgent(profile, action_space=get_action_space())
                     agent.launch(headed=True) if headed else agent.launch()
@@ -105,7 +105,7 @@ class BrowserTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="mini-web-agent-test-")
         self.agent = WebAgent(self.folder.name, action_space=get_action_space()).launch().connect()
-        Actions.navigate(self.agent.page, self.url)
+        Actions.navigate(self.agent.get_page(), self.url)
 
     def tearDown(self):
         if probe_browser_endpoint(self.agent.profile):
@@ -122,7 +122,7 @@ class BrowserTests(unittest.TestCase):
         return dict(x=box["x"] + box["width"] / 2, y=box["y"] + box["height"] / 2)
 
     def test_coordinate_form_keyboard_and_observation(self):
-        page = self.agent.page
+        page = self.agent.get_page()
         self.act("click", **self.point(page.get_by_label("Email")))
         self.act("type_text", text="agent@example.com")
         self.act("press_key", key="Tab")
@@ -151,7 +151,7 @@ class BrowserTests(unittest.TestCase):
 
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
         from cursor import show_cursor
-        page = self.agent.page
+        page = self.agent.get_page()
         self.assertEqual(page.locator("mini-agent-cursor").count(), 0)
         for name, x, y in (("hover", 100, 500), ("click", 120, 500),
                            ("double_click", 140, 500), ("right_click", 160, 500)):
@@ -182,7 +182,7 @@ class BrowserTests(unittest.TestCase):
         page.screenshot(path="/tmp/mini-web-agent-cursor-arrow.png")
 
     def test_mouse_events(self):
-        self.agent.page.set_content("""<div style='width:600px;height:600px'>Target</div>
+        self.agent.get_page().set_content("""<div style='width:600px;height:600px'>Target</div>
         <script>window.events=[];
         for (const name of ['dblclick','contextmenu','mousemove','mousedown','mouseup'])
           document.addEventListener(name, e => {events.push(name); e.preventDefault()});
@@ -194,7 +194,7 @@ class BrowserTests(unittest.TestCase):
         self.act("hover", x=100, y=100)
         self.act("mouse_up")
         self.act("drag", x1=100, y1=100, x2=200, y2=200)
-        events = self.agent.page.evaluate("events")
+        events = self.agent.get_page().evaluate("events")
         self.assertTrue({"dblclick", "contextmenu", "mousemove", "mousedown", "mouseup"}
                         .issubset(events))
         self.assertEqual(events.count("mousedown"), events.count("mouseup"))
@@ -208,7 +208,7 @@ class BrowserTests(unittest.TestCase):
         self.assertTrue(tabs[1]["url"].endswith("/third"))
         self.assertEqual(json.loads(self.agent.observe()[0])["active_tab"], 1)
         self.act("switch_tab", index=0)
-        self.act("click", **self.point(self.agent.page.get_by_text("Popup", exact=True)))
+        self.act("click", **self.point(self.agent.get_page().get_by_text("Popup", exact=True)))
         self.act("wait", seconds=0.1)
         tabs = self.act("list_tabs")
         popup = next(t["index"] for t in tabs if t["url"].endswith("/popup"))
@@ -216,21 +216,21 @@ class BrowserTests(unittest.TestCase):
         self.act("switch_tab", index=popup)
         self.act("navigate", url=self.url + "/next")
         self.act("back")
-        self.assertTrue(self.agent.page.url.endswith("/popup"))
+        self.assertTrue(self.agent.get_page().url.endswith("/popup"))
         self.act("forward")
         self.act("reload")
-        self.assertTrue(self.agent.page.url.endswith("/next"))
+        self.assertTrue(self.agent.get_page().url.endswith("/next"))
         for _ in range(3):
             tabs = self.act("close_tab", index=0)
         self.assertEqual(len(tabs), 1)
         self.assertEqual(tabs[0]["index"], 0)
         self.assertEqual(tabs[0]["url"], "about:blank")
-        self.agent.page.close()
+        self.agent.get_page().close()
         self.assertEqual(len(json.loads(self.agent.observe()[0])["tabs"]), 1)
 
     def test_direct_tab_actions_update_agent(self):
         self.assertEqual(Actions.new_tab(self.agent, self.url + "/direct"), 1)
-        self.assertTrue(self.agent.page.url.endswith("/direct"))
+        self.assertTrue(self.agent.get_page().url.endswith("/direct"))
         self.assertEqual(Actions.switch_tab(self.agent, 0), 0)
         with self.assertRaisesRegex(ValueError, "non-negative"):
             Actions.close_tab(self.agent, -1)
@@ -255,7 +255,7 @@ class BrowserTests(unittest.TestCase):
         for name, arguments in invalid:
             with self.subTest(name=name, arguments=arguments):
                 self.assertEqual(self.agent.act(name, arguments)["state"], "error")
-        self.assertEqual(len(Actions.list_tabs(self.agent.page)), 1)
+        self.assertEqual(len(Actions.list_tabs(self.agent.get_page())), 1)
         from agent import get_action_space
         self.assertEqual({t["name"] for t in prepare_tools(self.agent.action_space)},
                          set(get_action_space()))
@@ -272,7 +272,7 @@ class BrowserTests(unittest.TestCase):
                     result = self.agent.act("click", arguments)
                     self.assertIn("ValueError", result["output"])
         self.assertIsNone(self.agent.act("click", {"x": 1, "y": 1})["output"])
-        self.assertEqual(self.agent.page.locator("h1").inner_text(), "Workshop signup")
+        self.assertEqual(self.agent.get_page().locator("h1").inner_text(), "Workshop signup")
 
     def test_dispatch_rejects_invalid_names_and_argument_objects(self):
         for name in ("unknown", None, 42, [], {}):
@@ -367,7 +367,7 @@ class BrowserTests(unittest.TestCase):
             try:
                 other.connect()
                 self.assertTrue(other.browser.is_connected())
-                self.assertEqual(other.page.url, self.url + "/")
+                self.assertEqual(other.get_page().url, self.url + "/")
             finally:
                 other.disconnect()
         finally:
@@ -418,13 +418,13 @@ class BrowserTests(unittest.TestCase):
         code = ("from agent import Actions, WebAgent, get_action_space; "
                 f"a=WebAgent({self.folder.name!r}, "
                 "action_space=get_action_space()).connect(); "
-                f"Actions.navigate(a.page, {self.url!r}); Actions.press_key(a.page, 'Tab'); "
-                "Actions.type_text(a.page, 'survived@example.com'); a.disconnect()")
+                f"Actions.navigate(a.get_page(), {self.url!r}); Actions.press_key(a.get_page(), 'Tab'); "
+                "Actions.type_text(a.get_page(), 'survived@example.com'); a.disconnect()")
         subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[1],
                        check=True, timeout=30)
         self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.agent.connect()
-        self.assertEqual(self.agent.page.get_by_label("Email").input_value(),
+        self.assertEqual(self.agent.get_page().get_by_label("Email").input_value(),
                          "survived@example.com")
         self.agent.shutdown()
         self.assertIsNone(probe_browser_endpoint(self.agent.profile))
@@ -447,7 +447,7 @@ class BrowserTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--headed is ignored with --connect", result.stdout)
-        self.assertEqual(self.agent.page.url, self.url + "/")
+        self.assertEqual(self.agent.get_page().url, self.url + "/")
         self.assertTrue(probe_browser_endpoint(self.agent.profile))
         self.assertIsNone(self.agent.process.poll())
 
@@ -475,7 +475,7 @@ class BrowserTests(unittest.TestCase):
 
     def test_responses_wire_format_and_error_recovery(self):
         Fixture.requests = []
-        self.agent.page.get_by_label("Email").focus()
+        self.agent.get_page().get_by_label("Email").focus()
         Fixture.replies = [
             [tool_call("run_browser", {"code": "1 / 0"})],
             [tool_call("type_text", {"text": "model@example.com"}, "call_2")],
@@ -496,7 +496,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(events[2][2]["output"], "Done")
         self.assertEqual(json.loads(events[1][1]["arguments"]), {"text": "model@example.com"})
         self.assertEqual(result, "Done")
-        self.assertEqual(self.agent.page.get_by_label("Email").input_value(), "model@example.com")
+        self.assertEqual(self.agent.get_page().get_by_label("Email").input_value(), "model@example.com")
         self.assertEqual(len(Fixture.requests), 3)
         for turn, (path, request) in enumerate(Fixture.requests, start=1):
             self.assertEqual(path, "/v1/responses")
@@ -524,7 +524,7 @@ class BrowserTests(unittest.TestCase):
 
     def test_one_observation_per_tool_batch(self):
         Fixture.requests = []
-        self.agent.page.get_by_label("Email").focus()
+        self.agent.get_page().get_by_label("Email").focus()
         Fixture.replies = [
             [tool_call("type_text", {"text": "batch"}, "first"),
              tool_call("type_text", {"text": "@example.com"}, "last")],
@@ -534,7 +534,7 @@ class BrowserTests(unittest.TestCase):
         observe = self.agent.observe
 
         def record_observation():
-            observed_values.append(self.agent.page.get_by_label("Email").input_value())
+            observed_values.append(self.agent.get_page().get_by_label("Email").input_value())
             return observe()
 
         with OpenAI(api_key="local-test", base_url=self.url + "/v1", max_retries=0) as client:
@@ -591,7 +591,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(result, "All done.")
         self.assertEqual(messages, ["Which track?", "Working on Robotics."])
         self.assertEqual(replies, ["Robotics"])
-        self.assertEqual(self.agent.page.url, self.url + "/")
+        self.assertEqual(self.agent.get_page().url, self.url + "/")
         outputs = [item for item in Fixture.requests[2][1]["input"]
                    if item.get("type") == "function_call_output"]
         self.assertEqual(json.loads(outputs[-1]["output"][0]["text"])["output"],
