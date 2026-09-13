@@ -150,27 +150,36 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(self.agent.act("screenshot", {})["state"], "error")
 
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
+        from cursor import show_cursor
         page = self.agent.page
+        self.assertEqual(page.locator("mini-agent-cursor").count(), 0)
         for name, x, y in (("hover", 100, 500), ("click", 120, 500),
                            ("double_click", 140, 500), ("right_click", 160, 500)):
-            self.act(name, x=x, y=y)
+            result = self.agent.act(name, {"x": x, "y": y})
+            show_cursor(self.agent, 0, {"name": name, "arguments": json.dumps({"x": x, "y": y})},
+                        result)
             cursor = page.locator("mini-agent-cursor")
-            box = cursor.bounding_box()
-            self.assertAlmostEqual(box["x"] + box["width"] / 2, x)
-            self.assertAlmostEqual(box["y"] + box["height"] / 2, y)
+            self.assertEqual(cursor.evaluate("e => e.style.left"), f"{x}px")
+            self.assertEqual(cursor.evaluate("e => e.style.top"), f"{y}px")
             self.assertEqual(cursor.evaluate("e => getComputedStyle(e).pointerEvents"), "none")
+            self.assertEqual(cursor.locator("svg").count(), 1)
+            self.assertEqual(cursor.locator(".pulse").count(), 0)
         self.act("press_key", key="Escape")
-        self.act("click", **self.point(page.get_by_label("Email")))
+        point = self.point(page.get_by_label("Email"))
+        show_cursor(self.agent, 0, {"name": "hover", "arguments": point}, {"state": "success"})
+        self.act("click", **point)
         self.act("type_text", text="cursor@example.com")
         self.assertEqual(page.get_by_label("Email").input_value(), "cursor@example.com")
-        self.act("drag", x1=100, y1=500, x2=200, y2=500)
-        self.assertEqual(page.locator("mini-agent-cursor").evaluate("e => e.style.left"), "200px")
+        show_cursor(self.agent, 0, {"name": "drag", "arguments":
+                    {"x1": 100, "y1": 500, "x2": 200, "y2": 500}}, {"state": "success"})
+        self.assertEqual(cursor.evaluate("e => e.style.left"), "200px")
         self.act("reload")
-        self.act("hover", x=80, y=80)
+        show_cursor(self.agent, 0, {"name": "hover", "arguments": {"x": 280, "y": 100}},
+                    {"state": "success"})
         self.assertEqual(page.locator("mini-agent-cursor").count(), 1)
         self.act("click", **self.point(page.frames[1].get_by_role("button")))
         self.assertEqual(page.frames[1].get_by_role("button").inner_text(), "42")
-        page.screenshot(path="/tmp/mini-web-agent-cursor.png")
+        page.screenshot(path="/tmp/mini-web-agent-cursor-arrow.png")
 
     def test_mouse_events(self):
         self.agent.page.set_content("""<div style='width:600px;height:600px'>Target</div>
@@ -402,11 +411,11 @@ class BrowserTests(unittest.TestCase):
 
     def test_cli_passes_instructions_and_step_limit(self):
         Fixture.requests = []
-        Fixture.replies = [[]]
+        Fixture.replies = [[tool_call("hover", {"x": 50, "y": 50})]]
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-cli-") as profile:
             result = subprocess.run(
                 [sys.executable, "agent.py", "Test CLI", "--model", "test",
-                 "--profile", profile, "--port", "0", "--max-steps", "1"],
+                 "--profile", profile, "--port", "0", "--max-steps", "1", "--cursor"],
                 cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
                 env=dict(os.environ, OPENAI_API_KEY="local-test",
                          OPENAI_BASE_URL=self.url + "/v1"),

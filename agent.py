@@ -29,19 +29,15 @@ class Actions:
         page.reload(wait_until="domcontentloaded")
 
     def click(page: Page, x: float, y: float) -> None:
-        show_cursor(page, x, y)
         page.mouse.click(x, y)
 
     def double_click(page: Page, x: float, y: float) -> None:
-        show_cursor(page, x, y)
         page.mouse.dblclick(x, y)
 
     def right_click(page: Page, x: float, y: float) -> None:
-        show_cursor(page, x, y)
         page.mouse.click(x, y, button="right")
 
     def hover(page: Page, x: float, y: float) -> None:
-        show_cursor(page, x, y)
         page.mouse.move(x, y, steps=10)
 
     def mouse_down(page: Page) -> None:
@@ -178,16 +174,6 @@ def build_tool_schema(name: str, fn: Callable) -> dict[str, Any]:
 
 def prepare_tools(action_space: dict[str, Callable]) -> list[dict[str, Any]]:
     return [build_tool_schema(name, fn) for name, fn in action_space.items()]
-
-def show_cursor(page: Page, x: float, y: float) -> None:
-    page.evaluate("""([x, y]) => {
-        const cursor = document.querySelector('mini-agent-cursor') ||
-            document.documentElement.appendChild(document.createElement('mini-agent-cursor'));
-        cursor.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;' +
-            'width:14px;height:14px;border:2px solid #ff3b30;border-radius:50%;' +
-            'box-shadow:0 0 0 1px white;transform:translate(-50%,-50%);' +
-            `left:${x}px;top:${y}px;`;
-    }""", [x, y])
 
 def screenshot(page: Page) -> str:
     data = page.screenshot(type="jpeg", quality=85, scale="css")
@@ -377,7 +363,15 @@ if __name__ == "__main__":
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument("--connect", action="store_true", help="Use an already running Chrome")
     parser.add_argument("--headed", action="store_true", help="Show the Chrome window")
+    parser.add_argument("--cursor", action="store_true", help="Animate a visible action cursor")
     args = parser.parse_args()
+    if args.cursor:
+        from cursor import show_cursor
+
+    def on_action(step, action, result):
+        print(step, action, result, flush=True)
+        if args.cursor:
+            show_cursor(agent, step, action, result)
 
     if args.connect and (args.port or args.headed):
         parser.error(
@@ -393,7 +387,7 @@ if __name__ == "__main__":
         with OpenAI(timeout=60, max_retries=1) as client:
             print(run(
                 agent, args.task, client, args.model, get_instructions(),
-                max_steps=args.max_steps, on_action=lambda s, a, r: print(s, a, r, flush=True),
+                max_steps=args.max_steps, on_action=on_action,
             ))
     finally:
         agent.shutdown() if not args.connect else agent.disconnect()

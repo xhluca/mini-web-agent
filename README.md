@@ -48,7 +48,7 @@ python agent.py --model google/gemini-3.8-flash \
 Run the command directly in your terminal, without `&` or `nohup`:
 
 ```bash
-python -u agent.py --headed --model google/gemini-3.8-flash \
+python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
@@ -75,6 +75,7 @@ The CLI prints actions and results. It closes Chrome when it launched it; with
 | `--port` | Port for a new launch; a new profile defaults to a random localhost port |
 | `--connect` | Attach to Chrome already running with the selected profile |
 | `--headed` | Show the browser window; new launches are headless by default |
+| `--cursor` | Show an animated arrow cursor for completed pointer actions |
 
 Use `--port 9222` to request a fixed port when launching. `--connect` reads the address
 from the selected profile and cannot be combined with a nonzero `--port`. A new profile
@@ -141,8 +142,12 @@ The 24 actions are ordinary functions grouped in `Actions`:
 
 Coordinates match the 1280×800 screenshot viewport. Keyboard input goes to the focused
 control. Tab indices come from the latest observation and can shift after a tab closes.
-A red cursor ring marks pointer actions in both the browser window and screenshots.
-It follows clicks, hovering, and drag endpoints without intercepting page interaction.
+With `--cursor`, an arrow cursor visualizes completed pointer actions through `on_action`.
+It glides between targets, traces drags, and pulses on clicks, with a subtle gradient and shadow.
+It does not intercept clicks and respects reduced-motion preferences. The optional overlay
+lives in [cursor.py](cursor.py), loaded only when selected; the core agent stays under 400 lines.
+For Python callers, use `on_action=partial(show_cursor, agent)` with
+`from functools import partial` and `from cursor import show_cursor`.
 The source documents each action's arguments.
 
 ## A small loop, with recovery
