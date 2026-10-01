@@ -1,4 +1,4 @@
-"""Launcher for uvx: configure OpenRouter, install Chromium, and run agent.py."""
+"""Launcher for uv: configure OpenRouter, install Chromium, and run agent.py."""
 
 from getpass import getpass
 import os

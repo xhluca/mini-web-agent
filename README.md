@@ -64,10 +64,11 @@ FFmpeg is only needed for recording.
 
 ## Quick start
 
-With [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+From a clone of this repository, with
+[uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 
 ```bash
-uvx --from git+https://github.com/xhluca/mini-web-agent mini-web-agent
+uv run mini-web-agent
 ```
 
 Prompts for a task and your OpenRouter key, installs Chromium if needed, and runs
