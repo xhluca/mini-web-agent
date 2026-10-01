@@ -3,36 +3,35 @@
 **mini-web-agent** connects a multimodal LLM to a browser through an OpenAI-compatible
 Responses API. Screenshots in, browser actions out.
 
-- **Small:** Browser control, tool schemas, and the agent loop in [agent.py](agent.py).
-  Under 400 lines, with a 100-character line limit.
-- **Two dependencies:** Playwright for the browser, OpenAI for OpenRouter's Responses API.
-- **Screenshots:** The LLM gets screenshots and current tab metadata.
+- **Small:** [agent.py](agent.py) contains browser control, tool schemas, and the agent loop
+  in fewer than 400 lines.
+- **Two dependencies:** Playwright for browser control and the OpenAI SDK for API calls.
+- **Screenshots:** The model sees screenshots and the current tab list.
 - **Explicit actions:** 24 functions for navigation, pointer input, typing, tabs, and conversation.
-- **Persistent browser:** Detached Chrome controlled over CDP; launch it or attach to a running session.
-- **Easy to adapt:** Supply your own actions, instructions, and callbacks.
+- **Persistent browser:** Launch Chrome as a separate process or connect to a running session over CDP.
+- **Easy to adapt:** Use your own actions, instructions, and callbacks.
 
 <details>
 <summary>Why keep it small?</summary>
 
-The goal is to make the machinery around the model easy to read and change.
-The model chooses actions and checks their effects; the Python loop handles observations,
-model calls, and results.
+Keeping the code small makes it easier to read and change. The model chooses actions and
+checks the results. Python handles browser control and API calls.
 
-The default prompt includes the source code, so the model can read the functions it may call.
-Tool schemas come from their signatures and docstrings. History grows by appending messages,
-preserving earlier screenshots and the prompt prefix for provider caching.
+The default prompt includes the source code, so the model can see which functions it can call.
+Tool schemas come from their signatures and docstrings. The loop appends to history without
+rewriting earlier messages or screenshots, so providers can cache the unchanged prefix.
 
-The line count covers `agent.py`, including its CLI. The cursor, uv launcher, demo recorder,
-and tests live separately.
+The line count includes the CLI in `agent.py`. The cursor, uv launcher, demo recorder,
+and tests are separate files.
 
 </details>
 
 ![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](demo/demo.gif)
 
-*Gemini 3.8 Flash books a workshop through OpenRouter. Thinking pauses shortened.
+*Gemini 3.8 Flash books a workshop through OpenRouter. Pauses between actions are shortened.
 [Action log](demo/demo.json).*
 
-**Inside [agent.py](agent.py)** — counts include blank lines and docstrings in the committed file.
+**Inside [agent.py](agent.py)** — line counts include blank lines and docstrings.
 
 | Section | What it does | Lines |
 | --- | --- | ---: |
@@ -47,15 +46,14 @@ and tests live separately.
 <details>
 <summary>Record your own demo</summary>
 
-Use the environment variables from the manual setup below and install
-[FFmpeg](https://ffmpeg.org/download.html), then run:
+After the manual setup below, install [FFmpeg](https://ffmpeg.org/download.html) and run:
 
 ```bash
 python demo/record.py --model google/gemini-3.8-flash
 ```
 
-The recorder runs the agent on a local booking page, captures Chrome frames through CDP,
-and checks the confirmation. It writes `demo/demo.gif` and `demo/demo.json`.
+The recorder uses the agent to complete a booking on a local page, captures the browser
+through CDP, and checks the confirmation. It saves `demo/demo.gif` and `demo/demo.json`.
 FFmpeg is only needed for recording.
 
 </details>
@@ -70,13 +68,13 @@ cd mini-web-agent
 uv run mini-web-agent
 ```
 
-Prompts for a task and your OpenRouter key, installs Chromium if needed, and runs
-Gemini 3.8 Flash. Chrome is headless by default. Works on Linux and macOS.
+The launcher asks for a task and your OpenRouter API key, then installs Chromium if needed.
+By default, it uses Gemini 3.8 Flash and runs Chrome headless. It works on Linux and macOS.
 
 <details>
 <summary>Manual setup with venv</summary>
 
-Requires Python 3.10+ and a model with image input and function calling.
+You need Python 3.10+ and a model that supports images and function calls.
 
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
@@ -93,9 +91,9 @@ python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-Chrome opens on your desktop, with an animated cursor showing the agent's pointer actions.
+Chrome opens in a window, with an animated cursor showing the agent's pointer actions.
 The agent runs in the foreground: actions, results, and questions appear in your terminal.
-Omit `--headed` for headless Chrome, or `--cursor` to hide the overlay.
+Leave out `--headed` to run Chrome headless and `--cursor` to hide the cursor.
 Press **Ctrl+C** to interrupt.
 
 </details>
@@ -105,7 +103,7 @@ Press **Ctrl+C** to interrupt.
 
 | Option | Purpose |
 | --- | --- |
-| `--model` | Model ID; uv launcher defaults to `google/gemini-3.8-flash`; required by `agent.py` |
+| `--model` | Defaults to `google/gemini-3.8-flash` with uv; required when running `agent.py` directly |
 | `--max-steps` | Maximum model turns; defaults to 100 |
 | `--profile` | Persistent Chrome profile; defaults to `.chrome` |
 | `--port` | Launch port; a new profile defaults to a random localhost port |
@@ -113,7 +111,7 @@ Press **Ctrl+C** to interrupt.
 | `--headed` | Show Chrome; new launches are headless by default |
 | `--cursor` | Animate pointer actions before execution |
 
-From a clone, use the same launcher with a visible browser:
+To watch the agent in Chrome:
 
 ```bash
 uv run mini-web-agent 'Read example.com' --headed --cursor
@@ -129,24 +127,24 @@ python -u agent.py --connect --profile .chrome --model google/gemini-3.8-flash \
   'Tell me what is open in the current tab.'
 ```
 
-`--connect` preserves existing tabs and browser visibility. Adding `--headed` prints a
-warning and continues; it cannot change how an existing browser was launched.
-The CLI closes Chrome when it launched it and only disconnects with `--connect`.
+Connecting keeps the browser's existing tabs and display mode. If you add `--headed`,
+the CLI warns that it cannot change how Chrome was launched, then continues.
+The CLI closes browsers it launches. With `--connect`, it leaves Chrome running.
 
-New CLI launches open one blank tab and close restored tabs, retaining profile data.
-Use `--port 9222` for a fixed launch port. With `--port 0`, a new profile lets Chrome
-choose a port; an existing profile reuses its recorded port. `--connect` reads the
+When launching Chrome, the CLI replaces restored tabs with one blank tab and keeps profile data.
+Use `--port 9222` for a fixed launch port. With `--port 0`, Chrome chooses a port for a new
+profile. Existing profiles reuse their recorded port. `--connect` reads the
 profile's address and cannot be combined with a nonzero `--port`.
 The CLI prints the CDP address after connecting.
 
-Chromium comes from Playwright's bundled executable. Minimal Linux installations may need
-`python -m playwright install-deps chromium`.
+The agent uses the Chromium installed by Playwright. On minimal Linux systems, install
+its system dependencies with `python -m playwright install-deps chromium`.
 
 </details>
 
 ## Use it from Python
 
-With the environment variables from the manual setup:
+Set the API environment variables shown in the manual setup, then:
 
 ```python
 from openai import OpenAI
@@ -166,7 +164,7 @@ finally:
     agent.shutdown()
 ```
 
-Use `agent.launch(headed=True)` for a visible browser. To retain Chrome for another task,
+Use `agent.launch(headed=True)` for a visible browser. To leave Chrome running for another task,
 call `agent.disconnect()` instead of `agent.shutdown()`.
 
 <details>
@@ -176,24 +174,25 @@ call `agent.disconnect()` instead of `agent.shutdown()`.
 | --- | --- |
 | `agent.launch()` | Start detached Chrome |
 | `agent.connect()` | Attach Playwright to Chrome |
-| `agent.get_page()` | Get the active page, recover a closed tab, and set its viewport |
+| `agent.get_page()` | Get the active tab and set its viewport |
 | `agent.observe()` | Return tab metadata as JSON and a screenshot data URL |
 | `agent.act(name, arguments)` | Execute an allowed action and return its result |
 | `run(agent, task, client, model, instructions, ...)` | Run the model loop |
 | `agent.disconnect()` | Detach Playwright, leaving Chrome running |
-| `agent.shutdown()` | Close Chrome and disconnect, including an attached browser |
+| `agent.shutdown()` | Close Chrome and disconnect, even if Chrome was already running when you connected |
 
-Pass `port=9222` to `WebAgent` for a fixed port; read `agent.port` after launch for the
-actual port. The default is `port=0`. Another agent can reconnect using the same profile.
-Playwright discovers the current WebSocket endpoint over HTTP.
+Use `port=9222` for a fixed port, or leave it at `0` to let the agent choose.
+After launch, `agent.port` holds the port Chrome is using. Another `WebAgent` can reconnect
+using the same profile. Playwright finds Chrome's WebSocket address over HTTP.
 
 </details>
 
 <details>
 <summary>Customize actions, instructions, and callbacks</summary>
 
-`action_space` and `instructions` are required. Supply your own action dictionary and
-prompt, or use the getters. The same dictionary controls both tool schemas and dispatch.
+`action_space` and `instructions` are required. Pass an action dictionary and a prompt,
+or use `get_action_space()` and `get_instructions()`. The action dictionary determines
+the tool schemas and which functions the model can call.
 
 Callbacks receive `(step, action, result)`, where `step` is the model-turn index,
 `action` contains the name and arguments, and `result` is `None` before execution.
@@ -213,16 +212,17 @@ The optional [cursor.py](cursor.py) overlay glides between targets, traces drags
 pulses on clicks. It respects reduced-motion preferences and does not intercept clicks.
 The CLI loads it only with `--cursor`.
 
-User messages and replies use `on_message` and `on_reply`, defaulting to `print` and `input`.
+`on_message` handles messages to the user, and `on_reply` asks for a reply.
+They default to `print` and `input`.
 
 </details>
 
 ## How it works
 
-1. Capture a screenshot and the current tab list.
-2. Request actions through the Responses API.
-3. Execute the chosen functions and return their results.
-4. Observe again after the action batch; repeat until the model calls `finish`.
+1. Take a screenshot and list the open tabs.
+2. Send them to the model using the Responses API.
+3. Call the chosen functions and send back their results.
+4. Take another screenshot after each batch of actions. Repeat until the model calls `finish`.
 
 <details>
 <summary>Available actions</summary>
@@ -237,8 +237,8 @@ The 24 actions are ordinary functions grouped in `Actions`:
 | Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
 | Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
 
-Coordinates use screenshot CSS pixels. The viewport defaults to 1280×800; set `w` and `h`
-on `WebAgent` to change it. Typing targets the focused control, with 10 ms between characters.
+Action coordinates match the screenshot. The viewport defaults to 1280×800; pass `w` and `h`
+to `WebAgent` to change it. `type_text` types into the focused field, with 10 ms between characters.
 Tab indices come from the latest observation and can shift after closing a tab.
 
 </details>
@@ -246,30 +246,31 @@ Tab indices come from the latest observation and can shift after closing a tab.
 <details>
 <summary>History and error recovery</summary>
 
-The first screenshot is a user message. After each action batch, one screenshot and
-the current tab metadata accompany the last tool result. Each action returns:
+The first screenshot is sent as a user message. After each batch of actions, the last tool
+result includes a screenshot and the current tab information. Each action returns one of:
 
 ```python
 {"state": "success", "output": ...}
 {"state": "error", "output": "..."}
 ```
 
-Errors give the model feedback to recover. Missing tool calls receive a reminder.
-Incomplete responses are discarded and retried without executing partial actions.
-Retries count against `max_steps`; reaching the limit stops an unfinished task.
+Action errors are sent back to the model so it can try again. If the model returns no tool
+calls, the loop asks it to choose an action. Incomplete responses are discarded and retried
+without executing any actions. Retries count toward `max_steps`; the loop stops at that
+limit even if the task is unfinished.
 A successful `finish` returns the final answer.
 
-History retains earlier screenshots and reasoning to preserve the cacheable prefix.
-Context grows with the task, and cache hits depend on the provider.
+Earlier screenshots and reasoning stay in history so providers can cache the unchanged
+prefix. Longer tasks use more context, and cache hits depend on the provider.
 
 </details>
 
 <details>
 <summary>Scope</summary>
 
-The agent has no DOM-reading tool, accessibility-tree parser, generated-code executor,
-upload/download manager, or OS controls. The action dictionary limits callable functions;
-it does not isolate the browser from websites or restrict ordinary clicks and typing.
+There are no tools for reading the DOM, parsing accessibility trees, running generated code,
+managing uploads or downloads, or controlling the OS. The model can call only the functions
+in the action dictionary. The browser can still visit websites and interact with them normally.
 
 </details>
 
@@ -283,5 +284,5 @@ python -m unittest discover -s tests -v
 python -m tests.test_live  # Optional paid OpenRouter test.
 ```
 
-The local suite uses Chromium and a local Responses fixture to check actions, tabs, cleanup,
-tool results, and recovery. The live test completes a signup form and checks its result.
+The local tests use Chromium and a test server to check actions, tabs, cleanup, API results,
+and error recovery. The live test asks the model to complete a signup form and checks the result.
