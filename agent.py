@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from openai import OpenAI
-from playwright.sync_api import Browser, Error, Page, Playwright, sync_playwright
+from playwright.sync_api import Browser, BrowserContext, Error, Page, Playwright, sync_playwright
 
 class Actions:
     def navigate(page: Page, url: str) -> None:
@@ -84,10 +84,10 @@ class Actions:
 
     def new_tab(agent: "WebAgent", url: str = "about:blank") -> int:
         """Open and activate a tab, returning its current index."""
-        tab = agent.get_page().context.new_page()
+        tab = agent.context.new_page()
         Actions.navigate(tab, url)
         agent._page = tab
-        return tab.context.pages.index(tab)
+        return agent.context.pages.index(tab)
 
     def switch_tab(agent: "WebAgent", index: int) -> int:
         agent._page = tab_at(agent.get_page(), index)
@@ -183,13 +183,12 @@ def convert_to_content(text, image):
     return [{"type": "input_text", "text": text}, {"type": "input_image", "image_url": image}]
 
 class WebAgent:
-    def __init__(self, profile: str | Path = ".chrome", *, port: int = 0, w: int = 1280, h: int = 800,
-                 on_message: Callable = print, on_reply: Callable = input,
-                 action_space: dict[str, Callable]):
+    def __init__(self, profile: str | Path = ".chrome", *, port: int = 0,
+                 w: int = 1280, h: int = 800, on_message: Callable = print,
+                 on_reply: Callable = input, action_space: dict[str, Callable]):
         self.profile = Path(profile).expanduser().resolve()
         self.action_space = action_space
-        self.on_message = on_message
-        self.on_reply = on_reply
+        self.on_message, self.on_reply = on_message, on_reply
         self.port = port
         self.w, self.h = w, h
         self.playwright: Playwright | None = None
@@ -230,41 +229,42 @@ class WebAgent:
             terminate_process(self.process)
             self.disconnect()
             raise RuntimeError(f"Failed to launch Chrome: {error}") from error
-
         return self
 
     def connect(self, *, timeout: float = 20) -> "WebAgent":
         """Attach Playwright to this profile's running Chrome; never launch a browser."""
         if self.browser:
             return self
-        endpoint = f"http://127.0.0.1:{self.port}"
         if not self.playwright:
             self.playwright = sync_playwright().start()
 
         try:
             self.browser = self.playwright.chromium.connect_over_cdp(
-                endpoint, timeout=timeout * 1000)
-            ctx = self.browser.contexts[0]
-            ctx.set_default_timeout(10_000)
-            self._page = ctx.pages[0] if ctx.pages else ctx.new_page()
+                f"http://127.0.0.1:{self.port}", timeout=timeout * 1000)
+            self._context = self.browser.contexts[0]
+            self.context.set_default_timeout(10_000)
+            self._page = self.context.pages[0] if self.context.pages else self.context.new_page()
             self.get_page()
         except BaseException as error:
             self.disconnect()
             raise Error(f"Failed to connect to Chrome: {error}") from error
         return self
 
+    @property
+    def context(self) -> BrowserContext:
+        return self._context
+
     def get_page(self) -> Page:
         """Return the active page, recovering closed tabs and setting the viewport."""
         if self._page.is_closed():
-            ctx = self._page.context
-            self._page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            self._page = self.context.pages[0] if self.context.pages else self.context.new_page()
         if self._page.viewport_size != {"width": self.w, "height": self.h}:
             self._page.set_viewport_size({"width": self.w, "height": self.h})
         return self._page
 
     def reset_tabs(self) -> None:
-        self._page = self.get_page().context.new_page()
-        for tab in self.get_page().context.pages:
+        self._page = self.context.new_page()
+        for tab in self.context.pages:
             if tab != self._page:
                 tab.close()
 
@@ -288,7 +288,7 @@ class WebAgent:
 
     def observe(self) -> tuple[str, str]:
         p = self.get_page()
-        state = dict(active_tab=p.context.pages.index(p), tabs=Actions.list_tabs(p))
+        state = dict(active_tab=self.context.pages.index(p), tabs=Actions.list_tabs(p))
         return json.dumps(state), screenshot(p)
 
     def disconnect(self) -> None:

@@ -176,6 +176,7 @@ call `agent.disconnect()` instead of `agent.shutdown()`.
 | --- | --- |
 | `agent.launch()` | Start detached Chrome |
 | `agent.connect()` | Attach Playwright to Chrome |
+| `agent.context` | Browser context selected when connecting |
 | `agent.get_page()` | Get the active tab and set its viewport |
 | `agent.observe()` | Return tab metadata as JSON and a screenshot data URL |
 | `agent.act(name, arguments)` | Execute an allowed action and return its result |
