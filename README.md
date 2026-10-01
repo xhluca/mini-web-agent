@@ -38,10 +38,10 @@ browser agents easy to experiment with and build on.
 | [Imports](agent.py#L1) | Standard library, OpenAI SDK, and Playwright | 17 |
 | [Actions](agent.py#L18) | 24 browser and conversation functions | 95 |
 | [Helpers](agent.py#L113) | Prompts, browser setup, tab lookup, tool schemas, and screenshot formatting | 72 |
-| [WebAgent](agent.py#L185) | Chrome lifecycle, tabs, actions, and screenshots | 129 |
-| [run()](agent.py#L314) | Model calls, results, callbacks, history, and recovery | 51 |
-| [CLI](agent.py#L365) | Options, browser setup, model run, and cleanup | 35 |
-| **Total** | | **399** |
+| [WebAgent](agent.py#L185) | Chrome lifecycle, tabs, actions, and screenshots | 125 |
+| [run()](agent.py#L310) | Model calls, results, callbacks, history, and recovery | 51 |
+| [CLI](agent.py#L361) | Options, browser setup, model run, and cleanup | 35 |
+| **Total** | | **395** |
 
 The count includes the CLI. The cursor, uv launcher, demo recorder, and tests are separate files.
 
@@ -176,7 +176,7 @@ call `agent.disconnect()` instead of `agent.shutdown()`.
 | --- | --- |
 | `agent.launch()` | Start detached Chrome |
 | `agent.connect()` | Attach Playwright to Chrome |
-| `agent.context` | Browser context selected when connecting |
+| `agent.ctx` | Browser context assigned when connecting |
 | `agent.get_page()` | Get the active tab and set its viewport |
 | `agent.observe()` | Return tab metadata as JSON and a screenshot data URL |
 | `agent.act(name, arguments)` | Execute an allowed action and return its result |

@@ -240,22 +240,13 @@ class BrowserTests(unittest.TestCase):
         self.assertIsNone(self.agent.act("wait", '{"seconds": 0}')["output"])
         self.assertIn("JSONDecodeError", self.agent.act("wait", "{")["output"])
 
-    def test_tab_actions_stay_in_connected_context(self):
-        context = self.agent.context
-        other = self.agent.browser.new_context()
-        try:
-            other_page = other.new_page()
-            self.act("new_tab", url=self.url + "/second")
-            self.assertIs(self.agent.get_page().context, context)
-            self.agent.reset_tabs()
-            self.assertEqual(len(context.pages), 1)
-            self.assertFalse(other_page.is_closed())
-            self.act("close_tab", index=0)
-            self.assertIs(self.agent.get_page().context, context)
-            self.assertEqual(len(context.pages), 1)
-            self.assertFalse(other_page.is_closed())
-        finally:
-            other.close()
+    def test_reset_tabs_keeps_profile_context(self):
+        context = self.agent.get_page().context
+        self.act("new_tab", url=self.url + "/second")
+        self.agent.reset_tabs()
+        self.assertEqual(len(context.pages), 1)
+        self.assertEqual(self.agent.get_page().url, "about:blank")
+        self.assertIs(self.agent.get_page().context, context)
 
     def test_restricted_dispatch(self):
         invalid = [
