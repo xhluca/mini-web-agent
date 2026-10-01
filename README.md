@@ -22,8 +22,8 @@ The default prompt includes the source code, so the model can read the functions
 Tool schemas come from their signatures and docstrings. History grows by appending messages,
 preserving earlier screenshots and the prompt prefix for provider caching.
 
-The line count covers the complete agent and CLI. The optional cursor, demo recorder, and
-tests live separately.
+The line count covers `agent.py`, including its CLI. The cursor, uv launcher, demo recorder,
+and tests live separately.
 
 </details>
 
@@ -49,7 +49,7 @@ tests live separately.
 <details>
 <summary>Record your own demo</summary>
 
-Use the environment variables from the quick start below and install
+Use the environment variables from the manual setup below and install
 [FFmpeg](https://ffmpeg.org/download.html), then run:
 
 ```bash
@@ -64,16 +64,27 @@ FFmpeg is only needed for recording.
 
 ## Quick start
 
-Requires Python 3.10+ on Linux or macOS. The examples use OpenRouter and a model with
-image input and function calling.
+With [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+
+```bash
+uvx --from git+https://github.com/xhluca/mini-web-agent mini-web-agent
+```
+
+Prompts for a task and your OpenRouter key, installs Chromium if needed, and runs
+Gemini 3.8 Flash. Chrome is headless by default. Works on Linux and macOS.
+
+<details>
+<summary>Manual setup with venv</summary>
+
+Requires Python 3.10+ and a model with image input and function calling.
 
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
 cd mini-web-agent
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install 'openai>=2.0,<4' 'playwright>=1.58,<2'
-python -m playwright install chromium
+python -m pip install .
+python -m playwright install chromium --no-shell
 
 export OPENAI_API_KEY="your-openrouter-key"
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
@@ -87,18 +98,29 @@ The agent runs in the foreground: actions, results, and questions appear in your
 Omit `--headed` for headless Chrome, or `--cursor` to hide the overlay.
 Press **Ctrl+C** to interrupt.
 
+</details>
+
 <details>
 <summary>CLI options and connecting to Chrome</summary>
 
 | Option | Purpose |
 | --- | --- |
-| `--model` | OpenRouter model ID; required |
+| `--model` | Model ID; uv launcher defaults to `google/gemini-3.8-flash`; required by `agent.py` |
 | `--max-steps` | Maximum model turns; defaults to 100 |
 | `--profile` | Persistent Chrome profile; defaults to `.chrome` |
 | `--port` | Launch port; a new profile defaults to a random localhost port |
 | `--connect` | Attach to Chrome already running with the selected profile |
 | `--headed` | Show Chrome; new launches are headless by default |
 | `--cursor` | Animate pointer actions before execution |
+
+From a clone, use the same launcher with a visible browser:
+
+```bash
+uv run mini-web-agent 'Read example.com' --headed --cursor
+```
+
+The launcher accepts the same arguments as `agent.py`. You can set `OPENAI_API_KEY` and
+`OPENAI_BASE_URL` to skip the key prompt and choose an API endpoint.
 
 To attach to a browser previously launched with this profile:
 
@@ -124,7 +146,7 @@ Chromium comes from Playwright's bundled executable. Minimal Linux installations
 
 ## Use it from Python
 
-With the same environment variables:
+With the environment variables from the manual setup:
 
 ```python
 from openai import OpenAI
