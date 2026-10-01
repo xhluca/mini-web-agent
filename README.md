@@ -1,12 +1,12 @@
 # Frontier web agents in less than 400 lines
 
-**mini-web-agent** lets a vision model use a real browser from a single Python file.
+**mini-web-agent** connects an LLM API to a browser in a single Python file.
 Screenshots in, browser actions out.
 
 - **Small:** Browser control, tool schemas, and the agent loop in [agent.py](agent.py).
   Under 400 lines, with a 100-character line limit.
 - **Two dependencies:** Playwright for the browser, OpenAI for OpenRouter's Responses API.
-- **Visual:** The model works from screenshots and current tab metadata.
+- **Screenshots:** The LLM gets screenshots and current tab metadata.
 - **Explicit actions:** 24 functions for navigation, pointer input, typing, tabs, and conversation.
 - **Persistent browser:** Detached Chrome controlled over CDP; launch it or attach to a running session.
 - **Easy to adapt:** Supply your own actions, instructions, and callbacks.
@@ -42,8 +42,8 @@ Use the environment variables from the quick start below and install
 python demo/record.py --model google/gemini-3.8-flash
 ```
 
-The recorder runs the actual agent on a local booking page, captures Chrome frames through
-CDP, and independently checks the confirmation. It writes `demo/demo.gif` and `demo/demo.json`.
+The recorder runs the agent on a local booking page, captures Chrome frames through CDP,
+and checks the confirmation. It writes `demo/demo.gif` and `demo/demo.json`.
 FFmpeg is only needed for recording.
 
 </details>

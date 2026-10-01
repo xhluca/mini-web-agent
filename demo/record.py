@@ -1,7 +1,7 @@
-"""Record an actual model-driven agent run: python demo/record.py --model MODEL.
+"""Record an agent run as a GIF: python demo/record.py --model MODEL.
 
 Uses the agent's dependencies and a local FFmpeg executable. Frames are captured through CDP;
-long pauses between changing frames are shortened in the GIF. No browser actions are scripted.
+long pauses between changing frames are shortened in the GIF.
 """
 
 import argparse
