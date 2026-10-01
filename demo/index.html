@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fieldnotes — workshop booking demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #24332e; background: #f4f5ef;
+         font: 15px/1.5 system-ui, sans-serif; }
+  header { padding: 20px 48px; display: flex; align-items: center; justify-content: space-between;
+           border-bottom: 1px solid #dce1d8; background: #fafbf7; }
+  .brand { font-weight: 750; font-size: 21px; letter-spacing: -.7px; }
+  .brand span { color: #568168; margin-right: 9px; }
+  .tag { font: 11px ui-monospace, monospace; letter-spacing: 1.5px; color: #6c7a70; }
+  .task { padding: 16px 48px; background: #203c31; color: #eff8ec; }
+  .task small { display: block; color: #9ebcab; font-size: 10px; letter-spacing: 2px; }
+  .task p { margin: 3px 0 0; font-size: 14px; }
+  main { max-width: 1184px; margin: 30px auto; }
+  .intro { display: flex; align-items: end; justify-content: space-between; margin-bottom: 24px; }
+  h1 { font-size: 38px; line-height: 1.2; letter-spacing: -1.5px; margin: 7px 0; }
+  .sub { color: #728075; margin: 0; }
+  .layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  article { border: 1px solid #dce1d8; border-radius: 14px; overflow: hidden; background: white; }
+  .art { height: 150px; display: grid; place-items: center; overflow: hidden; }
+  .art svg { width: 110px; height: 110px; }
+  .green { background: #dde9dc; } .pink { background: #f0e1dc; } .blue { background: #dde6ed; }
+  .details { padding: 20px; } .pill { font-size: 10px; letter-spacing: 1px; color: #6a786f; }
+  h2 { font-size: 19px; letter-spacing: -.5px; margin: 7px 0; }
+  .details p { font-size: 13px; color: #728075; min-height: 42px; margin: 0 0 15px; }
+  .time { display: block; padding: 8px 10px; border: 1px solid #e1e5de; border-radius: 7px;
+          margin: 7px 0; font-size: 12px; cursor: pointer; }
+  .time:has(input:checked) { background: #edf5ea; border-color: #568168; }
+  input[type=radio], input[type=checkbox] { accent-color: #345d46; }
+  button { width: 100%; margin-top: 12px; padding: 11px; border: 0; border-radius: 7px;
+           background: #2c4f3c; color: white; font: inherit; font-size: 13px; cursor: pointer; }
+  button:hover { background: #406f54; } button:disabled { opacity: .5; }
+  aside { background: #fafbf7; border: 1px solid #dce1d8; border-radius: 14px; padding: 22px; }
+  aside h2 { margin-top: 16px; } aside p { color: #728075; font-size: 13px; }
+  .live { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #4c765b; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #679777; }
+  #action { border-top: 1px solid #dce1d8; margin-top: 20px; padding-top: 18px;
+            font: 12px/1.6 ui-monospace, monospace; color: #345d46; word-break: break-word; }
+  #counter { margin-top: 18px; font-size: 11px; color: #819087; }
+  footer { margin-top: 26px; color: #89948a; font: 11px ui-monospace, monospace; }
+  dialog { border: 1px solid #dce1d8; border-radius: 16px; padding: 28px; width: 440px;
+           box-shadow: 0 20px 70px #142b3130; color: #24332e; position: fixed;
+           top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 2; }
+  body:has(dialog[open])::before { content: ''; position: fixed; inset: 0; z-index: 1;
+                                 background: #203c3160; backdrop-filter: blur(3px); }
+  dialog h2 { font-size: 25px; margin: 8px 0; }
+  label.field { display: block; margin: 15px 0; font-size: 12px; font-weight: 600; }
+  .field input { display: block; width: 100%; margin-top: 6px; padding: 11px; font: inherit;
+                 border: 1px solid #ccd6cb; border-radius: 7px; background: #fafbf7; }
+  .field input:focus { outline: 2px solid #7b9f80; outline-offset: 2px; }
+  .terms { font-size: 12px; font-weight: 400; }
+  #confirmation { display: none; padding: 28px; border-radius: 14px; background: #e1eddd;
+                  border: 1px solid #b4ccae; margin-top: 20px; }
+  #confirmation h2 { font-size: 25px; } #confirmation p { margin: 5px 0; }
+</style>
+<header><div class="brand"><span>✳</span>fieldnotes</div>
+  <div class="tag">MAKE SOMETHING NEW · LOCAL DEMO</div></header>
+<section class="task"><small>THE AGENT'S TASK</small>
+  <p>Book the 2 pm Robotics Lab for Alex Chen · alex@example.com · agree to the terms.</p></section>
+<main>
+  <div class="intro"><div><div class="tag">SATURDAY SESSIONS / OCTOBER 10</div>
+    <h1>A little curiosity. A new skill.</h1>
+    <p class="sub">Small groups, thoughtful teachers, and an afternoon well spent.</p></div>
+    <div class="tag">03 WORKSHOPS AVAILABLE</div></div>
+  <div class="layout"><section>
+    <div class="cards">
+      <article><div class="art pink"><svg viewBox="0 0 110 110" fill="none">
+        <path d="M30 42h50l-6 45H36z" fill="#b57f68"/>
+        <ellipse cx="55" cy="42" rx="25" ry="8" fill="#d2a991"/>
+        <ellipse cx="55" cy="42" rx="17" ry="4" fill="#986e59"/>
+        <path d="M40 60h30M39 69h30" stroke="#eac6ac" stroke-width="3"/>
+      </svg></div><div class="details"><div class="pill">CRAFT / BEGINNER</div>
+        <h2>Clay &amp; Coffee</h2><p>Find your rhythm on the wheel. Leave with a handmade cup.</p>
+        <label class="time"><input type="radio" name="clay" value="10:00 am" checked>
+          10:00 am – 12:00 pm</label>
+        <label class="time"><input type="radio" name="clay" value="2:00 pm">
+          2:00 pm – 4:00 pm</label>
+        <button onclick="openBooking('Clay & Coffee',
+          document.querySelector('input[name=clay]:checked').value)">Book workshop</button>
+      </div></article>
+      <article><div class="art green"><svg viewBox="0 0 110 110" fill="none">
+        <path d="M55 24v12" stroke="#66886c" stroke-width="3"/><circle cx="55" cy="21" r="5"
+          fill="#89a775"/><rect x="27" y="36" width="56" height="45" rx="12" fill="#4d715a"/>
+        <rect x="34" y="44" width="42" height="23" rx="7" fill="#b9cda6"/>
+        <circle cx="45" cy="55" r="4" fill="#34513e"/><circle cx="65" cy="55" r="4"
+          fill="#34513e"/><path d="M44 88h22M20 48v18M90 48v18" stroke="#7c9b6c"
+          stroke-width="5" stroke-linecap="round"/>
+      </svg></div><div class="details"><div class="pill">TECH / HANDS-ON</div>
+        <h2>Robotics Lab</h2><p>Build a tiny robot. Teach it to navigate the world.</p>
+        <label class="time"><input type="radio" name="robotics" value="10:00 am" checked>
+          10:00 am – 12:00 pm</label>
+        <label class="time"><input type="radio" name="robotics" value="2:00 pm">
+          2:00 pm – 4:00 pm</label>
+        <button onclick="openBooking('Robotics Lab',
+          document.querySelector('input[name=robotics]:checked').value)">Book workshop</button>
+      </div></article>
+      <article><div class="art blue"><svg viewBox="0 0 110 110" fill="none">
+        <rect x="22" y="34" width="66" height="47" rx="10" fill="#617e96"/>
+        <path d="M38 34l5-10h24l5 10" fill="#819aaf"/><circle cx="55" cy="57" r="19"
+          fill="#adc3cc"/><circle cx="55" cy="57" r="12" fill="#3f5e77"/>
+        <circle cx="77" cy="43" r="3" fill="#d4e1e5"/>
+      </svg></div><div class="details"><div class="pill">CREATIVE / ALL LEVELS</div>
+        <h2>Light Walk</h2><p>See familiar streets differently through your lens.</p>
+        <label class="time"><input type="radio" name="photo" value="10:00 am" checked>
+          10:00 am – 12:00 pm</label>
+        <label class="time"><input type="radio" name="photo" value="2:00 pm">
+          2:00 pm – 4:00 pm</label>
+        <button onclick="openBooking('Light Walk',
+          document.querySelector('input[name=photo]:checked').value)">Book workshop</button>
+      </div></article>
+    </div>
+    <section id="confirmation" role="status"></section>
+  </section><aside><div class="live"><span class="dot"></span>LIVE AGENT RUN</div>
+    <h2>Watch the next move.</h2><p>A vision model sees this page as a screenshot and chooses
+      a predefined browser action. The cursor shows where it acts.</p>
+    <div class="tag" id="model">MODEL</div><div id="action">Ready to begin.</div>
+    <div id="counter">0 actions completed</div>
+  </aside></div>
+  <footer>mini-web-agent · screenshots → model → actions → observe · playwright + openai</footer>
+</main>
+<dialog id="booking"><form id="form"><div class="tag">YOUR NEXT SATURDAY</div>
+  <h2 id="workshop"></h2><p id="session" class="sub"></p>
+  <label class="field">Full name<input name="name" required autocomplete="off"></label>
+  <label class="field">Email address<input name="email" type="email" required
+    autocomplete="off"></label>
+  <label class="terms"><input type="checkbox" name="terms" required>
+    I agree to the workshop terms.</label>
+  <button type="submit">Confirm booking</button>
+</form></dialog>
+<script>
+  let selected;
+  function openBooking(workshop, time) {
+    selected = {workshop, time};
+    document.querySelector('#workshop').textContent = workshop;
+    document.querySelector('#session').textContent = `October 10 · ${time} · 2 hours`;
+    document.querySelector('#booking').show();
+  }
+  document.querySelector('#form').onsubmit = event => {
+    event.preventDefault();
+    const fields = new FormData(event.target), box = document.querySelector('#confirmation');
+    box.replaceChildren();
+    for (const [tag, text] of [['h2', 'You’re booked. See you Saturday!'],
+      ['p', `${selected.workshop} · October 10 · ${selected.time}`],
+      ['p', `${fields.get('name')} · ${fields.get('email')}`]]) {
+      const line = document.createElement(tag); line.textContent = text; box.appendChild(line);
+    }
+    box.style.display = 'block'; document.querySelector('#booking').close();
+  };
+</script>
+</html>

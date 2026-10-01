@@ -1,0 +1,217 @@
+{
+  "model": "google/gemini-3.8-flash",
+  "task": "Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. Agree to the terms, confirm the booking, and verify the visible confirmation. The screenshot viewport is 1280 by 800 CSS pixels. Use only the provided browser actions. Call finish when the booking is verified.",
+  "answer": "The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com). The visible confirmation banner is verified: \"You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com\".",
+  "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
+  "actions": [
+    {
+      "step": 0,
+      "action": {
+        "name": "scroll",
+        "arguments": "{\"dy\":300,\"dx\":0}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 1,
+      "action": {
+        "name": "click",
+        "arguments": "{\"y\":653,\"x\":368}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 2,
+      "action": {
+        "name": "click",
+        "arguments": "{\"y\":585,\"x\":368}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 3,
+      "action": {
+        "name": "click",
+        "arguments": "{\"y\":635,\"x\":400}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 4,
+      "action": {
+        "name": "click",
+        "arguments": "{\"x\":470,\"y\":710}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 5,
+      "action": {
+        "name": "click",
+        "arguments": "{\"y\":700,\"x\":450}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 6,
+      "action": {
+        "name": "click",
+        "arguments": "{\"x\":450,\"y\":460}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 7,
+      "action": {
+        "name": "type_text",
+        "arguments": "{\"text\":\"Alex Chen\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 8,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"ControlOrMeta+A\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 9,
+      "action": {
+        "name": "type_text",
+        "arguments": "{\"text\":\"alex@example.com\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 10,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"Shift+Tab\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 11,
+      "action": {
+        "name": "type_text",
+        "arguments": "{\"text\":\"Alex Chen\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 12,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"Tab\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 13,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"Tab\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 14,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"Space\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 15,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"Tab\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 16,
+      "action": {
+        "name": "press_key",
+        "arguments": "{\"key\":\"Enter\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 17,
+      "action": {
+        "name": "scroll",
+        "arguments": "{\"dy\":300,\"dx\":0}"
+      },
+      "result": {
+        "state": "success",
+        "output": null
+      }
+    },
+    {
+      "step": 18,
+      "action": {
+        "name": "finish",
+        "arguments": "{\"message\":\"The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com). The visible confirmation banner is verified: \\\"You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com\\\".\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": "The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com). The visible confirmation banner is verified: \"You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com\"."
+      }
+    }
+  ]
+}

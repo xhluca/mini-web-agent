@@ -11,6 +11,27 @@ The aim is to keep the machinery around the model understandable. Browser contro
 tool definitions, conversation history, and the agent loop all live in [agent.py](agent.py).
 The implementation stays below 400 lines, with a 100-character line limit.
 
+## Watch it work
+
+![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](demo/demo.gif)
+
+A real **Gemini 3.8 Flash** run through OpenRouter: choose the afternoon workshop,
+enter the attendee's details, accept the terms, and verify the booking confirmation.
+The model chooses every action. The local demo page makes the task reproducible;
+model-thinking pauses are shortened in the GIF. The [action log](demo/demo.json)
+records the actual calls and results.
+
+To record your own run, use the environment variables from the setup below and install
+[FFmpeg](https://ffmpeg.org/download.html), then run:
+
+```bash
+python demo/record.py --model google/gemini-3.8-flash
+```
+
+The recorder calls the same `run()` loop, captures Chrome frames through CDP, and
+checks the resulting booking independently. It writes `demo/demo.gif` and `demo/demo.json`.
+FFmpeg is only needed to make the recording; the agent still has two Python dependencies.
+
 ## The philosophy
 
 - **Let the model work from what it sees.** Screenshots and tab metadata are its observations.
