@@ -1,7 +1,7 @@
 # Frontier web agents in less than 400 lines
 
-**mini-web-agent** connects an LLM API to a browser in a single Python file.
-Screenshots in, browser actions out.
+**mini-web-agent** connects a multimodal LLM to a browser through an OpenAI-compatible
+Responses API. Screenshots in, browser actions out.
 
 - **Small:** Browser control, tool schemas, and the agent loop in [agent.py](agent.py).
   Under 400 lines, with a 100-character line limit.
@@ -50,7 +50,8 @@ FFmpeg is only needed for recording.
 
 ## Quick start
 
-Requires Python 3.10+ on Linux or macOS.
+Requires Python 3.10+ on Linux or macOS. The examples use OpenRouter and a model with
+image input and function calling.
 
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
@@ -183,7 +184,7 @@ User messages and replies use `on_message` and `on_reply`, defaulting to `print`
 ## How it works
 
 1. Capture a screenshot and the current tab list.
-2. Request actions through OpenRouter's Responses API.
+2. Request actions through the Responses API.
 3. Execute the chosen functions and return their results.
 4. Observe again after the action batch; repeat until the model calls `finish`.
 
