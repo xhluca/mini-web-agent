@@ -64,10 +64,11 @@ FFmpeg is only needed for recording.
 
 ## Quick start
 
-From a clone of this repository, with
-[uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+With [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 
 ```bash
+git clone https://github.com/xhluca/mini-web-agent.git
+cd mini-web-agent
 uv run mini-web-agent
 ```
 
