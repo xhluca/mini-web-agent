@@ -14,15 +14,15 @@ Responses API. Screenshots in, browser actions out.
 <details>
 <summary>Why keep it small?</summary>
 
-Keeping the code small makes it easier to read and change. The model chooses actions and
-checks the results. Python handles browser control and API calls.
+Modern models can do useful work with very little agent code. That is the premise behind
+[mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent#readme), and the idea this project
+explores in the browser. Give the model screenshots and browser controls, then let it
+decide how to complete the task.
 
-The default prompt includes the source code, so the model can see which functions it can call.
-Tool schemas come from their signatures and docstrings. The loop appends to history without
-rewriting earlier messages or screenshots, so providers can cache the unchanged prefix.
-
-The line count includes the CLI in `agent.py`. The cursor, uv launcher, demo recorder,
-and tests are separate files.
+Keeping the implementation under 400 lines gives you a baseline you can read, run, and change.
+Swap the model, adjust the prompt, or change the actions to see what affects its behavior.
+The full interaction stays in history, so you can inspect each step. The goal is to make
+browser agents easy to experiment with and build on.
 
 </details>
 
@@ -42,6 +42,8 @@ and tests are separate files.
 | [run()](agent.py#L314) | Model calls, results, callbacks, history, and recovery | 51 |
 | [CLI](agent.py#L365) | Options, browser setup, model run, and cleanup | 35 |
 | **Total** | | **399** |
+
+The count includes the CLI. The cursor, uv launcher, demo recorder, and tests are separate files.
 
 <details>
 <summary>Record your own demo</summary>
