@@ -32,6 +32,20 @@ tests live separately.
 *Gemini 3.8 Flash books a workshop through OpenRouter. Thinking pauses shortened.
 [Action log](demo/demo.json).*
 
+**Inside [agent.py](agent.py)** — counts include blank lines and docstrings in the committed file.
+
+| Section | What it does | Lines |
+| --- | --- | ---: |
+| [Imports](agent.py#L1) | Standard library, OpenAI SDK, and Playwright | 17 |
+| [Actions](agent.py#L18) | 24 browser and conversation functions | 95 |
+| [Prompt and actions](agent.py#L113) | Action dictionary and prompt with source code | 11 |
+| [Browser helpers](agent.py#L124) | CDP discovery, processes, ports, and tab lookup | 41 |
+| [API helpers](agent.py#L165) | Tool schemas, screenshot encoding, and input content | 20 |
+| [WebAgent](agent.py#L185) | Chrome lifecycle, tabs, actions, and screenshots | 129 |
+| [run()](agent.py#L314) | Model calls, results, callbacks, history, and recovery | 51 |
+| [CLI](agent.py#L365) | Options, browser setup, model run, and cleanup | 35 |
+| **Total** | | **399** |
+
 <details>
 <summary>Record your own demo</summary>
 
