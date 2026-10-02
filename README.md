@@ -43,7 +43,7 @@ Once you have completed the setup below, install [FFmpeg](https://ffmpeg.org/dow
 and record a run:
 
 ```bash
-python demo/record.py --model google/gemini-3.8-flash
+uv run python demo/record.py --model google/gemini-3.8-flash
 ```
 
 The agent works through a booking on a local page while the recorder captures the browser
@@ -61,12 +61,11 @@ Start with a task you can watch from beginning to end. With
 git clone https://github.com/xhluca/mini-web-agent.git
 cd mini-web-agent
 uv run playwright install chromium --no-shell
-source .venv/bin/activate
 
 export OPENAI_API_KEY="your-openrouter-key"
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 
-python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
+uv run python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
@@ -138,10 +137,10 @@ that is already open:
 | `--headed` | Show Chrome; new launches are headless by default |
 | `--cursor` | Animate pointer actions before execution |
 
-To run another task, replace the text in quotes:
+To run another task from the project directory, replace the text in quotes:
 
 ```bash
-python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
+uv run python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
@@ -151,7 +150,7 @@ The endpoint must support the Responses API, and the model needs image input and
 If Chrome is still running from an earlier session, connect using the same profile:
 
 ```bash
-python -u agent.py --connect --profile .chrome --model google/gemini-3.8-flash \
+uv run python -u agent.py --connect --profile .chrome --model google/gemini-3.8-flash \
   'Tell me what is open in the current tab.'
 ```
 
@@ -166,7 +165,7 @@ profile's address and cannot be combined with a nonzero `--port`.
 The CLI prints the CDP address after connecting.
 
 On minimal Linux systems, Chromium may also need system dependencies. Install them with
-`python -m playwright install-deps chromium`.
+`uv run playwright install-deps chromium`.
 
 </details>
 
@@ -350,8 +349,8 @@ in [callbacks/cursor.py](https://github.com/xhluca/mini-web-agent/blob/main/call
 Tests live in [tests/](https://github.com/xhluca/mini-web-agent/tree/main/tests):
 
 ```bash
-python -m unittest discover -s tests -v
-python -m tests.test_live  # Optional paid OpenRouter test.
+uv run python -m unittest discover -s tests -v
+uv run python -m tests.test_live  # Optional paid OpenRouter test.
 ```
 
 The local tests exercise browser actions, tabs, cleanup, API results, and error recovery
