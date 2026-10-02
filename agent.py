@@ -63,7 +63,6 @@ class Actions:
         page.keyboard.type(text, delay=10)
 
     def press_key(page: Page, key: str) -> None:
-        """Press a key or chord, e.g. Enter, Tab, ArrowDown, ControlOrMeta+A."""
         page.keyboard.press(key)
 
     def key_down(page: Page, key: str) -> None:
@@ -294,7 +293,6 @@ class WebAgent:
             self.playwright = self.browser = None
 
     def shutdown(self) -> None:
-        """Close Chrome, then disconnect Playwright."""
         try:
             if self.process:
                 terminate_process(self.process)
