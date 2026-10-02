@@ -24,8 +24,6 @@ model, or add an action. You can follow the run and see how those changes affect
 | --- |
 | ![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](demo/demo.gif) |
 
-**Inside [agent.py](agent.py)** — line counts include blank lines and docstrings.
-
 The browser controls, model loop, and command line entry point all fit in this file:
 
 | Section | What it does | Lines |
@@ -37,8 +35,6 @@ The browser controls, model loop, and command line entry point all fit in this f
 | [run()](agent.py#L310) | Model calls, results, callbacks, history, and recovery | 51 |
 | [CLI](agent.py#L361) | Options, browser setup, model run, and cleanup | 35 |
 | **Total** | | **395** |
-
-The count includes the CLI. Callbacks, the demo recorder, and tests live outside this file.
 
 <details>
 <summary>Record your own demo</summary>
