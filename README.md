@@ -20,10 +20,9 @@ model, or add an action. You can follow the run and see how those changes affect
 
 </details>
 
-![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](demo/demo.gif)
-
-*Gemini 3.8 Flash books a workshop through OpenRouter. Pauses between actions are shortened.
-[Action log](demo/demo.json).*
+| *Gemini 3.8 Flash books a workshop through OpenRouter. Pauses between actions are shortened. [Action log](demo/demo.json).* |
+| --- |
+| ![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](demo/demo.gif) |
 
 **Inside [agent.py](agent.py)** — line counts include blank lines and docstrings.
 
