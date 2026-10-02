@@ -43,7 +43,7 @@ Once you have completed the setup below, install [FFmpeg](https://ffmpeg.org/dow
 and record a run:
 
 ```bash
-uv run python demo/record.py --model google/gemini-3.8-flash
+uv run demo/record.py --model google/gemini-3.8-flash
 ```
 
 The agent works through a booking on a local page while the recorder captures the browser
@@ -65,7 +65,7 @@ uv run playwright install chromium --no-shell
 export OPENAI_API_KEY="your-openrouter-key"
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 
-uv run python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
+uv run agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
@@ -140,7 +140,7 @@ that is already open:
 To run another task from the project directory, replace the text in quotes:
 
 ```bash
-uv run python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
+uv run agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
@@ -150,7 +150,7 @@ The endpoint must support the Responses API, and the model needs image input and
 If Chrome is still running from an earlier session, connect using the same profile:
 
 ```bash
-uv run python -u agent.py --connect --profile .chrome --model google/gemini-3.8-flash \
+uv run agent.py --connect --profile .chrome --model google/gemini-3.8-flash \
   'Tell me what is open in the current tab.'
 ```
 
