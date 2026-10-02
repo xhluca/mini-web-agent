@@ -67,11 +67,19 @@ With [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
 cd mini-web-agent
-uv run mini-web-agent
+uv run playwright install chromium --no-shell
+source .venv/bin/activate
+
+export OPENAI_API_KEY="your-openrouter-key"
+export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+
+python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
+  'Open https://example.com and tell me the heading.'
 ```
 
-The launcher asks for a task and your OpenRouter API key, then installs Chromium if needed.
-By default, it uses Gemini 3.8 Flash and runs Chrome headless. It works on Linux and macOS.
+uv sets up the Python environment and installs the dependencies and Chromium.
+The agent runs in the foreground with a visible Chrome window and an animated cursor.
+It works on Linux and macOS.
 
 <details>
 <summary>Manual setup with venv</summary>
@@ -105,7 +113,7 @@ Press **Ctrl+C** to interrupt.
 
 | Option | Purpose |
 | --- | --- |
-| `--model` | Defaults to `google/gemini-3.8-flash` with uv; required when running `agent.py` directly |
+| `--model` | Required model ID, e.g. `google/gemini-3.8-flash` |
 | `--max-steps` | Maximum model turns; defaults to 100 |
 | `--profile` | Persistent Chrome profile; defaults to `.chrome` |
 | `--port` | Launch port; a new profile defaults to a random localhost port |
@@ -116,11 +124,11 @@ Press **Ctrl+C** to interrupt.
 To watch the agent in Chrome:
 
 ```bash
-uv run mini-web-agent 'Read example.com' --headed --cursor
+python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
+  'Open https://example.com and tell me the heading.'
 ```
 
-The launcher accepts the same arguments as `agent.py`. You can set `OPENAI_API_KEY` and
-`OPENAI_BASE_URL` to skip the key prompt and choose an API endpoint.
+Set `OPENAI_API_KEY` and `OPENAI_BASE_URL` to use your preferred API endpoint.
 
 To attach to a browser previously launched with this profile:
 
