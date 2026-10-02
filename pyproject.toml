@@ -5,6 +5,20 @@ description = "Explore how frontier models use a browser in fewer than 400 lines
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["openai>=2.0,<4", "playwright>=1.58,<2"]
+keywords = ["web-agent", "browser", "llm", "playwright"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+]
+
+[project.urls]
+Homepage = "https://github.com/xhluca/mini-web-agent"
+Source = "https://github.com/xhluca/mini-web-agent"
+Issues = "https://github.com/xhluca/mini-web-agent/issues"
+
+[project.scripts]
+mini-web-agent = "agent:main"
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -358,7 +358,7 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
 
     return f"Stopped after {max_steps} model turns; the task is still unfinished."
 
-if __name__ == "__main__":
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("task")
     parser.add_argument("--model", required=True)
@@ -393,3 +393,6 @@ if __name__ == "__main__":
             ))
     finally:
         agent.shutdown() if not args.connect else agent.disconnect()
+
+if __name__ == "__main__":
+    main()
