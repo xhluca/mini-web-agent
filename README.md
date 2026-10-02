@@ -20,7 +20,7 @@ model, or add an action. You can follow the run and see how those changes affect
 
 </details>
 
-| *Gemini 3.8 Flash books a workshop through OpenRouter. Pauses between actions are shortened. [Action log](https://github.com/xhluca/mini-web-agent/blob/main/demo/demo.json).* |
+| *Gemini 3.8 Flash uses screenshots and browser controls to book a Robotics Lab workshop and verify the confirmation. Pauses between actions are shortened. [Action log](https://github.com/xhluca/mini-web-agent/blob/main/demo/demo.json).* |
 | --- |
 | ![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](https://raw.githubusercontent.com/xhluca/mini-web-agent/main/demo/demo.gif) |
 
