@@ -1,4 +1,4 @@
-# Frontier web agents in less than 400 lines
+# Web agents from scratch in under 400 lines
 
 We wanted to understand the web agents behind tools like Dots, Muse, and Codex: how they
 see a page, choose what to click, and decide when a task is done.
