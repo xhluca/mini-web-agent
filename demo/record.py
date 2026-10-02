@@ -19,7 +19,7 @@ import threading
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from openai import OpenAI
 from agent import WebAgent, get_action_space, get_instructions, run
-from cursor import show_cursor
+from callbacks.cursor import show_cursor
 
 ROOT = Path(__file__).resolve().parent
 TASK = ("Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. "

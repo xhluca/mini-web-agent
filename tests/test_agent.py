@@ -150,7 +150,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(self.agent.act("screenshot", {})["state"], "error")
 
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
-        from cursor import show_cursor
+        from callbacks.cursor import show_cursor
         page = self.agent.get_page()
         self.assertEqual(page.locator("mini-agent-cursor").count(), 0)
         for name, x, y in (("hover", 100, 500), ("click", 120, 500),

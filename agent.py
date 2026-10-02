@@ -377,7 +377,7 @@ if __name__ == "__main__":
     agent = WebAgent(args.profile, port=args.port, action_space=get_action_space())
     callbacks = [dict(type="after", function=partial(print, flush=True))]
     if args.cursor:
-        from cursor import show_cursor
+        from callbacks.cursor import show_cursor
         callbacks.append(dict(type="before", function=partial(show_cursor, agent)))
     try:
         if not args.connect:

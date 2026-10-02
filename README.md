@@ -38,7 +38,7 @@ The browser controls, model loop, and command line entry point all fit in this f
 | [CLI](agent.py#L361) | Options, browser setup, model run, and cleanup | 35 |
 | **Total** | | **395** |
 
-The count includes the CLI. The cursor, demo recorder, and tests are separate files.
+The count includes the CLI. Callbacks, the demo recorder, and tests live outside this file.
 
 <details>
 <summary>Record your own demo</summary>
@@ -306,7 +306,7 @@ action and print the result afterward:
 
 ```python
 from functools import partial
-from cursor import show_cursor
+from callbacks.cursor import show_cursor
 
 callbacks = [
     dict(type="before", function=partial(show_cursor, agent)),
@@ -314,7 +314,7 @@ callbacks = [
 ]
 ```
 
-The [cursor.py](cursor.py) overlay glides between targets, follows drags, and pulses on
+The [cursor.py](callbacks/cursor.py) overlay glides between targets, follows drags, and pulses on
 clicks. It respects reduced-motion preferences and lets clicks pass through to the page.
 The CLI loads it when you pass `--cursor`.
 
@@ -326,7 +326,8 @@ collects your answer. They default to `print` and `input`; replace them to use y
 ## Development
 
 If you want to change the loop, start with [agent.py](agent.py). The animated cursor lives
-in [cursor.py](cursor.py), and the [demo recorder](demo/record.py) shows how to record a run.
+in [callbacks/cursor.py](callbacks/cursor.py), and the
+[demo recorder](demo/record.py) shows how to record a run.
 Tests live in [tests/](tests/):
 
 ```bash
