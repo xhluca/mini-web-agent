@@ -38,7 +38,7 @@ The browser controls, model loop, and command line entry point all fit in this f
 | [CLI](agent.py#L361) | Options, browser setup, model run, and cleanup | 35 |
 | **Total** | | **395** |
 
-The count includes the CLI. The cursor, uv launcher, demo recorder, and tests are separate files.
+The count includes the CLI. The cursor, demo recorder, and tests are separate files.
 
 <details>
 <summary>Record your own demo</summary>
