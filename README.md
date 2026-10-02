@@ -4,8 +4,8 @@ Watching tools like Dots, Muse, and Codex navigate a browser made us curious abo
 decisions behind each click. We wanted to understand how frontier models make those
 decisions by building a web agent we could follow from its first screenshot to its final answer.
 
-**mini-web-agent** explores that loop in fewer than 400 lines of Python. Small enough to read
-from start to finish, run yourself, and change as you learn. Give a model screenshots and
+**mini-web-agent** explores that loop in fewer than 400 lines of Python. This makes it easier
+to follow the code and see how changes affect the agent. Give a model screenshots and
 browser controls, then follow along as it works through a task.
 
 <details>
