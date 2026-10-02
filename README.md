@@ -1,28 +1,21 @@
 # Frontier web agents in less than 400 lines
 
-**mini-web-agent** connects a multimodal LLM to a browser through an OpenAI-compatible
-Responses API. Screenshots in, browser actions out.
+We wanted to understand the web agents behind tools like Dots, Muse, and Codex: how they
+see a page, choose what to click, and decide when a task is done.
 
-- **Small:** [agent.py](agent.py) contains browser control, tool schemas, and the agent loop
-  in fewer than 400 lines.
-- **Two dependencies:** Playwright for browser control and the OpenAI SDK for API calls.
-- **Screenshots:** The model sees screenshots and the current tab list.
-- **Explicit actions:** 24 functions for navigation, pointer input, typing, tabs, and conversation.
-- **Persistent browser:** Launch Chrome as a separate process or connect to a running session over CDP.
-- **Easy to adapt:** Use your own actions, instructions, and callbacks.
+**mini-web-agent** explores that loop in fewer than 400 lines of Python. Small enough to read
+from start to finish, run yourself, and change as you learn. Give a model screenshots and
+browser controls, then follow along as it works through a task.
 
 <details>
 <summary>Why keep it small?</summary>
 
-Modern models can do useful work with very little agent code. That is the premise behind
-[mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent#readme), and the idea this project
-explores in the browser. Give the model screenshots and browser controls, then let it
-decide how to complete the task.
+[mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent#readme) asks how much work a
+capable model can do with a small agent around it. We wanted to explore that idea in a
+browser, with screenshots and the same controls you use to navigate a website.
 
-Keeping the implementation under 400 lines gives you a baseline you can read, run, and change.
-Swap the model, adjust the prompt, or change the actions to see what affects its behavior.
-The full interaction stays in history, so you can inspect each step. The goal is to make
-browser agents easy to experiment with and build on.
+A short implementation gives you room to experiment. Change the instructions, try another
+model, or add an action. You can follow the run and see how those changes affect it.
 
 </details>
 
@@ -32,6 +25,8 @@ browser agents easy to experiment with and build on.
 [Action log](demo/demo.json).*
 
 **Inside [agent.py](agent.py)** — line counts include blank lines and docstrings.
+
+The browser controls, model loop, and command line entry point all fit in this file:
 
 | Section | What it does | Lines |
 | --- | --- | ---: |
@@ -48,21 +43,23 @@ The count includes the CLI. The cursor, uv launcher, demo recorder, and tests ar
 <details>
 <summary>Record your own demo</summary>
 
-After the manual setup below, install [FFmpeg](https://ffmpeg.org/download.html) and run:
+Once you have completed the setup below, install [FFmpeg](https://ffmpeg.org/download.html)
+and record a run:
 
 ```bash
 python demo/record.py --model google/gemini-3.8-flash
 ```
 
-The recorder uses the agent to complete a booking on a local page, captures the browser
-through CDP, and checks the confirmation. It saves `demo/demo.gif` and `demo/demo.json`.
-FFmpeg is only needed for recording.
+The agent works through a booking on a local page while the recorder captures the browser
+and logs its actions. It checks the final confirmation, then saves `demo/demo.gif` and
+`demo/demo.json`. FFmpeg is only needed to make the GIF.
 
 </details>
 
 ## Quick start
 
-With [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+Start with a task you can watch from beginning to end. With
+[uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
@@ -77,14 +74,17 @@ python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-uv sets up the Python environment and installs the dependencies and Chromium.
-The agent runs in the foreground with a visible Chrome window and an animated cursor.
-It works on Linux and macOS.
+uv handles the Python environment, dependencies, and Chromium installation. Chrome opens
+in a window, with an animated cursor showing where the agent moves and clicks. Actions,
+results, and questions appear in your terminal. Press **Ctrl+C** to interrupt.
+
+Replace the task in quotes with something you want to try. Leave out `--headed` to run
+Chrome headless and `--cursor` to hide the cursor. The project runs on Linux and macOS.
 
 <details>
 <summary>Manual setup with venv</summary>
 
-You need Python 3.10+ and a model that supports images and function calls.
+If you prefer to set up Python yourself, use Python 3.10+ and install the project this way:
 
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
@@ -101,15 +101,15 @@ python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-Chrome opens in a window, with an animated cursor showing the agent's pointer actions.
-The agent runs in the foreground: actions, results, and questions appear in your terminal.
-Leave out `--headed` to run Chrome headless and `--cursor` to hide the cursor.
-Press **Ctrl+C** to interrupt.
+You will see the same browser window and terminal output as in the uv example.
 
 </details>
 
 <details>
 <summary>CLI options and connecting to Chrome</summary>
+
+As you try longer tasks, you can change the model, set a turn limit, or keep using a browser
+that is already open:
 
 | Option | Purpose |
 | --- | --- |
@@ -121,25 +121,26 @@ Press **Ctrl+C** to interrupt.
 | `--headed` | Show Chrome; new launches are headless by default |
 | `--cursor` | Animate pointer actions before execution |
 
-To watch the agent in Chrome:
+To run another task, replace the text in quotes:
 
 ```bash
 python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
   'Open https://example.com and tell me the heading.'
 ```
 
-Set `OPENAI_API_KEY` and `OPENAI_BASE_URL` to use your preferred API endpoint.
+To try another provider, set `OPENAI_API_KEY` and `OPENAI_BASE_URL` for its endpoint.
+The endpoint must support the Responses API, and the model needs image input and function calling.
 
-To attach to a browser previously launched with this profile:
+If Chrome is still running from an earlier session, connect using the same profile:
 
 ```bash
 python -u agent.py --connect --profile .chrome --model google/gemini-3.8-flash \
   'Tell me what is open in the current tab.'
 ```
 
-Connecting keeps the browser's existing tabs and display mode. If you add `--headed`,
-the CLI warns that it cannot change how Chrome was launched, then continues.
-The CLI closes browsers it launches. With `--connect`, it leaves Chrome running.
+You pick up the browser with its existing tabs and display mode. Adding `--headed` prints
+a warning and continues, since connecting cannot change how Chrome was launched.
+The CLI closes browsers it launches. When you use `--connect`, it leaves Chrome running.
 
 When launching Chrome, the CLI replaces restored tabs with one blank tab and keeps profile data.
 Use `--port 9222` for a fixed launch port. With `--port 0`, Chrome chooses a port for a new
@@ -147,14 +148,98 @@ profile. Existing profiles reuse their recorded port. `--connect` reads the
 profile's address and cannot be combined with a nonzero `--port`.
 The CLI prints the CDP address after connecting.
 
-The agent uses the Chromium installed by Playwright. On minimal Linux systems, install
-its system dependencies with `python -m playwright install-deps chromium`.
+On minimal Linux systems, Chromium may also need system dependencies. Install them with
+`python -m playwright install-deps chromium`.
+
+</details>
+
+## How it works
+
+At each turn, the model gets a screenshot and a list of open tabs. It chooses from the
+functions in `Actions`: click, type, scroll, open a tab, or talk to the user.
+
+Python calls those functions, sends back the results, and takes another screenshot.
+The model decides what to try next. When it considers the task complete, it calls `finish`
+and the loop returns its answer.
+
+You can follow this cycle in `run()`. The same function is used by the CLI, Python example,
+and demo recorder.
+
+<details>
+<summary>What goes to the model?</summary>
+
+The default instructions include the source of `agent.py`, so the model can read the
+functions it may call. Their signatures and docstrings also provide the tool definitions
+sent to the API.
+
+The implementation has two dependencies: Playwright for browser control and the OpenAI SDK
+for model requests. Requests use an OpenAI-compatible Responses API; the quick start uses
+OpenRouter. Models need to support both images and function calls.
+
+The first screenshot is sent as a user message. After each batch of actions, the last tool
+result includes a new screenshot and the current tab information. Earlier screenshots
+and reasoning stay in history, so you can follow what the model received at each turn.
+Appending to that history also lets providers cache the unchanged prefix. Longer tasks
+use more context, and cache hits depend on the provider.
+
+</details>
+
+<details>
+<summary>Available actions</summary>
+
+The model has 24 actions to choose from. They are ordinary functions grouped in `Actions`,
+so you can read exactly what each one does:
+
+| Interaction | Actions |
+| --- | --- |
+| Navigation | `navigate`, `back`, `forward`, `reload` |
+| Pointer | `click`, `double_click`, `right_click`, `hover`, `mouse_down`, `mouse_up`, `drag` |
+| Scroll and keyboard | `scroll`, `type_text`, `press_key`, `key_down`, `key_up` |
+| Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
+| Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
+
+Clicks and pointer movements use coordinates from the screenshot. The viewport defaults to
+1280×800; pass `w` and `h` to `WebAgent` to change it. `type_text` types into the focused field,
+with 10 ms between characters. Tab indices come from the latest observation and can shift
+after closing a tab.
+
+</details>
+
+<details>
+<summary>When a step goes wrong</summary>
+
+A failed action becomes feedback for the next turn. Each action returns one of:
+
+```python
+{"state": "success", "output": ...}
+{"state": "error", "output": "..."}
+```
+
+The model sees the error and can try another action. If it returns no tool calls, the loop
+asks it to choose one. Incomplete responses are discarded and retried before any of their
+actions execute.
+
+Each model turn counts toward `max_steps`, including retries. At the limit, the loop stops
+with an unfinished-task message. A successful `finish` returns the model's final answer.
+
+</details>
+
+<details>
+<summary>What can it see and control?</summary>
+
+The model sees screenshots and tab information. It uses the browser controls in the action
+dictionary to interact with pages. It has no tools for reading the DOM, parsing accessibility
+trees, running generated code, managing uploads or downloads, or controlling the OS.
+
+The action dictionary limits which functions the model can call. The browser can still visit
+websites and interact with them normally.
 
 </details>
 
 ## Use it from Python
 
-Set the API environment variables shown in the manual setup, then:
+To experiment with the loop from your own code, call it as a Python function.
+Keep the API environment variables from the quick start set, then:
 
 ```python
 from openai import OpenAI
@@ -180,6 +265,9 @@ call `agent.disconnect()` instead of `agent.shutdown()`.
 <details>
 <summary>Browser lifecycle</summary>
 
+Chrome runs as a separate process, so you can leave it open between tasks. Starting Chrome,
+connecting to it, and closing it are separate operations:
+
 | Function | What it does |
 | --- | --- |
 | `agent.launch()` | Start detached Chrome |
@@ -192,22 +280,29 @@ call `agent.disconnect()` instead of `agent.shutdown()`.
 | `agent.disconnect()` | Detach Playwright, leaving Chrome running |
 | `agent.shutdown()` | Close Chrome and disconnect, even if Chrome was already running when you connected |
 
-Use `port=9222` for a fixed port, or leave it at `0` to let the agent choose.
-After launch, `agent.port` holds the port Chrome is using. Another `WebAgent` can reconnect
-using the same profile. Playwright finds Chrome's WebSocket address over HTTP.
+Use `port=9222` for a fixed port, or leave it at `0` to let the agent choose. After launch,
+`agent.port` holds the port Chrome is using. To return to this browser later, create another
+`WebAgent` with the same profile and call `connect()`.
+
+Playwright connects through Chrome's debugging interface, CDP. It finds the current
+WebSocket address over HTTP, then uses that connection to control the browser.
 
 </details>
 
 <details>
 <summary>Customize actions, instructions, and callbacks</summary>
 
-`action_space` and `instructions` are required. Pass an action dictionary and a prompt,
-or use `get_action_space()` and `get_instructions()`. The action dictionary determines
-the tool schemas and which functions the model can call.
+Start by changing what you tell the model or what you let it do. `action_space` and
+`instructions` are required, so each run uses the actions and prompt you supply.
+`get_action_space()` and `get_instructions()` provide the defaults used in the example.
 
-Callbacks receive `(step, action, result)`, where `step` is the model-turn index,
-`action` contains the name and arguments, and `result` is `None` before execution.
-Use `type="before"` or `type="after"` to choose when each callback runs:
+The action dictionary determines which functions the model can call and which tool
+definitions are sent to the API. Add or remove a function there to change its options.
+
+Callbacks let you watch an action before or after it happens. Each receives
+`(step, action, result)`: the model-turn index, the action's name and arguments, and its
+result. Before execution, `result` is `None`. For example, show the cursor before an
+action and print the result afterward:
 
 ```python
 from functools import partial
@@ -219,81 +314,26 @@ callbacks = [
 ]
 ```
 
-The optional [cursor.py](cursor.py) overlay glides between targets, traces drags, and
-pulses on clicks. It respects reduced-motion preferences and does not intercept clicks.
-The CLI loads it only with `--cursor`.
+The [cursor.py](cursor.py) overlay glides between targets, follows drags, and pulses on
+clicks. It respects reduced-motion preferences and lets clicks pass through to the page.
+The CLI loads it when you pass `--cursor`.
 
-`on_message` handles messages to the user, and `on_reply` asks for a reply.
-They default to `print` and `input`.
-
-</details>
-
-## How it works
-
-1. Take a screenshot and list the open tabs.
-2. Send them to the model using the Responses API.
-3. Call the chosen functions and send back their results.
-4. Take another screenshot after each batch of actions. Repeat until the model calls `finish`.
-
-<details>
-<summary>Available actions</summary>
-
-The 24 actions are ordinary functions grouped in `Actions`:
-
-| Interaction | Actions |
-| --- | --- |
-| Navigation | `navigate`, `back`, `forward`, `reload` |
-| Pointer | `click`, `double_click`, `right_click`, `hover`, `mouse_down`, `mouse_up`, `drag` |
-| Scroll and keyboard | `scroll`, `type_text`, `press_key`, `key_down`, `key_up` |
-| Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
-| Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
-
-Action coordinates match the screenshot. The viewport defaults to 1280×800; pass `w` and `h`
-to `WebAgent` to change it. `type_text` types into the focused field, with 10 ms between characters.
-Tab indices come from the latest observation and can shift after closing a tab.
-
-</details>
-
-<details>
-<summary>History and error recovery</summary>
-
-The first screenshot is sent as a user message. After each batch of actions, the last tool
-result includes a screenshot and the current tab information. Each action returns one of:
-
-```python
-{"state": "success", "output": ...}
-{"state": "error", "output": "..."}
-```
-
-Action errors are sent back to the model so it can try again. If the model returns no tool
-calls, the loop asks it to choose an action. Incomplete responses are discarded and retried
-without executing any actions. Retries count toward `max_steps`; the loop stops at that
-limit even if the task is unfinished.
-A successful `finish` returns the final answer.
-
-Earlier screenshots and reasoning stay in history so providers can cache the unchanged
-prefix. Longer tasks use more context, and cache hits depend on the provider.
-
-</details>
-
-<details>
-<summary>Scope</summary>
-
-There are no tools for reading the DOM, parsing accessibility trees, running generated code,
-managing uploads or downloads, or controlling the OS. The model can call only the functions
-in the action dictionary. The browser can still visit websites and interact with them normally.
+When the model needs to talk to you, `on_message` displays its message and `on_reply`
+collects your answer. They default to `print` and `input`; replace them to use your own UI.
 
 </details>
 
 ## Development
 
-Start with [agent.py](agent.py), [cursor.py](cursor.py), or the [demo recorder](demo/record.py).
-Tests live in [tests/](tests/).
+If you want to change the loop, start with [agent.py](agent.py). The animated cursor lives
+in [cursor.py](cursor.py), and the [demo recorder](demo/record.py) shows how to record a run.
+Tests live in [tests/](tests/):
 
 ```bash
 python -m unittest discover -s tests -v
 python -m tests.test_live  # Optional paid OpenRouter test.
 ```
 
-The local tests use Chromium and a test server to check actions, tabs, cleanup, API results,
-and error recovery. The live test asks the model to complete a signup form and checks the result.
+The local tests exercise browser actions, tabs, cleanup, API results, and error recovery
+using Chromium and a test server. The live test asks a model to complete a signup form,
+then checks what it submitted.
