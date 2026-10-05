@@ -1,8 +1,7 @@
 # Web agents from scratch in under 400 lines
 
-Watching tools like Dots, Muse, and Codex navigate a browser made us curious about the
-decisions behind each click. We wanted to understand how frontier models make those
-decisions by building a web agent we could follow from its first screenshot to its final answer.
+We wanted to understand how web agents in tools like Dots, Muse, and Codex work:
+how frontier models see a page, choose actions, and decide when a task is done.
 
 **mini-web-agent** explores that loop in fewer than 400 lines of Python. This makes it easier
 to follow the code and see how changes affect the agent. Give a model screenshots and
