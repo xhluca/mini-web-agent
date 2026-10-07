@@ -39,8 +39,18 @@ CURSOR_SCRIPT = """async ({name, args}) => {
     const x = args.x2 ?? args.x ?? oldX, y = args.y2 ?? args.y ?? oldY;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const frames = [{left: `${oldX}px`, top: `${oldY}px`}];
-    if (name === 'drag') frames.push({left: `${args.x1}px`, top: `${args.y1}px`});
-    frames.push({left: `${x}px`, top: `${y}px`});
+    const targets = name === 'drag' ? [[args.x1, args.y1], [x, y]] : [[x, y]];
+    let fromX = oldX, fromY = oldY;
+    for (const [toX, toY] of targets) {
+        const dx = toX - fromX, dy = toY - fromY, distance = Math.hypot(dx, dy) || 1;
+        for (let i = 1; i < 16; i++) {
+            const t = i / 16, bend = Math.sin(t * Math.PI * 2) * Math.min(distance * .08, 24);
+            frames.push({left: `${fromX + dx * t - dy / distance * bend}px`,
+                         top: `${fromY + dy * t + dx / distance * bend}px`});
+        }
+        frames.push({left: `${toX}px`, top: `${toY}px`});
+        [fromX, fromY] = [toX, toY];
+    }
     cursor.style.left = `${x}px`;
     cursor.style.top = `${y}px`;
     if (!reduced && (x !== oldX || y !== oldY || name === 'drag')) {

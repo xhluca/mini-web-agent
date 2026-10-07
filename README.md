@@ -330,7 +330,7 @@ callbacks = [
 ```
 
 The [cursor.py](https://github.com/xhluca/mini-web-agent/blob/main/callbacks/cursor.py) overlay
-glides between targets, follows drags, and pulses on
+follows a gentle S-curve between targets, tracks drags, and pulses on
 clicks. It respects reduced-motion preferences and lets clicks pass through to the page.
 The CLI loads it when you pass `--cursor`.
 

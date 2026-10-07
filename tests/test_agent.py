@@ -181,6 +181,46 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(page.frames[1].get_by_role("button").inner_text(), "42")
         page.screenshot(path="/tmp/mini-web-agent-cursor-arrow.png")
 
+    def test_cursor_follows_s_curve_and_respects_reduced_motion(self):
+        from callbacks.cursor import show_cursor
+        page = self.agent.get_page()
+        page.evaluate("""() => {
+            window.cursorPaths = [];
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function(...args) {
+                const animation = animate.apply(this, args);
+                if (this.localName === 'mini-agent-cursor')
+                    cursorPaths.push(animation.effect.getKeyframes());
+                return animation;
+            };
+        }""")
+        start = (24, 24)
+        for end in ((600, 160), (300, 550), (300, 100)):
+            show_cursor(self.agent, 0, dict(name="hover", arguments=dict(zip(("x", "y"), end))),
+                        None)
+            frames = page.evaluate("cursorPaths.at(-1)")
+            points = [(float(f["left"][:-2]), float(f["top"][:-2])) for f in frames]
+            self.assertEqual(points[0], start)
+            self.assertEqual(points[-1], end)
+            dx, dy = end[0] - start[0], end[1] - start[1]
+            deviations = [dx * (y - start[1]) - dy * (x - start[0]) for x, y in points]
+            self.assertLess(min(deviations), -1)
+            self.assertGreater(max(deviations), 1)
+            cursor = page.locator("mini-agent-cursor")
+            self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"),
+                             [f"{end[0]}px", f"{end[1]}px"])
+            start = end
+        show_cursor(self.agent, 0, dict(name="drag", arguments=
+                    dict(x1=160, y1=180, x2=500, y2=320)), None)
+        frames = page.evaluate("cursorPaths.at(-1)")
+        self.assertIn(("160px", "180px"), [(f["left"], f["top"]) for f in frames])
+        self.assertEqual((frames[-1]["left"], frames[-1]["top"]), ("500px", "320px"))
+        page.emulate_media(reduced_motion="reduce")
+        count = page.evaluate("cursorPaths.length")
+        show_cursor(self.agent, 0, dict(name="hover", arguments=dict(x=90, y=100)), None)
+        self.assertEqual(page.evaluate("cursorPaths.length"), count)
+        self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["90px", "100px"])
+
     def test_mouse_events(self):
         self.agent.get_page().set_content("""<div style='width:600px;height:600px'>Target</div>
         <script>window.events=[];
