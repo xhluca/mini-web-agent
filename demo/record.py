@@ -24,8 +24,9 @@ from callbacks.cursor import show_cursor
 ROOT = Path(__file__).resolve().parent
 TASK = ("Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. "
         "Agree to the terms, confirm the booking, and verify the visible confirmation. "
-        "The screenshot viewport is 1280 by 800 CSS pixels. Use only the provided browser "
-        "actions. Call finish when the booking is verified.")
+        "The screenshot viewport is 1000 by 1000 CSS pixels. "
+        "Use mouse clicks for controls so the recording shows what you interact with. "
+        "Use only the provided browser actions. Call finish when the booking is verified.")
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -36,7 +37,7 @@ class QuietHandler(SimpleHTTPRequestHandler):
 class Recorder:
     def __init__(self, agent, folder, model):
         self.agent, self.folder, self.model = agent, folder, model
-        self.frames, self.actions = [], []
+        self.frames, self.actions, self.clicks = [], [], []
         self.cdp = agent.get_page().context.new_cdp_session(agent.get_page())
         self.cdp.on("Page.screencastFrame", self.capture)
 
@@ -53,6 +54,11 @@ class Recorder:
         show_cursor(self.agent, step, action, result)
 
     def after(self, step, action, result):
+        clicks = self.agent.get_page().evaluate("demoClicks.splice(0)")
+        for click in clicks:
+            if not click["control"] or click["offset"] > 0.1:
+                raise RuntimeError(f"Recorded click missed a control or cursor tip: {click}")
+        self.clicks.extend(clicks)
         self.actions.append(dict(step=step, action=action, result=result))
         print(step, action["name"], result, flush=True)
         self.agent.get_page().wait_for_timeout(300)
@@ -65,11 +71,23 @@ class Recorder:
         }""", dict(label=label, count=len(self.actions), model=self.model))
 
     def start(self):
+        self.agent.get_page().evaluate("""() => {
+            window.demoClicks = [];
+            document.addEventListener('pointerdown', e => {
+                const path = document.querySelector('mini-agent-cursor')?.shadowRoot
+                    .querySelector('path');
+                const tip = path ? new DOMPoint(4, 2).matrixTransform(path.getScreenCTM()) : null;
+                const control = e.target.closest('input, button, label');
+                demoClicks.push({x: e.clientX, y: e.clientY,
+                    control: control ? (control.name || control.innerText.trim()) : null,
+                    offset: tip ? Math.hypot(e.clientX - tip.x, e.clientY - tip.y) : Infinity});
+            }, true);
+        }""")
         self.cdp.send("Emulation.setVisibleSize", dict(width=self.agent.w, height=self.agent.h))
         self.agent.get_page().wait_for_timeout(500)
         self.status("Observing the page. Choosing the first action.")
         self.cdp.send("Page.startScreencast", dict(format="jpeg", quality=90,
-                      maxWidth=1280, maxHeight=800, everyNthFrame=1))
+                      maxWidth=self.agent.w, maxHeight=self.agent.h, everyNthFrame=1))
         self.agent.get_page().wait_for_timeout(1200)
 
     def save(self, output):
@@ -109,7 +127,8 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix="mini-agent-demo-") as temporary:
             folder = Path(temporary)
-            agent = WebAgent(folder / "chrome", action_space=get_action_space())
+            # CSS pixels and a normalized 0–1000 grid agree in this viewport.
+            agent = WebAgent(folder / "chrome", w=1000, h=1000, action_space=get_action_space())
             try:
                 agent.launch().connect()
                 agent.get_page().goto(f"http://127.0.0.1:{server.server_port}")
@@ -127,7 +146,7 @@ def main():
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 recorder.save(args.output)
                 log = dict(model=args.model, task=TASK, answer=answer,
-                           confirmation=actual, actions=recorder.actions)
+                           confirmation=actual, actions=recorder.actions, clicks=recorder.clicks)
                 args.output.with_suffix(".json").write_text(json.dumps(log, indent=2) + "\n")
                 print(f"Saved {args.output}: {len(recorder.actions)} model-selected actions")
             finally:

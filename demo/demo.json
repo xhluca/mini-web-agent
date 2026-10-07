@@ -1,14 +1,14 @@
 {
   "model": "google/gemini-3.8-flash",
-  "task": "Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. Agree to the terms, confirm the booking, and verify the visible confirmation. The screenshot viewport is 1280 by 800 CSS pixels. Use only the provided browser actions. Call finish when the booking is verified.",
-  "answer": "The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com). Terms were agreed to, booking was confirmed, and the visible confirmation message ('You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com') was verified.",
+  "task": "Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. Agree to the terms, confirm the booking, and verify the visible confirmation. The screenshot viewport is 1000 by 1000 CSS pixels. Use mouse clicks for controls so the recording shows what you interact with. Use only the provided browser actions. Call finish when the booking is verified.",
+  "answer": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation banner.",
   "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
   "actions": [
     {
       "step": 0,
       "action": {
         "name": "click",
-        "arguments": "{\"x\":340,\"y\":805}"
+        "arguments": "{\"x\":338,\"y\":663}"
       },
       "result": {
         "state": "success",
@@ -19,7 +19,7 @@
       "step": 1,
       "action": {
         "name": "click",
-        "arguments": "{\"x\":293,\"y\":805}"
+        "arguments": "{\"y\":720,\"x\":338}"
       },
       "result": {
         "state": "success",
@@ -29,8 +29,8 @@
     {
       "step": 2,
       "action": {
-        "name": "scroll",
-        "arguments": "{\"dy\":200,\"dx\":0}"
+        "name": "click",
+        "arguments": "{\"y\":478,\"x\":400}"
       },
       "result": {
         "state": "success",
@@ -39,72 +39,6 @@
     },
     {
       "step": 3,
-      "action": {
-        "name": "click",
-        "arguments": "{\"y\":555,\"x\":340}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 4,
-      "action": {
-        "name": "click",
-        "arguments": "{\"y\":650,\"x\":368}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 5,
-      "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Tab\"}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 6,
-      "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"ArrowDown\"}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 7,
-      "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Tab\"}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 8,
-      "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Enter\"}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 9,
       "action": {
         "name": "type_text",
         "arguments": "{\"text\":\"Alex Chen\"}"
@@ -115,10 +49,10 @@
       }
     },
     {
-      "step": 10,
+      "step": 4,
       "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Tab\"}"
+        "name": "click",
+        "arguments": "{\"y\":558,\"x\":400}"
       },
       "result": {
         "state": "success",
@@ -126,7 +60,7 @@
       }
     },
     {
-      "step": 11,
+      "step": 5,
       "action": {
         "name": "type_text",
         "arguments": "{\"text\":\"alex@example.com\"}"
@@ -137,10 +71,10 @@
       }
     },
     {
-      "step": 12,
+      "step": 6,
       "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Tab\"}"
+        "name": "click",
+        "arguments": "{\"x\":319,\"y\":605}"
       },
       "result": {
         "state": "success",
@@ -148,10 +82,10 @@
       }
     },
     {
-      "step": 13,
+      "step": 7,
       "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Space\"}"
+        "name": "click",
+        "arguments": "{\"y\":650,\"x\":495}"
       },
       "result": {
         "state": "success",
@@ -159,48 +93,53 @@
       }
     },
     {
-      "step": 14,
-      "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Tab\"}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 15,
-      "action": {
-        "name": "press_key",
-        "arguments": "{\"key\":\"Enter\"}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 16,
-      "action": {
-        "name": "scroll",
-        "arguments": "{\"dy\":300,\"dx\":0}"
-      },
-      "result": {
-        "state": "success",
-        "output": null
-      }
-    },
-    {
-      "step": 17,
+      "step": 8,
       "action": {
         "name": "finish",
-        "arguments": "{\"message\":\"The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com). Terms were agreed to, booking was confirmed, and the visible confirmation message ('You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com') was verified.\"}"
+        "arguments": "{\"message\":\"Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation banner.\"}"
       },
       "result": {
         "state": "success",
-        "output": "The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com). Terms were agreed to, booking was confirmed, and the visible confirmation message ('You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com') was verified."
+        "output": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation banner."
       }
+    }
+  ],
+  "clicks": [
+    {
+      "x": 338,
+      "y": 663,
+      "control": "2:00 pm \u2013 4:00 pm",
+      "offset": 0
+    },
+    {
+      "x": 338,
+      "y": 720,
+      "control": "Book workshop",
+      "offset": 0
+    },
+    {
+      "x": 400,
+      "y": 478,
+      "control": "name",
+      "offset": 0
+    },
+    {
+      "x": 400,
+      "y": 558,
+      "control": "email",
+      "offset": 0
+    },
+    {
+      "x": 319,
+      "y": 605,
+      "control": "terms",
+      "offset": 0
+    },
+    {
+      "x": 495,
+      "y": 650,
+      "control": "Confirm booking",
+      "offset": 0
     }
   ]
 }

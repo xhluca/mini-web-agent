@@ -46,8 +46,9 @@ uv run demo/record.py --model google/gemini-3.8-flash
 ```
 
 The agent works through a booking on a local page while the recorder captures the browser
-and logs its actions. It checks the final confirmation, then saves `demo/demo.gif` and
-`demo/demo.json`. FFmpeg is only needed to make the GIF.
+and logs its actions. The recorder checks the click targets, cursor alignment, and final
+confirmation before saving `demo/demo.gif` and `demo/demo.json`. FFmpeg is only needed
+to make the GIF. The demo uses a 1000×1000 viewport, so CSS pixels also match a 0–1000 grid.
 
 </details>
 

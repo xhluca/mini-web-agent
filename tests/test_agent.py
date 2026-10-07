@@ -182,6 +182,37 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(page.frames[1].get_by_role("button").inner_text(), "42")
         page.screenshot(path="/tmp/mini-web-agent-cursor-arrow.png")
 
+    def test_demo_rejects_missed_clicks_and_cursor_misalignment(self):
+        from demo.record import Recorder, ROOT
+        page = self.agent.get_page()
+        page.goto((ROOT / "index.html").as_uri())
+        recorder = Recorder(self.agent, Path(self.folder.name), "test")
+        recorder.start()
+        try:
+            point = self.point(page.locator('input[name=robotics][value="2:00 pm"]'))
+            action = dict(name="click", arguments=json.dumps(point))
+            recorder.before(0, action, None)
+            result = self.agent.act(action["name"], action["arguments"])
+            recorder.after(0, action, result)
+            self.assertEqual(recorder.clicks[0]["control"], "robotics")
+            self.assertLessEqual(recorder.clicks[0]["offset"], 0.1)
+
+            missed = dict(name="click", arguments=json.dumps(dict(x=293, y=805)))
+            recorder.before(1, missed, None)
+            result = self.agent.act(missed["name"], missed["arguments"])
+            with self.assertRaisesRegex(RuntimeError, "missed a control or cursor tip"):
+                recorder.after(1, missed, result)
+
+            result = self.agent.act(action["name"], action["arguments"])
+            with self.assertRaisesRegex(RuntimeError, "missed a control or cursor tip"):
+                recorder.after(2, action, result)
+
+            key = dict(name="press_key", arguments=json.dumps(dict(key="Space")))
+            recorder.after(3, key, self.agent.act(key["name"], key["arguments"]))
+            self.assertEqual(len(recorder.clicks), 1)
+        finally:
+            recorder.cdp.send("Page.stopScreencast")
+
     def test_cursor_follows_s_curve_and_respects_reduced_motion(self):
         from callbacks.cursor import show_cursor
         page = self.agent.get_page()
