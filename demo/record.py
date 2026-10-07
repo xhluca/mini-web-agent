@@ -24,7 +24,7 @@ from callbacks.cursor import show_cursor
 ROOT = Path(__file__).resolve().parent
 TASK = ("Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. "
         "Agree to the terms, confirm the booking, and verify the visible confirmation. "
-        "The screenshot viewport is 1000 by 1000 CSS pixels. "
+        "The screenshot viewport is 1280 by 800 CSS pixels; pointer coordinates use 0–1000. "
         "Use mouse clicks for controls so the recording shows what you interact with. "
         "Use only the provided browser actions. Call finish when the booking is verified.")
 
@@ -127,8 +127,7 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix="mini-agent-demo-") as temporary:
             folder = Path(temporary)
-            # CSS pixels and a normalized 0–1000 grid agree in this viewport.
-            agent = WebAgent(folder / "chrome", w=1000, h=1000, action_space=get_action_space())
+            agent = WebAgent(folder / "chrome", action_space=get_action_space())
             try:
                 agent.launch().connect()
                 agent.get_page().goto(f"http://127.0.0.1:{server.server_port}")

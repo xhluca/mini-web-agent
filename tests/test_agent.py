@@ -119,7 +119,58 @@ class BrowserTests(unittest.TestCase):
 
     def point(self, locator):
         box = locator.bounding_box()
-        return dict(x=box["x"] + box["width"] / 2, y=box["y"] + box["height"] / 2)
+        return dict(x=(box["x"] + box["width"] / 2) * 1000 / self.agent.w,
+                    y=(box["y"] + box["height"] / 2) * 1000 / self.agent.h)
+
+    def test_pointer_coordinates_across_viewports_and_device_scales(self):
+        from callbacks.cursor import show_cursor
+        for width, height, scale in ((1280, 800, 1), (800, 1280, 1), (1600, 900, 2)):
+            with self.subTest(width=width, height=height, scale=scale):
+                self.agent.ctx = self.agent.browser.new_context(
+                    viewport=dict(width=width, height=height), device_scale_factor=scale)
+                self.agent._page = self.agent.ctx.new_page()
+                self.agent.w, self.agent.h = width, height
+                page = self.agent.get_page()
+                page.set_content("""<button id="start" style="position:fixed;left:29.3%;
+                    top:80.5%;transform:translate(-50%,-50%)">Start</button>
+                    <button id="end" style="position:fixed;left:75%;top:25%;
+                    transform:translate(-50%,-50%)">End</button>
+                    <script>window.events=[];
+                    for (const type of ['pointermove','pointerdown','pointerup','dblclick',
+                                        'contextmenu'])
+                        document.addEventListener(type, e => {
+                            events.push({type, x:e.clientX, y:e.clientY, id:e.target.id});
+                            e.preventDefault();
+                        });</script>""")
+                expected = [293 * width / 1000, 805 * height / 1000]
+                for name in ("hover", "click", "double_click", "right_click"):
+                    action = dict(name=name, arguments=dict(x=293, y=805))
+                    show_cursor(self.agent, 0, action, None)
+                    self.act(name, **action["arguments"])
+                    self.assertEqual(action["arguments"], dict(x=293, y=805))
+                    event = page.evaluate("events.at(-1)")
+                    self.assertEqual(event["id"], "start")
+                    for actual, target in zip((event["x"], event["y"]), expected):
+                        self.assertAlmostEqual(actual, target, delta=1)
+                    tip = page.locator("mini-agent-cursor").evaluate("""e => {
+                        const path = e.shadowRoot.querySelector('path');
+                        const point = new DOMPoint(4,2).matrixTransform(path.getScreenCTM());
+                        return [point.x, point.y];
+                    }""")
+                    for actual, target in zip(tip, expected):
+                        self.assertAlmostEqual(actual, target, delta=0.1)
+                drag = dict(x1=293, y1=805, x2=750, y2=250)
+                show_cursor(self.agent, 0, dict(name="drag", arguments=drag), None)
+                self.act("drag", **drag)
+                ends = page.evaluate("events.filter(e => e.type !== 'pointermove').slice(-2)")
+                self.assertEqual([(e["type"], e["id"]) for e in ends],
+                                 [("pointerdown", "start"), ("pointerup", "end")])
+                self.assertAlmostEqual(ends[-1]["x"], width * .75, delta=0.1)
+                self.assertAlmostEqual(ends[-1]["y"], height * .25, delta=0.1)
+                png = page.screenshot(type="png", scale="css")
+                self.assertEqual([int.from_bytes(png[n:n + 4], "big") for n in (16, 20)],
+                                 [width, height])
+                self.agent.ctx.close()
 
     def test_coordinate_form_keyboard_and_observation(self):
         page = self.agent.get_page()
@@ -159,8 +210,9 @@ class BrowserTests(unittest.TestCase):
             show_cursor(self.agent, 0, {"name": name, "arguments": json.dumps({"x": x, "y": y})},
                         result)
             cursor = page.locator("mini-agent-cursor")
-            self.assertEqual(cursor.evaluate("e => e.style.left"), f"{x}px")
-            self.assertEqual(cursor.evaluate("e => e.style.top"), f"{y}px")
+            self.assertEqual(cursor.evaluate("e => [parseFloat(e.style.left), "
+                                             "parseFloat(e.style.top)]"),
+                             [x * 1280 / 1000, y * 800 / 1000])
             self.assertEqual(cursor.evaluate("e => getComputedStyle(e).pointerEvents"), "none")
             self.assertEqual(cursor.locator("svg").count(), 1)
             self.assertEqual(cursor.locator(".aura").count(), 1)
@@ -173,7 +225,7 @@ class BrowserTests(unittest.TestCase):
         self.assertEqual(page.get_by_label("Email").input_value(), "cursor@example.com")
         show_cursor(self.agent, 0, {"name": "drag", "arguments":
                     {"x1": 100, "y1": 500, "x2": 200, "y2": 500}}, {"state": "success"})
-        self.assertEqual(cursor.evaluate("e => e.style.left"), "200px")
+        self.assertEqual(cursor.evaluate("e => e.style.left"), "256px")
         self.act("reload")
         show_cursor(self.agent, 0, {"name": "hover", "arguments": {"x": 280, "y": 100}},
                     {"state": "success"})
@@ -197,7 +249,7 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(recorder.clicks[0]["control"], "robotics")
             self.assertLessEqual(recorder.clicks[0]["offset"], 0.1)
 
-            missed = dict(name="click", arguments=json.dumps(dict(x=293, y=805)))
+            missed = dict(name="click", arguments=json.dumps(dict(x=1200, y=1100)))
             recorder.before(1, missed, None)
             result = self.agent.act(missed["name"], missed["arguments"])
             with self.assertRaisesRegex(RuntimeError, "missed a control or cursor tip"):
@@ -227,9 +279,10 @@ class BrowserTests(unittest.TestCase):
             };
         }""")
         start = (24, 24)
-        for end in ((600, 160), (300, 550), (300, 100)):
-            show_cursor(self.agent, 0, dict(name="hover", arguments=dict(zip(("x", "y"), end))),
+        for point in ((600, 160), (300, 550), (300, 100)):
+            show_cursor(self.agent, 0, dict(name="hover", arguments=dict(zip(("x", "y"), point))),
                         None)
+            end = (point[0] * 1.28, point[1] * .8)
             frames = page.evaluate("cursorPaths.at(-1)")
             points = [(float(f["left"][:-2]), float(f["top"][:-2])) for f in frames]
             self.assertEqual(points[0], start)
@@ -239,19 +292,19 @@ class BrowserTests(unittest.TestCase):
             self.assertLess(min(deviations), -1)
             self.assertGreater(max(deviations), 1)
             cursor = page.locator("mini-agent-cursor")
-            self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"),
-                             [f"{end[0]}px", f"{end[1]}px"])
+            self.assertEqual(cursor.evaluate("e => [parseFloat(e.style.left), "
+                                             "parseFloat(e.style.top)]"), list(end))
             start = end
         show_cursor(self.agent, 0, dict(name="drag", arguments=
                     dict(x1=160, y1=180, x2=500, y2=320)), None)
         frames = page.evaluate("cursorPaths.at(-1)")
-        self.assertIn(("160px", "180px"), [(f["left"], f["top"]) for f in frames])
-        self.assertEqual((frames[-1]["left"], frames[-1]["top"]), ("500px", "320px"))
+        self.assertIn(("204.8px", "144px"), [(f["left"], f["top"]) for f in frames])
+        self.assertEqual((frames[-1]["left"], frames[-1]["top"]), ("640px", "256px"))
         page.emulate_media(reduced_motion="reduce")
         count = page.evaluate("cursorPaths.length")
         show_cursor(self.agent, 0, dict(name="hover", arguments=dict(x=90, y=100)), None)
         self.assertEqual(page.evaluate("cursorPaths.length"), count)
-        self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["90px", "100px"])
+        self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["115.2px", "80px"])
 
     def test_cursor_aura_and_click_feedback(self):
         from callbacks.cursor import show_cursor
@@ -291,7 +344,7 @@ class BrowserTests(unittest.TestCase):
         show_cursor(self.agent, 0, dict(name="hover", arguments=dict(x=100, y=180)), None)
         self.assertEqual(cursor.count(), 1)
         self.assertEqual(cursor.locator(".aura").count(), 1)
-        self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["100px", "180px"])
+        self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["128px", "144px"])
 
     def test_mouse_events(self):
         self.agent.get_page().set_content("""<div style='width:600px;height:600px'>Target</div>

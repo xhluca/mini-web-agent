@@ -29,11 +29,11 @@ The browser controls, model loop, and command line entry point all fit in this f
 | --- | --- | ---: |
 | [Imports](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L1) | Standard library, OpenAI SDK, and Playwright | 17 |
 | [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L18) | 24 browser and conversation functions | 94 |
-| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, tab lookup, tool schemas, and screenshot formatting | 72 |
-| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L184) | Chrome lifecycle, tabs, actions, and screenshots | 124 |
-| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L308) | Model calls, results, callbacks, history, and recovery | 51 |
-| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L359) | Options, browser setup, model run, and cleanup | 38 |
-| **Total** | | **396** |
+| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, tab lookup, coordinates, tool schemas, and screenshots | 75 |
+| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L187) | Chrome lifecycle, tabs, actions, and screenshots | 123 |
+| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L310) | Model calls, results, callbacks, history, and recovery | 51 |
+| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L361) | Options, browser setup, model run, and cleanup | 38 |
+| **Total** | | **398** |
 
 <details>
 <summary>Record your own demo</summary>
@@ -48,7 +48,7 @@ uv run demo/record.py --model google/gemini-3.8-flash
 The agent works through a booking on a local page while the recorder captures the browser
 and logs its actions. The recorder checks the click targets, cursor alignment, and final
 confirmation before saving `demo/demo.gif` and `demo/demo.json`. FFmpeg is only needed
-to make the GIF. The demo uses a 1000×1000 viewport, so CSS pixels also match a 0–1000 grid.
+to make the GIF. The demo uses the agent's default 1280×800 viewport.
 
 </details>
 
@@ -214,10 +214,11 @@ so you can read exactly what each one does:
 | Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
 | Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
 
-Clicks and pointer movements use coordinates from the screenshot. The viewport defaults to
-1280×800; pass `w` and `h` to `WebAgent` to change it. `type_text` types into the focused field,
-with 10 ms between characters. Tab indices come from the latest observation and can shift
-after closing a tab.
+Clicks, hover, and drag use a 0–1000 grid over the screenshot: `(500, 500)` is its center.
+The actions and cursor share a conversion to browser pixels; scroll distances stay in pixels.
+The viewport defaults to 1280×800; pass `w` and `h` to `WebAgent` to change it.
+`type_text` types into the focused field with 10 ms between characters. Tab indices come
+from the latest observation and can shift after closing a tab.
 
 </details>
 

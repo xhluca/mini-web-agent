@@ -1,14 +1,14 @@
 {
   "model": "google/gemini-3.8-flash",
-  "task": "Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. Agree to the terms, confirm the booking, and verify the visible confirmation. The screenshot viewport is 1000 by 1000 CSS pixels. Use mouse clicks for controls so the recording shows what you interact with. Use only the provided browser actions. Call finish when the booking is verified.",
-  "answer": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation banner.",
+  "task": "Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. Agree to the terms, confirm the booking, and verify the visible confirmation. The screenshot viewport is 1280 by 800 CSS pixels; pointer coordinates use 0\u20131000. Use mouse clicks for controls so the recording shows what you interact with. Use only the provided browser actions. Call finish when the booking is verified.",
+  "answer": "The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com), and the confirmation message ('You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com') is visible on screen.",
   "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
   "actions": [
     {
       "step": 0,
       "action": {
         "name": "click",
-        "arguments": "{\"x\":338,\"y\":663}"
+        "arguments": "{\"y\":805,\"x\":367}"
       },
       "result": {
         "state": "success",
@@ -19,7 +19,7 @@
       "step": 1,
       "action": {
         "name": "click",
-        "arguments": "{\"y\":720,\"x\":338}"
+        "arguments": "{\"x\":367,\"y\":878}"
       },
       "result": {
         "state": "success",
@@ -30,7 +30,7 @@
       "step": 2,
       "action": {
         "name": "click",
-        "arguments": "{\"y\":478,\"x\":400}"
+        "arguments": "{\"y\":470,\"x\":450}"
       },
       "result": {
         "state": "success",
@@ -52,7 +52,7 @@
       "step": 4,
       "action": {
         "name": "click",
-        "arguments": "{\"y\":558,\"x\":400}"
+        "arguments": "{\"y\":575,\"x\":450}"
       },
       "result": {
         "state": "success",
@@ -74,7 +74,7 @@
       "step": 6,
       "action": {
         "name": "click",
-        "arguments": "{\"x\":319,\"y\":605}"
+        "arguments": "{\"y\":630,\"x\":352}"
       },
       "result": {
         "state": "success",
@@ -85,7 +85,7 @@
       "step": 7,
       "action": {
         "name": "click",
-        "arguments": "{\"y\":650,\"x\":495}"
+        "arguments": "{\"x\":494,\"y\":688}"
       },
       "result": {
         "state": "success",
@@ -95,51 +95,62 @@
     {
       "step": 8,
       "action": {
-        "name": "finish",
-        "arguments": "{\"message\":\"Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation banner.\"}"
+        "name": "scroll",
+        "arguments": "{\"dx\":0,\"dy\":400}"
       },
       "result": {
         "state": "success",
-        "output": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation banner."
+        "output": null
+      }
+    },
+    {
+      "step": 9,
+      "action": {
+        "name": "finish",
+        "arguments": "{\"message\":\"The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com), and the confirmation message ('You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com') is visible on screen.\"}"
+      },
+      "result": {
+        "state": "success",
+        "output": "The 2:00 pm Robotics Lab on October 10 has been successfully booked for Alex Chen (alex@example.com), and the confirmation message ('You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com') is visible on screen."
       }
     }
   ],
   "clicks": [
     {
-      "x": 338,
-      "y": 663,
+      "x": 469.760009765625,
+      "y": 644,
       "control": "2:00 pm \u2013 4:00 pm",
-      "offset": 0
+      "offset": 0.010009765625
     },
     {
-      "x": 338,
-      "y": 720,
+      "x": 469.760009765625,
+      "y": 702.4000244140625,
       "control": "Book workshop",
-      "offset": 0
+      "offset": 0.013731146805192726
     },
     {
-      "x": 400,
-      "y": 478,
+      "x": 576,
+      "y": 376,
       "control": "name",
       "offset": 0
     },
     {
-      "x": 400,
-      "y": 558,
+      "x": 576,
+      "y": 460,
       "control": "email",
       "offset": 0
     },
     {
-      "x": 319,
-      "y": 605,
+      "x": 450.55999755859375,
+      "y": 504,
       "control": "terms",
-      "offset": 0
+      "offset": 0.01312255859375
     },
     {
-      "x": 495,
-      "y": 650,
+      "x": 632.3200073242188,
+      "y": 550.4000244140625,
       "control": "Confirm booking",
-      "offset": 0
+      "offset": 0.012029501304865178
     }
   ]
 }

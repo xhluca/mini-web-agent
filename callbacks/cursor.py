@@ -2,6 +2,7 @@
 
 import json
 from playwright.sync_api import Error
+from agent import pixel_point
 
 POINTER_ACTIONS = {
     "click", "double_click", "right_click", "hover", "drag", "mouse_down", "mouse_up", "scroll",
@@ -93,6 +94,11 @@ def show_cursor(agent, step: int, action: dict, result: dict | None) -> None:
         arguments = action["arguments"]
         if isinstance(arguments, str):
             arguments = json.loads(arguments)
-        agent.get_page().evaluate(CURSOR_SCRIPT, {"name": action["name"], "args": arguments})
+        arguments = arguments.copy()
+        page = agent.get_page()
+        for x, y in (("x", "y"), ("x1", "y1"), ("x2", "y2")):
+            if x in arguments and y in arguments:
+                arguments[x], arguments[y] = pixel_point(page, arguments[x], arguments[y])
+        page.evaluate(CURSOR_SCRIPT, {"name": action["name"], "args": arguments})
     except (Error, ValueError, TypeError):
         pass  # A closing or navigating page should not let optional visuals interrupt the task.
