@@ -12,23 +12,24 @@ CURSOR_SCRIPT = """async ({name, args}) => {
     if (!cursor) {
         cursor = document.createElement('mini-agent-cursor');
         cursor.style.cssText = 'all:initial;position:fixed;left:24px;top:24px;' +
-            'width:30px;height:38px;pointer-events:none;z-index:2147483647;';
+            'width:30px;height:30px;pointer-events:none;z-index:2147483647;';
         const root = cursor.attachShadow({mode: 'open'});
         root.innerHTML = `<style>
             :host { pointer-events: none !important; }
             svg { position:absolute;left:-4px;top:-2px;overflow:visible;
-                  filter:drop-shadow(0 2px 2px #15243b44);transform-origin:4px 2px; }
+                  filter:drop-shadow(0 1px 2px #05040a40) drop-shadow(0 0 6px #a08c9c26);
+                  transform-origin:4px 2px; }
             .pulse { position:absolute;left:-12px;top:-12px;width:24px;height:24px;
-                     border:1px solid #78a9df;border-radius:50%;box-sizing:border-box; }
-        </style><svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true">
+                     border:1px solid #b9aeb77a;border-radius:50%;box-sizing:border-box; }
+        </style><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
             <defs><linearGradient id="fill" x1="0" y1="0" x2="1" y2="1">
-                <stop stop-color="#fff"/><stop offset=".55" stop-color="#f1f5fb"/>
-                <stop offset="1" stop-color="#b8c9df"/>
+                <stop stop-color="#756a72" stop-opacity=".28"/>
+                <stop offset="1" stop-color="#242128" stop-opacity=".58"/>
             </linearGradient></defs>
-            <path d="M4 2 L5 26 L11 20 L16 31 L20 29 L15 18 L24 18 Z"
-                  fill="url(#fill)" stroke="#33445e" stroke-width="1.25"
+            <path d="M4 2 Q3.6 2 4.1 3.7 L10.4 24.4 Q11.1 26.8 12.6 24.8 L16.5 17.2
+                     Q16.9 16.5 17.6 16.2 L25.2 12.7 Q27.4 11.4 24.9 10.4 L5.8 2.5 Q4.4 2 4 2 Z"
+                  fill="url(#fill)" stroke="#b9aeb7" stroke-opacity=".7" stroke-width="1.8"
                   stroke-linejoin="round"/>
-            <path d="M6 7 L7 20 L10 17" fill="none" stroke="#fff" stroke-opacity=".8"/>
         </svg>`;
         document.documentElement.appendChild(cursor);
     }
