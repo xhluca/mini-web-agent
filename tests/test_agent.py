@@ -163,6 +163,7 @@ class BrowserTests(unittest.TestCase):
             self.assertEqual(cursor.evaluate("e => e.style.top"), f"{y}px")
             self.assertEqual(cursor.evaluate("e => getComputedStyle(e).pointerEvents"), "none")
             self.assertEqual(cursor.locator("svg").count(), 1)
+            self.assertEqual(cursor.locator(".aura").count(), 1)
             self.assertEqual(cursor.locator(".pulse").count(), 0)
         self.act("press_key", key="Escape")
         point = self.point(page.get_by_label("Email"))
@@ -220,6 +221,46 @@ class BrowserTests(unittest.TestCase):
         show_cursor(self.agent, 0, dict(name="hover", arguments=dict(x=90, y=100)), None)
         self.assertEqual(page.evaluate("cursorPaths.length"), count)
         self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["90px", "100px"])
+
+    def test_cursor_aura_and_click_feedback(self):
+        from callbacks.cursor import show_cursor
+        page = self.agent.get_page()
+        page.evaluate("""() => {
+            window.cursorFeedback = [];
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function(...args) {
+                const animation = animate.apply(this, args);
+                if (this.getRootNode().host?.localName === 'mini-agent-cursor')
+                    cursorFeedback.push({kind: this.localName === 'svg' ? 'arrow' : this.className,
+                        frames: animation.effect.getKeyframes(),
+                        iterations: animation.effect.getTiming().iterations});
+                return animation;
+            };
+        }""")
+        for name in ("click", "double_click", "right_click"):
+            show_cursor(self.agent, 0, dict(name=name, arguments=dict(x=100, y=180)), None)
+            feedback = {item["kind"]: item for item in page.evaluate("cursorFeedback.splice(0)")}
+            self.assertEqual(set(feedback), {"arrow", "aura", "pulse"})
+            for item in feedback.values():
+                self.assertEqual(item["iterations"], 2 if name == "double_click" else 1)
+                self.assertNotEqual(item["frames"][0]["transform"], item["frames"][1]["transform"])
+            self.assertGreater(float(feedback["pulse"]["frames"][0]["opacity"]), 0)
+            self.assertEqual(float(feedback["pulse"]["frames"][-1]["opacity"]), 0)
+            cursor = page.locator("mini-agent-cursor")
+            self.assertEqual(cursor.locator(".pulse").count(), 0)
+            self.assertIn("radial-gradient", cursor.locator(".aura").evaluate(
+                "e => getComputedStyle(e).backgroundImage"))
+            self.assertEqual(cursor.locator(".aura").evaluate(
+                "e => getComputedStyle(e).pointerEvents"), "none")
+        page.emulate_media(reduced_motion="reduce")
+        show_cursor(self.agent, 0, dict(name="click", arguments=dict(x=100, y=180)), None)
+        self.assertEqual(page.evaluate("cursorFeedback.length"), 0)
+        self.assertEqual(cursor.locator(".aura").count(), 1)
+        cursor.locator(".aura").evaluate("e => e.remove()")
+        show_cursor(self.agent, 0, dict(name="hover", arguments=dict(x=100, y=180)), None)
+        self.assertEqual(cursor.count(), 1)
+        self.assertEqual(cursor.locator(".aura").count(), 1)
+        self.assertEqual(cursor.evaluate("e => [e.style.left, e.style.top]"), ["100px", "180px"])
 
     def test_mouse_events(self):
         self.agent.get_page().set_content("""<div style='width:600px;height:600px'>Target</div>

@@ -9,19 +9,24 @@ POINTER_ACTIONS = {
 
 CURSOR_SCRIPT = """async ({name, args}) => {
     let cursor = document.querySelector('mini-agent-cursor');
-    if (!cursor) {
+    if (!cursor?.shadowRoot?.querySelector('.aura')) {
+        const left = cursor?.style.left || '24px', top = cursor?.style.top || '24px';
+        cursor?.remove();
         cursor = document.createElement('mini-agent-cursor');
-        cursor.style.cssText = 'all:initial;position:fixed;left:24px;top:24px;' +
+        cursor.style.cssText = `all:initial;position:fixed;left:${left};top:${top};` +
             'width:30px;height:30px;pointer-events:none;z-index:2147483647;';
         const root = cursor.attachShadow({mode: 'open'});
         root.innerHTML = `<style>
             :host { pointer-events: none !important; }
+            .aura { position:absolute;left:-32px;top:-32px;width:64px;height:64px;opacity:.7;
+                    background:radial-gradient(circle,#bba2b633,#bba2b614 40%,transparent 70%); }
             svg { position:absolute;left:-4px;top:-2px;overflow:visible;
                   filter:drop-shadow(0 1px 2px #05040a40) drop-shadow(0 0 6px #a08c9c26);
                   transform-origin:4px 2px; }
             .pulse { position:absolute;left:-12px;top:-12px;width:24px;height:24px;
-                     border:1px solid #b9aeb77a;border-radius:50%;box-sizing:border-box; }
-        </style><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+                     border:1px solid #b9aeb799;border-radius:50%;box-sizing:border-box; }
+        </style><span class="aura" aria-hidden="true"></span>
+        <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
             <defs><linearGradient id="fill" x1="0" y1="0" x2="1" y2="1">
                 <stop stop-color="#756a72" stop-opacity=".28"/>
                 <stop offset="1" stop-color="#242128" stop-opacity=".58"/>
@@ -35,6 +40,7 @@ CURSOR_SCRIPT = """async ({name, args}) => {
     }
     const root = cursor.shadowRoot;
     const arrow = root.querySelector('svg');
+    const aura = root.querySelector('.aura');
     const oldX = parseFloat(cursor.style.left), oldY = parseFloat(cursor.style.top);
     const x = args.x2 ?? args.x ?? oldX, y = args.y2 ?? args.y ?? oldY;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -58,15 +64,21 @@ CURSOR_SCRIPT = """async ({name, args}) => {
                                      easing: 'cubic-bezier(.2,.8,.2,1)'}).finished;
     }
     arrow.style.transform = name === 'mouse_down' ? 'scale(.9)' : '';
+    aura.style.transform = name === 'mouse_down' ? 'scale(.85)' : '';
     if (['click', 'double_click', 'right_click'].includes(name) && !reduced) {
         const pulse = document.createElement('div');
         pulse.className = 'pulse';
         root.appendChild(pulse);
         const timing = {duration: 280, iterations: name === 'double_click' ? 2 : 1};
-        const ripple = pulse.animate([{transform: 'scale(.35)', opacity: .45},
-                                      {transform: 'scale(1.2)', opacity: 0}], timing);
-        arrow.animate([{transform: 'scale(1)'}, {transform: 'scale(.93)'},
+        const ripple = pulse.animate([{transform: 'scale(.35)', opacity: .65},
+                                      {transform: 'scale(1.8)', opacity: 0}], timing);
+        arrow.animate([{transform: 'scale(1)'}, {transform: 'scale(.87)', offset: .25},
+                       {transform: 'scale(1.03)', offset: .7},
                        {transform: 'scale(1)'}], timing);
+        aura.animate([{transform: 'scale(1)', opacity: .7},
+                      {transform: 'scale(.82)', opacity: 1, offset: .25},
+                      {transform: 'scale(1.3)', opacity: .4, offset: .7},
+                      {transform: 'scale(1)', opacity: .7}], timing);
         await ripple.finished;
         pulse.remove();
     }

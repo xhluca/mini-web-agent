@@ -330,8 +330,8 @@ callbacks = [
 ```
 
 The [cursor.py](https://github.com/xhluca/mini-web-agent/blob/main/callbacks/cursor.py) overlay
-follows a gentle S-curve between targets, tracks drags, and pulses on
-clicks. It respects reduced-motion preferences and lets clicks pass through to the page.
+has a soft aura, follows an S-curve between targets, and shows clicks with a brief press
+and expanding ring. It respects reduced-motion preferences and lets clicks pass through to the page.
 The CLI loads it when you pass `--cursor`.
 
 When the model needs to talk to you, `on_message` displays its message and `on_reply`
