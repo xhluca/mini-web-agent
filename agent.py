@@ -202,8 +202,7 @@ class WebAgent:
         self.profile = Path(profile).expanduser().resolve()
         self.action_space = action_space
         self.on_message, self.on_reply = on_message, on_reply
-        self.port = port
-        self.w, self.h = w, h
+        self.port, self.w, self.h = port, w, h
         self.playwright: Playwright | None = None
         self.process: subprocess.Popen[bytes] | None = None
         self.browser: Browser | None = None
@@ -218,21 +217,17 @@ class WebAgent:
         self.profile.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.playwright = sync_playwright().start()
         executable = self.playwright.chromium.executable_path
-        args = [
-            executable, f"--user-data-dir={self.profile}", "--remote-debugging-address=127.0.0.1",
-            f"--remote-debugging-port={self.port}","--no-first-run", "--no-default-browser-check",
-            "about:blank",
-        ]
+        args = [executable, f"--user-data-dir={self.profile}",
+                "--remote-debugging-address=127.0.0.1", f"--remote-debugging-port={self.port}",
+                "--no-first-run", "--no-default-browser-check", "about:blank"]
         if not headed:
             args.append("--headless=new")
-
         try:
             if not Path(executable).is_file():
                 raise FileNotFoundError("Chromium is missing; run python -m install_chromium")
             with self.profile.joinpath("chrome.log").open("ab") as log:
                 self.process = subprocess.Popen(
-                    args, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True
-                )
+                    args, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
             endpoint = wait_for_browser(
                 self.profile, running=True, attempts=int(timeout*2), port=self.port)
             if self.port == 0:
@@ -251,7 +246,6 @@ class WebAgent:
             return self
         if not self.playwright:
             self.playwright = sync_playwright().start()
-
         try:
             self.browser = self.playwright.chromium.connect_over_cdp(
                 f"http://127.0.0.1:{self.port}", timeout=timeout * 1000)
@@ -327,30 +321,23 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
         max_steps: int = 100, max_output_tokens=8192, callbacks: list[dict] | None = None) -> str:
     if max_steps < 1:
         raise ValueError("max_steps must be positive")
-
     history = [{"role": "system", "content": instructions}, {"role": "user", "content": task}]
-    text, image = agent.observe()
-    history.append({"role": "user", "content": convert_to_content(text, image)})
-
+    history.append({"role": "user", "content": convert_to_content(*agent.observe())})
     for step in range(max_steps):
         response = client.responses.create(
             model=model, input=history, tools=prepare_tools(agent.action_space), store=False,
             include=["reasoning.encrypted_content"], parallel_tool_calls=False,
-            max_output_tokens=max_output_tokens,
-        )
+            max_output_tokens=max_output_tokens)
         if response.status != "completed":
             history.append({"role": "user", "content":
                             "Your response was incomplete. Retry with a shorter response."})
             continue
-
         history.extend(response.output)
         function_calls = [item for item in response.output if item.type == "function_call"]
-
         if not function_calls:
-            history.append({"role": "user", "content": 
-                            "Use provided tools. Call finish if task is complete."})
+            history.append(dict(role="user", content=
+                                "Use provided tools. Call finish if task is complete."))
             continue
-
         for call in function_calls:
             action = dict(name=call.name, arguments=call.arguments)
             for callback in filter(lambda c: c["type"] == "before", callbacks or []):
@@ -363,14 +350,10 @@ def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: st
 
             if call.name == "finish" and result["state"] == "success":
                 return result["output"]
+            history.append(dict(type="function_call_output", call_id=call.call_id,
+                                output=[dict(type="input_text", text=json.dumps(result))]))
 
-            history.append({
-                "type": "function_call_output", "call_id": call.call_id,
-                "output": [{"type": "input_text", "text": json.dumps(result)}],
-            })
-
-        text, image = agent.observe()
-        history[-1]["output"].extend(convert_to_content(text, image))
+        history[-1]["output"].extend(convert_to_content(*agent.observe()))
 
     return f"Stopped after {max_steps} model turns; the task is still unfinished."
 
@@ -406,10 +389,8 @@ def main() -> None:
             agent.reset_tabs()
         print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
-            print(run(
-                agent, args.task, client, args.model, get_instructions(),
-                max_steps=args.max_steps, callbacks=callbacks,
-            ))
+            print(run(agent, args.task, client, args.model, get_instructions(),
+                      max_steps=args.max_steps, callbacks=callbacks))
     finally:
         agent.shutdown() if not args.connect else agent.disconnect()
 
