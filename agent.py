@@ -14,7 +14,7 @@ from urllib.request import urlopen
 
 from openai import OpenAI
 from playwright.sync_api import Browser, BrowserContext, Error, Page, Playwright, sync_playwright
-
+from chat_completions import ChatCompletions
 class Actions:
     def navigate(page: Page, url: str) -> None:
         page.goto(url, wait_until="domcontentloaded")
@@ -309,7 +309,7 @@ class WebAgent:
             self.disconnect()
         wait_for_browser(self.profile, running=False)
 
-def run(agent: WebAgent, task: str, client: OpenAI, model: str, instructions: str, *,
+def run(agent: WebAgent, task: str, client: OpenAI | ChatCompletions, model: str, instructions: str, *,
         max_steps: int = 100, max_output_tokens=8192, callbacks: list[dict] | None = None) -> str:
     if max_steps < 1:
         raise ValueError("max_steps must be positive")
@@ -357,6 +357,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("task")
     parser.add_argument("--model", required=True)
+    parser.add_argument("--api", choices=("responses", "chat-completions"), default="responses")
     parser.add_argument("--profile", default=".chrome")
     parser.add_argument("--port", type=int, default=0, help="Port for remote debug access (0=auto)")
     parser.add_argument("--max-steps", type=int, default=100)
@@ -385,10 +386,10 @@ def main() -> None:
             agent.reset_tabs()
         print(f"CDP: http://127.0.0.1:{agent.port}", flush=True)
         with OpenAI(timeout=60, max_retries=1) as client:
+            client = ChatCompletions(client) if args.api == "chat-completions" else client
             print(run(agent, args.task, client, args.model, get_instructions(),
                       max_steps=args.max_steps, callbacks=callbacks))
     finally:
         agent.shutdown() if not args.connect else agent.disconnect()
-
 if __name__ == "__main__":
     main()

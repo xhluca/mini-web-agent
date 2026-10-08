@@ -32,8 +32,11 @@ The browser controls, model loop, and command line entry point all fit in this f
 | [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 78 |
 | [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L190) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
 | [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L312) | Model calls, results, callbacks, history, and recovery | 44 |
-| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L356) | Options, browser setup, model run, and cleanup | 39 |
-| **Total** | | **394** |
+| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L356) | Options, browser setup, model run, and cleanup | 40 |
+| **Total** | | **395** |
+
+The optional [Chat Completions adapter](https://github.com/xhluca/mini-web-agent/blob/main/chat_completions.py)
+translates API messages outside the browser loop for providers such as Mistral.
 
 <details>
 <summary>Record your own demo</summary>
@@ -86,6 +89,21 @@ uv run agent.py --headed --cursor --coordinates css \
   --model gpt-5-mini \
   'Open https://example.com, wait 2 seconds, and describe the visible text.'
 ```
+
+For a direct [Mistral API](https://docs.mistral.ai/api) key, select Chat Completions:
+
+```bash
+export OPENAI_API_KEY="your-mistral-key"
+export OPENAI_BASE_URL=https://api.mistral.ai/v1
+
+uv run agent.py --api chat-completions --headed --cursor \
+  --model mistral-large-4-0 \
+  'Please browse flights from Montreal to Paris next week.'
+```
+
+Setting the base URL selects the server; `--api` selects its request format. Direct Mistral
+uses Chat Completions rather than Responses. Paste plain URLs and straight quotes into
+the terminal. A continued shell command ends its line with one backslash.
 
 Run the installer after installing or upgrading Playwright. On macOS it downloads the
 matching official Chrome for Testing archive using `curl` and extracts it with `ditto`,
@@ -147,6 +165,7 @@ that is already open:
 | Option | Purpose |
 | --- | --- |
 | `--model` | Required model ID, e.g. `google/gemini-3.8-flash` |
+| `--api` | `responses` (default) or `chat-completions` for providers such as direct Mistral |
 | `--max-steps` | Maximum model turns; defaults to 100 |
 | `--profile` | Persistent Chrome profile; defaults to `.chrome` |
 | `--port` | Launch port; a new profile defaults to a random localhost port |
@@ -163,7 +182,7 @@ uv run agent.py --headed --cursor --model google/gemini-3.8-flash \
 ```
 
 To try another provider, set `OPENAI_API_KEY` and `OPENAI_BASE_URL` for its endpoint.
-The endpoint must support the Responses API, and the model needs image input and function calling.
+Select its API format with `--api`; the model needs image input and function calling.
 
 If Chrome is still running from an earlier session, connect using the same profile:
 
