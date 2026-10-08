@@ -72,11 +72,27 @@ def tool_call(name, arguments=None, call_id="call_1"):
 
 
 class LaunchModeTests(unittest.TestCase):
+    def test_missing_browser_reports_installer_and_stops_driver(self):
+        with tempfile.TemporaryDirectory() as profile, patch("agent.sync_playwright") as playwright:
+            driver = playwright.return_value.start.return_value
+            driver.chromium.executable_path = str(Path(profile) / "missing-chromium")
+            agent = WebAgent(profile, action_space=get_action_space())
+            with self.assertRaisesRegex(RuntimeError, "python -m install_chromium"):
+                agent.launch()
+            driver.stop.assert_called_once()
+            self.assertIsNone(agent.playwright)
+            self.assertIsNone(agent.process)
+
+    def test_invalid_coordinate_mode(self):
+        with self.assertRaisesRegex(ValueError, "coordinates"):
+            WebAgent(action_space=get_action_space(), coordinates="guess")
+
     def test_headed_and_default_launch_arguments(self):
         for headed in (False, True):
             with self.subTest(headed=headed), tempfile.TemporaryDirectory() as profile:
                 with (patch("agent.sync_playwright") as playwright,
                       patch("agent.subprocess.Popen") as popen,
+                      patch("agent.Path.is_file", return_value=True),
                       patch("agent.wait_for_browser",
                             return_value="ws://127.0.0.1:9222/devtools/browser/test")):
                     playwright.return_value.start.return_value.chromium.executable_path = "chrome"
@@ -119,13 +135,19 @@ class BrowserTests(unittest.TestCase):
 
     def point(self, locator):
         box = locator.bounding_box()
+        if self.agent.coordinates == "css":
+            return dict(x=box["x"] + box["width"] / 2, y=box["y"] + box["height"] / 2)
         return dict(x=(box["x"] + box["width"] / 2) * 1000 / self.agent.w,
                     y=(box["y"] + box["height"] / 2) * 1000 / self.agent.h)
 
     def test_pointer_coordinates_across_viewports_and_device_scales(self):
         from callbacks.cursor import show_cursor
-        for width, height, scale in ((1280, 800, 1), (800, 1280, 1), (1600, 900, 2)):
-            with self.subTest(width=width, height=height, scale=scale):
+        cases = [(w, h, scale, coordinates) for w, h, scale in
+                 ((1280, 800, 1), (800, 1280, 1), (1600, 900, 2))
+                 for coordinates in ("normalized", "css")]
+        for width, height, scale, coordinates in cases:
+            with self.subTest(width=width, height=height, scale=scale, coordinates=coordinates):
+                self.agent.coordinates = coordinates
                 self.agent.ctx = self.agent.browser.new_context(
                     viewport=dict(width=width, height=height), device_scale_factor=scale)
                 self.agent._page = self.agent.ctx.new_page()
@@ -143,11 +165,13 @@ class BrowserTests(unittest.TestCase):
                             e.preventDefault();
                         });</script>""")
                 expected = [293 * width / 1000, 805 * height / 1000]
+                point = (dict(x=293, y=805) if coordinates == "normalized"
+                         else dict(zip("xy", expected)))
                 for name in ("hover", "click", "double_click", "right_click"):
-                    action = dict(name=name, arguments=dict(x=293, y=805))
+                    action = dict(name=name, arguments=dict(point))
                     show_cursor(self.agent, 0, action, None)
                     self.act(name, **action["arguments"])
-                    self.assertEqual(action["arguments"], dict(x=293, y=805))
+                    self.assertEqual(action["arguments"], point)
                     event = page.evaluate("events.at(-1)")
                     self.assertEqual(event["id"], "start")
                     for actual, target in zip((event["x"], event["y"]), expected):
@@ -160,6 +184,8 @@ class BrowserTests(unittest.TestCase):
                     for actual, target in zip(tip, expected):
                         self.assertAlmostEqual(actual, target, delta=0.1)
                 drag = dict(x1=293, y1=805, x2=750, y2=250)
+                if coordinates == "css":
+                    drag = dict(x1=expected[0], y1=expected[1], x2=width * .75, y2=height * .25)
                 show_cursor(self.agent, 0, dict(name="drag", arguments=drag), None)
                 self.act("drag", **drag)
                 ends = page.evaluate("events.filter(e => e.type !== 'pointermove').slice(-2)")
@@ -176,10 +202,11 @@ class BrowserTests(unittest.TestCase):
         page = self.agent.get_page()
         self.act("click", **self.point(page.get_by_label("Email")))
         self.act("type_text", text="agent@example.com")
+        # Focus explicitly and use type-ahead across native select implementations.
+        self.act("click", **self.point(page.get_by_label("Track")))
+        self.act("press_key", key="r")
         self.act("press_key", key="Tab")
-        self.act("press_key", key="ArrowDown")
-        self.act("press_key", key="Tab")
-        self.act("press_key", key="Space")
+        self.act("click", **self.point(page.get_by_role("checkbox")))
         self.act("click", **self.point(page.get_by_role("button", name="Register")))
         self.assertEqual(page.get_by_role("status").inner_text(),
                          "Registered: agent@example.com / Robotics")
@@ -196,9 +223,43 @@ class BrowserTests(unittest.TestCase):
         self.act("scroll", dx=0, dy=400)
         page.wait_for_function("scrollY > 0")
         state, image = self.agent.observe()
-        self.assertEqual(set(json.loads(state)), {"active_tab", "tabs"})
+        state = json.loads(state)
+        self.assertEqual(state["viewport"], {"width": 1280, "height": 800})
+        self.assertEqual(state["pointer_coordinates"], "0–1000")
         self.assertTrue(base64.b64decode(image.split(",")[1]).startswith(b"\xff\xd8"))
         self.assertEqual(self.agent.act("screenshot", {})["state"], "error")
+
+    def test_native_select_keyboard_focus_in_both_coordinate_modes(self):
+        from callbacks.cursor import show_cursor
+        self.agent.shutdown()
+        for coordinates in ("css", "normalized"):
+            with self.subTest(coordinates=coordinates):
+                with tempfile.TemporaryDirectory() as profile:
+                    agent = WebAgent(profile, coordinates=coordinates,
+                                     action_space=get_action_space())
+                    try:
+                        agent.launch().connect()
+                        page = agent.get_page()
+                        page.goto(self.url)
+                        box = page.get_by_label("Email").bounding_box()
+                        x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+                        if coordinates == "normalized":
+                            x, y = x * 1000 / agent.w, y * 1000 / agent.h
+                        actions = [("click", dict(x=x, y=y)),
+                                   ("type_text", dict(text="native@example.com")),
+                                   ("press_key", dict(key="Tab")),
+                                   ("type_text", dict(text="Robotics")),
+                                   ("press_key", dict(key="Tab")),
+                                   ("press_key", dict(key="Space")),
+                                   ("press_key", dict(key="Tab")),
+                                   ("press_key", dict(key="Enter"))]
+                        for name, arguments in actions:
+                            show_cursor(agent, 0, dict(name=name, arguments=arguments), None)
+                            self.assertEqual(agent.act(name, arguments)["state"], "success")
+                        self.assertEqual(page.get_by_role("status").inner_text(),
+                                         "Registered: native@example.com / Robotics")
+                    finally:
+                        agent.shutdown()
 
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
         from callbacks.cursor import show_cursor
@@ -630,7 +691,8 @@ class BrowserTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="mini-web-agent-cli-") as profile:
             result = subprocess.run(
                 [sys.executable, "agent.py", "Test CLI", "--model", "test",
-                 "--profile", profile, "--port", "0", "--max-steps", "1", "--cursor"],
+                 "--profile", profile, "--port", "0", "--max-steps", "1", "--cursor",
+                 "--coordinates", "css"],
                 cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
                 env=dict(os.environ, OPENAI_API_KEY="local-test",
                          OPENAI_BASE_URL=self.url + "/v1"),
@@ -642,6 +704,7 @@ class BrowserTests(unittest.TestCase):
         state = json.loads(Fixture.requests[0][1]["input"][2]["content"][0]["text"])
         self.assertEqual(len(state["tabs"]), 1)
         self.assertEqual(state["tabs"][0]["url"], "about:blank")
+        self.assertEqual(state["pointer_coordinates"], "CSS pixels")
         self.assertEqual(len(Fixture.requests), 1)
         self.assertIn("Complete the user's browser task",
                       Fixture.requests[0][1]["input"][0]["content"])

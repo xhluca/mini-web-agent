@@ -1,7 +1,7 @@
 [project]
 name = "mini-web-agent"
 version = "0.2.0"
-description = "Explore how frontier models use a browser in fewer than 400 lines of Python."
+description = "Explore how frontier models use a browser in about 400 lines of Python."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["openai>=2.0,<4", "playwright>=1.58,<2"]
@@ -25,7 +25,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["agent"]
+py-modules = ["agent", "install_chromium"]
 packages = ["callbacks"]
 
 [tool.ruff]

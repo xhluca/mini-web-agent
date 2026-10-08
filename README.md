@@ -1,9 +1,9 @@
-# Web agents from scratch in under 400 lines
+# Web agents from scratch in about 400 lines
 
 We wanted to understand how web agents in tools like Dots, Muse, and Codex work:
 how frontier models see a page, choose actions, and decide when a task is done.
 
-**mini-web-agent** explores that loop in fewer than 400 lines of Python. This makes it easier
+**mini-web-agent** explores that loop in about 400 lines of Python. This makes it easier
 to follow the code and see how changes affect the agent. Give a model screenshots and
 browser controls, then follow along as it works through a task.
 
@@ -29,11 +29,11 @@ The browser controls, model loop, and command line entry point all fit in this f
 | --- | --- | ---: |
 | [Imports](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L1) | Standard library, OpenAI SDK, and Playwright | 17 |
 | [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L18) | 24 browser and conversation functions | 94 |
-| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, tab lookup, coordinates, tool schemas, and screenshots | 75 |
-| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L187) | Chrome lifecycle, tabs, actions, and screenshots | 123 |
-| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L310) | Model calls, results, callbacks, history, and recovery | 51 |
-| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L361) | Options, browser setup, model run, and cleanup | 38 |
-| **Total** | | **398** |
+| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 82 |
+| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L194) | Chrome lifecycle, tabs, actions, and screenshots | 132 |
+| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L326) | Model calls, results, callbacks, history, and recovery | 51 |
+| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L377) | Options, browser setup, model run, and cleanup | 41 |
+| **Total** | | **417** |
 
 <details>
 <summary>Record your own demo</summary>
@@ -60,13 +60,13 @@ Start with a task you can watch from beginning to end. With
 ```bash
 git clone https://github.com/xhluca/mini-web-agent.git
 cd mini-web-agent
-uv run playwright install chromium --no-shell
+uv run python -m install_chromium
 
 export OPENAI_API_KEY="your-openrouter-key"
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 
 uv run agent.py --headed --cursor --model google/gemini-3.8-flash \
-  'Open https://example.com and tell me the heading.'
+  'Open https://example.com, wait 2 seconds, and describe the visible text.'
 ```
 
 uv handles the Python environment, dependencies, and Chromium installation. Chrome opens
@@ -75,6 +75,23 @@ results, and questions appear in your terminal. Press **Ctrl+C** to interrupt.
 
 Replace the task in quotes with something you want to try. Leave out `--headed` to run
 Chrome headless and `--cursor` to hide the cursor. The project runs on Linux and macOS.
+
+The model ID must match your provider. If you already have an OpenAI API key in
+`OPENAI_API_KEY`, use the OpenAI endpoint and an OpenAI model instead:
+
+```bash
+export OPENAI_BASE_URL=https://api.openai.com/v1
+
+uv run agent.py --headed --cursor --coordinates css \
+  --model gpt-5-mini \
+  'Open https://example.com, wait 2 seconds, and describe the visible text.'
+```
+
+Run the installer after installing or upgrading Playwright. On macOS it downloads the
+matching official Chrome for Testing archive using `curl` and extracts it with `ditto`,
+avoiding the Playwright downloader timeouts observed on macOS. It honors
+`PLAYWRIGHT_BROWSERS_PATH` and reuses a complete installation. Linux uses Playwright’s
+installer. The sample task reads visible text because `example.com` may not show a heading.
 
 <details>
 <summary>Install from PyPI</summary>
@@ -89,7 +106,7 @@ export OPENAI_API_KEY="your-openrouter-key"
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 
 mini-web-agent --headed --cursor --model google/gemini-3.8-flash \
-  'Open https://example.com and tell me the heading.'
+  'Open https://example.com, wait 2 seconds, and describe the visible text.'
 ```
 
 The installed command uses the same CLI as `python agent.py`. You can also run
@@ -108,13 +125,13 @@ cd mini-web-agent
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
-python -m playwright install chromium --no-shell
+python -m install_chromium
 
 export OPENAI_API_KEY="your-openrouter-key"
 export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 
 python -u agent.py --headed --cursor --model google/gemini-3.8-flash \
-  'Open https://example.com and tell me the heading.'
+  'Open https://example.com, wait 2 seconds, and describe the visible text.'
 ```
 
 You will see the same browser window and terminal output as in the uv example.
@@ -136,12 +153,13 @@ that is already open:
 | `--connect` | Attach to Chrome already running with the selected profile |
 | `--headed` | Show Chrome; new launches are headless by default |
 | `--cursor` | Animate pointer actions before execution |
+| `--coordinates` | `normalized` (default): 0–1000 grid; `css`: screenshot pixels |
 
 To run another task from the project directory, replace the text in quotes:
 
 ```bash
 uv run agent.py --headed --cursor --model google/gemini-3.8-flash \
-  'Open https://example.com and tell me the heading.'
+  'Open https://example.com, wait 2 seconds, and describe the visible text.'
 ```
 
 To try another provider, set `OPENAI_API_KEY` and `OPENAI_BASE_URL` for its endpoint.
@@ -214,8 +232,11 @@ so you can read exactly what each one does:
 | Tabs | `list_tabs`, `new_tab`, `switch_tab`, `close_tab` |
 | Timing and conversation | `wait`, `send_message`, `wait_for_reply`, `finish` |
 
-Clicks, hover, and drag use a 0–1000 grid over the screenshot: `(500, 500)` is its center.
-The actions and cursor share a conversion to browser pixels; scroll distances stay in pixels.
+By default, clicks, hover, and drag use a 0–1000 grid over the screenshot: `(500, 500)`
+is its center. Use `--coordinates css` (or `WebAgent(..., coordinates="css")`) to pass
+screenshot pixel positions directly. Each observation includes the viewport dimensions
+and coordinate system; the cursor uses the same conversion as the actions.
+Scroll distances stay in CSS pixels in both modes.
 The viewport defaults to 1280×800; pass `w` and `h` to `WebAgent` to change it.
 `type_text` types into the focused field with 10 ms between characters. Tab indices come
 from the latest observation and can shift after closing a tab.
@@ -267,7 +288,7 @@ try:
     agent.launch().connect()
     with OpenAI(timeout=60, max_retries=1) as client:
         answer = run(
-            agent, "Find the heading on https://example.com.", client,
+            agent, "Open https://example.com, wait 2 seconds, and describe the visible text.", client,
             model="google/gemini-3.8-flash", instructions=get_instructions(),
             max_steps=20, callbacks=[dict(type="after", function=print)],
         )
@@ -352,6 +373,8 @@ Tests live in [tests/](https://github.com/xhluca/mini-web-agent/tree/main/tests)
 ```bash
 uv run python -m unittest discover -s tests -v
 uv run python -m tests.test_live  # Optional paid OpenRouter test.
+# With an OpenAI key and its matching OPENAI_BASE_URL:
+uv run python -m tests.test_live gpt-5-mini --coordinates css --headed --cursor
 ```
 
 The local tests exercise browser actions, tabs, cleanup, API results, and error recovery
