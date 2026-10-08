@@ -72,27 +72,23 @@ def tool_call(name, arguments=None, call_id="call_1"):
 
 
 class LaunchModeTests(unittest.TestCase):
-    def test_missing_browser_reports_installer_and_stops_driver(self):
+    def test_missing_browser_stops_driver(self):
         with tempfile.TemporaryDirectory() as profile, patch("agent.sync_playwright") as playwright:
             driver = playwright.return_value.start.return_value
             driver.chromium.executable_path = str(Path(profile) / "missing-chromium")
             agent = WebAgent(profile, action_space=get_action_space())
-            with self.assertRaisesRegex(RuntimeError, "python -m install_chromium"):
+            with self.assertRaisesRegex(RuntimeError, "Failed to launch Chrome") as caught:
                 agent.launch()
+            self.assertIsInstance(caught.exception.__cause__, FileNotFoundError)
             driver.stop.assert_called_once()
             self.assertIsNone(agent.playwright)
             self.assertIsNone(agent.process)
-
-    def test_invalid_coordinate_mode(self):
-        with self.assertRaisesRegex(ValueError, "coordinates"):
-            WebAgent(action_space=get_action_space(), coordinates="guess")
 
     def test_headed_and_default_launch_arguments(self):
         for headed in (False, True):
             with self.subTest(headed=headed), tempfile.TemporaryDirectory() as profile:
                 with (patch("agent.sync_playwright") as playwright,
                       patch("agent.subprocess.Popen") as popen,
-                      patch("agent.Path.is_file", return_value=True),
                       patch("agent.wait_for_browser",
                             return_value="ws://127.0.0.1:9222/devtools/browser/test")):
                     playwright.return_value.start.return_value.chromium.executable_path = "chrome"

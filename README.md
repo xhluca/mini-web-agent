@@ -29,11 +29,11 @@ The browser controls, model loop, and command line entry point all fit in this f
 | --- | --- | ---: |
 | [Imports](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L1) | Standard library, OpenAI SDK, and Playwright | 17 |
 | [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L18) | 24 browser and conversation functions | 94 |
-| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 82 |
-| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L194) | Chrome lifecycle, tabs, actions, and screenshots | 126 |
-| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L320) | Model calls, results, callbacks, history, and recovery | 40 |
-| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L360) | Options, browser setup, model run, and cleanup | 39 |
-| **Total** | | **398** |
+| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 78 |
+| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L190) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
+| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L312) | Model calls, results, callbacks, history, and recovery | 44 |
+| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L356) | Options, browser setup, model run, and cleanup | 39 |
+| **Total** | | **394** |
 
 <details>
 <summary>Record your own demo</summary>
