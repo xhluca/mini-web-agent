@@ -1,0 +1,2141 @@
+{
+  "date": "2026-10-07",
+  "endpoint": "https://openrouter.ai/api/v1/responses",
+  "max_output_tokens": 8192,
+  "temperature": "provider default",
+  "method": "One forced click per fixed screenshot; scored by browser hit-testing.",
+  "allowed_models": [
+    "google/gemini-3.8-flash",
+    "google/gemini-3.7-flash",
+    "google/gemini-3.6-flash",
+    "google/gemini-3.5-flash-lite",
+    "google/gemini-3.5-flash",
+    "google/gemini-3.1-flash-lite"
+  ],
+  "experiments": [
+    {
+      "id": "access-pilot",
+      "models": [
+        "google/gemini-3.8-flash",
+        "openai/gpt-6.1-sol",
+        "anthropic/claude-sonnet-5.5",
+        "qwen/qwen3.8-max-0902"
+      ],
+      "variants": [
+        "original",
+        "explicit"
+      ],
+      "repeats": 1,
+      "source_refs": {
+        "css": "79408a8",
+        "normalized": "d431b06"
+      },
+      "trials": [
+        {
+          "model": "qwen/qwen3.8-max-0902",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "error": "NotFoundError: Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nModel blocked by guardrail: 1 endpoint excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider not allowed by guardrail: 1 endpoint excluded; configurable at https://openrouter.ai/workspaces/default/guardrails', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'model-ignored-by-guardrail', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-not-allowed-by-guardrail', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+          "seconds": 0.56
+        },
+        {
+          "model": "openai/gpt-6.1-sol",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "error": "NotFoundError: Error code: 404 - {'error': {'message': '0 endpoints out of 2 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nModel blocked by guardrail: 2 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider not allowed by guardrail: 2 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails', 'code': 404, 'metadata': {'input_endpoint_count': 2, 'ineligibility_reasons': [{'reason': 'model-ignored-by-guardrail', 'endpoint_count': 2, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-not-allowed-by-guardrail', 'endpoint_count': 2, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 7}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 4}, {'step': 'Filter by Tier Endpoint Rows', 'endpoint_count': 2, 'reason': 'Excluded tier endpoint rows the request did not opt into'}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+          "seconds": 0.57
+        },
+        {
+          "model": "openai/gpt-6.1-sol",
+          "variant": "explicit",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "error": "NotFoundError: Error code: 404 - {'error': {'message': '0 endpoints out of 2 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nModel blocked by guardrail: 2 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider not allowed by guardrail: 2 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails', 'code': 404, 'metadata': {'input_endpoint_count': 2, 'ineligibility_reasons': [{'reason': 'model-ignored-by-guardrail', 'endpoint_count': 2, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-not-allowed-by-guardrail', 'endpoint_count': 2, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 7}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 4}, {'step': 'Filter by Tier Endpoint Rows', 'endpoint_count': 2, 'reason': 'Excluded tier endpoint rows the request did not opt into'}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+          "seconds": 0.11
+        },
+        {
+          "model": "anthropic/claude-sonnet-5.5",
+          "variant": "explicit",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "error": "NotFoundError: Error code: 404 - {'error': {'message': '0 endpoints out of 5 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nModel blocked by guardrail: 5 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider not allowed by guardrail: 5 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider blocked by guardrail: 1 endpoint excluded; configurable at https://openrouter.ai/workspaces/default/guardrails', 'code': 404, 'metadata': {'input_endpoint_count': 5, 'ineligibility_reasons': [{'reason': 'model-ignored-by-guardrail', 'endpoint_count': 5, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-not-allowed-by-guardrail', 'endpoint_count': 5, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-ignored-by-guardrail', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 8}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 5}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+          "seconds": 0.05
+        },
+        {
+          "model": "qwen/qwen3.8-max-0902",
+          "variant": "explicit",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "error": "NotFoundError: Error code: 404 - {'error': {'message': '0 endpoints out of 1 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nModel blocked by guardrail: 1 endpoint excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider not allowed by guardrail: 1 endpoint excluded; configurable at https://openrouter.ai/workspaces/default/guardrails', 'code': 404, 'metadata': {'input_endpoint_count': 1, 'ineligibility_reasons': [{'reason': 'model-ignored-by-guardrail', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-not-allowed-by-guardrail', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 1}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+          "seconds": 0.07
+        },
+        {
+          "model": "anthropic/claude-sonnet-5.5",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "error": "NotFoundError: Error code: 404 - {'error': {'message': '0 endpoints out of 5 requested are available matching your guardrail restrictions and data policy. We removed them for the following reasons (an endpoint may have matched multiple reasons):\\nModel blocked by guardrail: 5 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider not allowed by guardrail: 5 endpoints excluded; configurable at https://openrouter.ai/workspaces/default/guardrails\\nProvider blocked by guardrail: 1 endpoint excluded; configurable at https://openrouter.ai/workspaces/default/guardrails', 'code': 404, 'metadata': {'input_endpoint_count': 5, 'ineligibility_reasons': [{'reason': 'model-ignored-by-guardrail', 'endpoint_count': 5, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-not-allowed-by-guardrail', 'endpoint_count': 5, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}, {'reason': 'provider-ignored-by-guardrail', 'endpoint_count': 1, 'configure_url': 'https://openrouter.ai/workspaces/default/guardrails'}], 'routing_funnel': [{'step': 'Initial Endpoints', 'endpoint_count': 8}, {'step': 'Filter by Regional Surcharge', 'endpoint_count': 5}], 'failed_routing_step': 'Filter by Guardrails'}}}",
+          "seconds": 0.84
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 345,
+            "y": 803
+          },
+          "usage": {
+            "input_tokens": 6058,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 411,
+            "output_tokens_details": {
+              "reasoning_tokens": 391
+            },
+            "total_tokens": 6469,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0121695,
+              "upstream_inference_input_cost": 0.009087,
+              "upstream_inference_output_cost": 0.0030825
+            }
+          },
+          "seconds": 5.35,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 644,
+            "x": 450
+          },
+          "usage": {
+            "input_tokens": 6298,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2897,
+            "output_tokens_details": {
+              "reasoning_tokens": 2877
+            },
+            "total_tokens": 9195,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0311745,
+              "upstream_inference_input_cost": 0.009447,
+              "upstream_inference_output_cost": 0.0217275
+            }
+          },
+          "seconds": 22.22,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "conversion",
+      "models": [
+        "google/gemini-3.8-flash"
+      ],
+      "variants": [
+        "original",
+        "explicit",
+        "normalized"
+      ],
+      "repeats": 2,
+      "source_refs": {
+        "css": "79408a8",
+        "normalized": "d431b06"
+      },
+      "trials": [
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 348,
+            "y": 804
+          },
+          "usage": {
+            "input_tokens": 6058,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 235,
+            "output_tokens_details": {
+              "reasoning_tokens": 215
+            },
+            "total_tokens": 6293,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0108495,
+              "upstream_inference_input_cost": 0.009087,
+              "upstream_inference_output_cost": 0.0017625
+            }
+          },
+          "seconds": 3.67,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 353
+          },
+          "usage": {
+            "input_tokens": 6102,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 195,
+            "output_tokens_details": {
+              "reasoning_tokens": 175
+            },
+            "total_tokens": 6297,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0106155,
+              "upstream_inference_input_cost": 0.009153,
+              "upstream_inference_output_cost": 0.0014625
+            }
+          },
+          "seconds": 3.94,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "time",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 804,
+            "x": 367
+          },
+          "usage": {
+            "input_tokens": 6058,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 307,
+            "output_tokens_details": {
+              "reasoning_tokens": 287
+            },
+            "total_tokens": 6365,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0113895,
+              "upstream_inference_input_cost": 0.009087,
+              "upstream_inference_output_cost": 0.0023025
+            }
+          },
+          "seconds": 3.95,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "x": 500,
+            "y": 548
+          },
+          "usage": {
+            "input_tokens": 6132,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 290,
+            "output_tokens_details": {
+              "reasoning_tokens": 270
+            },
+            "total_tokens": 6422,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.011373,
+              "upstream_inference_input_cost": 0.009198,
+              "upstream_inference_output_cost": 0.002175
+            }
+          },
+          "seconds": 4.52,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "terms",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 353,
+            "y": 631
+          },
+          "usage": {
+            "input_tokens": 6102,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 211,
+            "output_tokens_details": {
+              "reasoning_tokens": 191
+            },
+            "total_tokens": 6313,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0107355,
+              "upstream_inference_input_cost": 0.009153,
+              "upstream_inference_output_cost": 0.0015825
+            }
+          },
+          "seconds": 3.03,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "original",
+          "case": "email",
+          "repeat": 1,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "x": 500,
+            "y": 548
+          },
+          "usage": {
+            "input_tokens": 6132,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 235,
+            "output_tokens_details": {
+              "reasoning_tokens": 215
+            },
+            "total_tokens": 6367,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0109605,
+              "upstream_inference_input_cost": 0.009198,
+              "upstream_inference_output_cost": 0.0017625
+            }
+          },
+          "seconds": 4.33,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 629,
+            "x": 452
+          },
+          "usage": {
+            "input_tokens": 6342,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 686,
+            "output_tokens_details": {
+              "reasoning_tokens": 666
+            },
+            "total_tokens": 7028,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.014658,
+              "upstream_inference_input_cost": 0.009513,
+              "upstream_inference_output_cost": 0.005145
+            }
+          },
+          "seconds": 6.92,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 550,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6372,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 402,
+            "output_tokens_details": {
+              "reasoning_tokens": 382
+            },
+            "total_tokens": 6774,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.012573,
+              "upstream_inference_input_cost": 0.009558,
+              "upstream_inference_output_cost": 0.003015
+            }
+          },
+          "seconds": 6.07,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "email",
+          "repeat": 1,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "x": 500,
+            "y": 549
+          },
+          "usage": {
+            "input_tokens": 6372,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4068
+            },
+            "output_tokens": 334,
+            "output_tokens_details": {
+              "reasoning_tokens": 314
+            },
+            "total_tokens": 6706,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0065712,
+              "upstream_inference_input_cost": 0.0040662,
+              "upstream_inference_output_cost": 0.002505
+            }
+          },
+          "seconds": 3.77,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "normalized",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 806,
+            "x": 340
+          },
+          "usage": {
+            "input_tokens": 6163,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 312,
+            "output_tokens_details": {
+              "reasoning_tokens": 292
+            },
+            "total_tokens": 6475,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0115845,
+              "upstream_inference_input_cost": 0.0092445,
+              "upstream_inference_output_cost": 0.00234
+            }
+          },
+          "seconds": 3.75,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "terms",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 452,
+            "y": 631
+          },
+          "usage": {
+            "input_tokens": 6342,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4068
+            },
+            "output_tokens": 1136,
+            "output_tokens_details": {
+              "reasoning_tokens": 1116
+            },
+            "total_tokens": 7478,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0125412,
+              "upstream_inference_input_cost": 0.0040212,
+              "upstream_inference_output_cost": 0.00852
+            }
+          },
+          "seconds": 9.75,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 645,
+            "x": 375
+          },
+          "usage": {
+            "input_tokens": 6298,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2247,
+            "output_tokens_details": {
+              "reasoning_tokens": 2227
+            },
+            "total_tokens": 8545,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0262995,
+              "upstream_inference_input_cost": 0.009447,
+              "upstream_inference_output_cost": 0.0168525
+            }
+          },
+          "seconds": 19.03,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "normalized",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 352,
+            "y": 630
+          },
+          "usage": {
+            "input_tokens": 6207,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 205,
+            "output_tokens_details": {
+              "reasoning_tokens": 185
+            },
+            "total_tokens": 6412,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.010848,
+              "upstream_inference_input_cost": 0.0093105,
+              "upstream_inference_output_cost": 0.0015375
+            }
+          },
+          "seconds": 2.73,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "explicit",
+          "case": "time",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 360,
+            "y": 644
+          },
+          "usage": {
+            "input_tokens": 6298,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 1824,
+            "output_tokens_details": {
+              "reasoning_tokens": 1804
+            },
+            "total_tokens": 8122,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.023127,
+              "upstream_inference_input_cost": 0.009447,
+              "upstream_inference_output_cost": 0.01368
+            }
+          },
+          "seconds": 14.93,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "normalized",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 550,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6237,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 299,
+            "output_tokens_details": {
+              "reasoning_tokens": 279
+            },
+            "total_tokens": 6536,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.011598,
+              "upstream_inference_input_cost": 0.0093555,
+              "upstream_inference_output_cost": 0.0022425
+            }
+          },
+          "seconds": 3.49,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "normalized",
+          "case": "terms",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 353
+          },
+          "usage": {
+            "input_tokens": 6207,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4067
+            },
+            "output_tokens": 216,
+            "output_tokens_details": {
+              "reasoning_tokens": 196
+            },
+            "total_tokens": 6423,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.00544005,
+              "upstream_inference_input_cost": 0.00382005,
+              "upstream_inference_output_cost": 0.00162
+            }
+          },
+          "seconds": 3.05,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "normalized",
+          "case": "email",
+          "repeat": 1,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 548,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6237,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 228,
+            "output_tokens_details": {
+              "reasoning_tokens": 208
+            },
+            "total_tokens": 6465,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0110655,
+              "upstream_inference_input_cost": 0.0093555,
+              "upstream_inference_output_cost": 0.00171
+            }
+          },
+          "seconds": 3.13,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "normalized",
+          "case": "time",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 340,
+            "y": 804
+          },
+          "usage": {
+            "input_tokens": 6163,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4067
+            },
+            "output_tokens": 371,
+            "output_tokens_details": {
+              "reasoning_tokens": 351
+            },
+            "total_tokens": 6534,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.00653655,
+              "upstream_inference_input_cost": 0.00375405,
+              "upstream_inference_output_cost": 0.0027825
+            }
+          },
+          "seconds": 4.22,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "pixel-bounds",
+      "models": [
+        "google/gemini-3.8-flash"
+      ],
+      "variants": [
+        "pixel"
+      ],
+      "repeats": 2,
+      "source_refs": {
+        "css": "79408a8",
+        "normalized": "d431b06"
+      },
+      "trials": [
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "pixel",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 628,
+            "x": 352
+          },
+          "usage": {
+            "input_tokens": 6359,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 157,
+            "output_tokens_details": {
+              "reasoning_tokens": 137
+            },
+            "total_tokens": 6516,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.010716,
+              "upstream_inference_input_cost": 0.0095385,
+              "upstream_inference_output_cost": 0.0011775
+            }
+          },
+          "seconds": 3.54,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "pixel",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 548,
+            "x": 450
+          },
+          "usage": {
+            "input_tokens": 6389,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 249,
+            "output_tokens_details": {
+              "reasoning_tokens": 229
+            },
+            "total_tokens": 6638,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.011451,
+              "upstream_inference_input_cost": 0.0095835,
+              "upstream_inference_output_cost": 0.0018675
+            }
+          },
+          "seconds": 4.43,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "pixel",
+          "case": "terms",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 352,
+            "y": 628
+          },
+          "usage": {
+            "input_tokens": 6359,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4068
+            },
+            "output_tokens": 195,
+            "output_tokens_details": {
+              "reasoning_tokens": 175
+            },
+            "total_tokens": 6554,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0055092,
+              "upstream_inference_input_cost": 0.0040467,
+              "upstream_inference_output_cost": 0.0014625
+            }
+          },
+          "seconds": 2.85,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "pixel",
+          "case": "email",
+          "repeat": 1,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "x": 500,
+            "y": 550
+          },
+          "usage": {
+            "input_tokens": 6389,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4068
+            },
+            "output_tokens": 249,
+            "output_tokens_details": {
+              "reasoning_tokens": 229
+            },
+            "total_tokens": 6638,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0059592,
+              "upstream_inference_input_cost": 0.0040917,
+              "upstream_inference_output_cost": 0.0018675
+            }
+          },
+          "seconds": 3.13,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "pixel",
+          "case": "time",
+          "repeat": 1,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 374,
+            "y": 645
+          },
+          "usage": {
+            "input_tokens": 6315,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2174,
+            "output_tokens_details": {
+              "reasoning_tokens": 2154
+            },
+            "total_tokens": 8489,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0257775,
+              "upstream_inference_input_cost": 0.0094725,
+              "upstream_inference_output_cost": 0.016305
+            }
+          },
+          "seconds": 17.39,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "pixel",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 645,
+            "x": 370
+          },
+          "usage": {
+            "input_tokens": 6315,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2157,
+            "output_tokens_details": {
+              "reasoning_tokens": 2137
+            },
+            "total_tokens": 8472,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.02565,
+              "upstream_inference_input_cost": 0.0094725,
+              "upstream_inference_output_cost": 0.0161775
+            }
+          },
+          "seconds": 18.53,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "older-models",
+      "models": [
+        "google/gemini-3.7-flash",
+        "google/gemini-3.5-flash"
+      ],
+      "variants": [
+        "original",
+        "pixel",
+        "normalized"
+      ],
+      "repeats": 1,
+      "source_refs": {
+        "css": "79408a8",
+        "normalized": "d431b06"
+      },
+      "trials": [
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 368,
+            "y": 803
+          },
+          "usage": {
+            "input_tokens": 6058,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 513,
+            "output_tokens_details": {
+              "reasoning_tokens": 493
+            },
+            "total_tokens": 6571,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.013704,
+              "upstream_inference_input_cost": 0.009087,
+              "upstream_inference_output_cost": 0.004617
+            }
+          },
+          "seconds": 3.24,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "original",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 548,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6132,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 259,
+            "output_tokens_details": {
+              "reasoning_tokens": 239
+            },
+            "total_tokens": 6391,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0111405,
+              "upstream_inference_input_cost": 0.009198,
+              "upstream_inference_output_cost": 0.0019425
+            }
+          },
+          "seconds": 4.09,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "original",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 353
+          },
+          "usage": {
+            "input_tokens": 6102,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 198,
+            "output_tokens_details": {
+              "reasoning_tokens": 178
+            },
+            "total_tokens": 6300,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.010638,
+              "upstream_inference_input_cost": 0.009153,
+              "upstream_inference_output_cost": 0.001485
+            }
+          },
+          "seconds": 4.54,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "original",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 353
+          },
+          "usage": {
+            "input_tokens": 6102,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 2034
+            },
+            "output_tokens": 204,
+            "output_tokens_details": {
+              "reasoning_tokens": 184
+            },
+            "total_tokens": 6306,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0082431,
+              "upstream_inference_input_cost": 0.0064071,
+              "upstream_inference_output_cost": 0.001836
+            }
+          },
+          "seconds": 1.56,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "original",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "x": 500,
+            "y": 550
+          },
+          "usage": {
+            "input_tokens": 6132,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 234,
+            "output_tokens_details": {
+              "reasoning_tokens": 214
+            },
+            "total_tokens": 6366,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.011304,
+              "upstream_inference_input_cost": 0.009198,
+              "upstream_inference_output_cost": 0.002106
+            }
+          },
+          "seconds": 1.78,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "pixel",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 352,
+            "y": 630
+          },
+          "usage": {
+            "input_tokens": 6359,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 209,
+            "output_tokens_details": {
+              "reasoning_tokens": 189
+            },
+            "total_tokens": 6568,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.011106,
+              "upstream_inference_input_cost": 0.0095385,
+              "upstream_inference_output_cost": 0.0015675
+            }
+          },
+          "seconds": 3.18,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "pixel",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 549,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6389,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 220,
+            "output_tokens_details": {
+              "reasoning_tokens": 200
+            },
+            "total_tokens": 6609,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0112335,
+              "upstream_inference_input_cost": 0.0095835,
+              "upstream_inference_output_cost": 0.00165
+            }
+          },
+          "seconds": 3.15,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "original",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 340,
+            "y": 645
+          },
+          "usage": {
+            "input_tokens": 6058,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 1205,
+            "output_tokens_details": {
+              "reasoning_tokens": 1185
+            },
+            "total_tokens": 7263,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0181245,
+              "upstream_inference_input_cost": 0.009087,
+              "upstream_inference_output_cost": 0.0090375
+            }
+          },
+          "seconds": 10.12,
+          "css_hit": false,
+          "normalized_hit": false,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "pixel",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 353
+          },
+          "usage": {
+            "input_tokens": 6359,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4068
+            },
+            "output_tokens": 242,
+            "output_tokens_details": {
+              "reasoning_tokens": 222
+            },
+            "total_tokens": 6601,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0062247,
+              "upstream_inference_input_cost": 0.0040467,
+              "upstream_inference_output_cost": 0.002178
+            }
+          },
+          "seconds": 1.82,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "pixel",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 548,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6389,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 270,
+            "output_tokens_details": {
+              "reasoning_tokens": 250
+            },
+            "total_tokens": 6659,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0120135,
+              "upstream_inference_input_cost": 0.0095835,
+              "upstream_inference_output_cost": 0.00243
+            }
+          },
+          "seconds": 1.74,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "normalized",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 804,
+            "x": 330
+          },
+          "usage": {
+            "input_tokens": 6163,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 388,
+            "output_tokens_details": {
+              "reasoning_tokens": 368
+            },
+            "total_tokens": 6551,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0121545,
+              "upstream_inference_input_cost": 0.0092445,
+              "upstream_inference_output_cost": 0.00291
+            }
+          },
+          "seconds": 4.48,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "normalized",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 352
+          },
+          "usage": {
+            "input_tokens": 6207,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 210,
+            "output_tokens_details": {
+              "reasoning_tokens": 190
+            },
+            "total_tokens": 6417,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0108855,
+              "upstream_inference_input_cost": 0.0093105,
+              "upstream_inference_output_cost": 0.001575
+            }
+          },
+          "seconds": 3.74,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "normalized",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 340,
+            "y": 804
+          },
+          "usage": {
+            "input_tokens": 6163,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 327,
+            "output_tokens_details": {
+              "reasoning_tokens": 307
+            },
+            "total_tokens": 6490,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0121875,
+              "upstream_inference_input_cost": 0.0092445,
+              "upstream_inference_output_cost": 0.002943
+            }
+          },
+          "seconds": 1.82,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "normalized",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 550,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6237,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 259,
+            "output_tokens_details": {
+              "reasoning_tokens": 239
+            },
+            "total_tokens": 6496,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.011298,
+              "upstream_inference_input_cost": 0.0093555,
+              "upstream_inference_output_cost": 0.0019425
+            }
+          },
+          "seconds": 3.84,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "normalized",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 353
+          },
+          "usage": {
+            "input_tokens": 6207,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4067
+            },
+            "output_tokens": 365,
+            "output_tokens_details": {
+              "reasoning_tokens": 345
+            },
+            "total_tokens": 6572,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.00710505,
+              "upstream_inference_input_cost": 0.00382005,
+              "upstream_inference_output_cost": 0.003285
+            }
+          },
+          "seconds": 1.94,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "normalized",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 550,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6237,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4067
+            },
+            "output_tokens": 428,
+            "output_tokens_details": {
+              "reasoning_tokens": 408
+            },
+            "total_tokens": 6665,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.00771705,
+              "upstream_inference_input_cost": 0.00386505,
+              "upstream_inference_output_cost": 0.003852
+            }
+          },
+          "seconds": 2.17,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "pixel",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 670,
+            "x": 370
+          },
+          "usage": {
+            "input_tokens": 6315,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 4240,
+            "output_tokens_details": {
+              "reasoning_tokens": 4220
+            },
+            "total_tokens": 10555,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0476325,
+              "upstream_inference_input_cost": 0.0094725,
+              "upstream_inference_output_cost": 0.03816
+            }
+          },
+          "seconds": 15.4,
+          "css_hit": false,
+          "normalized_hit": false,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "pixel",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 645,
+            "x": 375
+          },
+          "usage": {
+            "input_tokens": 6315,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2358,
+            "output_tokens_details": {
+              "reasoning_tokens": 2338
+            },
+            "total_tokens": 8673,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0271575,
+              "upstream_inference_input_cost": 0.0094725,
+              "upstream_inference_output_cost": 0.017685
+            }
+          },
+          "seconds": 18.98,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "worked-examples",
+      "models": [
+        "google/gemini-3.8-flash",
+        "google/gemini-3.7-flash",
+        "google/gemini-3.5-flash"
+      ],
+      "variants": [
+        "examples"
+      ],
+      "repeats": 1,
+      "source_refs": {
+        "css": "79408a8",
+        "normalized": "d431b06"
+      },
+      "trials": [
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "examples",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 550,
+            "x": 485
+          },
+          "usage": {
+            "input_tokens": 6465,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 410,
+            "output_tokens_details": {
+              "reasoning_tokens": 390
+            },
+            "total_tokens": 6875,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0127725,
+              "upstream_inference_input_cost": 0.0096975,
+              "upstream_inference_output_cost": 0.003075
+            }
+          },
+          "seconds": 5.49,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "examples",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 453,
+            "y": 630
+          },
+          "usage": {
+            "input_tokens": 6435,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 787,
+            "output_tokens_details": {
+              "reasoning_tokens": 767
+            },
+            "total_tokens": 7222,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.015555,
+              "upstream_inference_input_cost": 0.0096525,
+              "upstream_inference_output_cost": 0.0059025
+            }
+          },
+          "seconds": 8.82,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "examples",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 548,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6465,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4069
+            },
+            "output_tokens": 330,
+            "output_tokens_details": {
+              "reasoning_tokens": 310
+            },
+            "total_tokens": 6795,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.00667935,
+              "upstream_inference_input_cost": 0.00420435,
+              "upstream_inference_output_cost": 0.002475
+            }
+          },
+          "seconds": 3.99,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "examples",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 802,
+            "x": 368
+          },
+          "usage": {
+            "input_tokens": 6391,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 593,
+            "output_tokens_details": {
+              "reasoning_tokens": 573
+            },
+            "total_tokens": 6984,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0149235,
+              "upstream_inference_input_cost": 0.0095865,
+              "upstream_inference_output_cost": 0.005337
+            }
+          },
+          "seconds": 3.01,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "examples",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 631,
+            "x": 352
+          },
+          "usage": {
+            "input_tokens": 6435,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4068
+            },
+            "output_tokens": 180,
+            "output_tokens_details": {
+              "reasoning_tokens": 160
+            },
+            "total_tokens": 6615,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0057807,
+              "upstream_inference_input_cost": 0.0041607,
+              "upstream_inference_output_cost": 0.00162
+            }
+          },
+          "seconds": 1.82,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "examples",
+          "case": "terms",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 451,
+            "y": 631
+          },
+          "usage": {
+            "input_tokens": 6435,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 1280,
+            "output_tokens_details": {
+              "reasoning_tokens": 1260
+            },
+            "total_tokens": 7715,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0192525,
+              "upstream_inference_input_cost": 0.0096525,
+              "upstream_inference_output_cost": 0.0096
+            }
+          },
+          "seconds": 12.3,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "variant": "examples",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "x": 400,
+            "y": 645
+          },
+          "usage": {
+            "input_tokens": 6391,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2242,
+            "output_tokens_details": {
+              "reasoning_tokens": 2222
+            },
+            "total_tokens": 8633,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.0264015,
+              "upstream_inference_input_cost": 0.0095865,
+              "upstream_inference_output_cost": 0.016815
+            }
+          },
+          "seconds": 18.85,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        },
+        {
+          "model": "google/gemini-3.5-flash",
+          "variant": "examples",
+          "case": "email",
+          "repeat": 0,
+          "viewport": {
+            "width": 960,
+            "height": 1200
+          },
+          "arguments": {
+            "y": 548,
+            "x": 500
+          },
+          "usage": {
+            "input_tokens": 6465,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 4069
+            },
+            "output_tokens": 282,
+            "output_tokens_details": {
+              "reasoning_tokens": 262
+            },
+            "total_tokens": 6747,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.00674235,
+              "upstream_inference_input_cost": 0.00420435,
+              "upstream_inference_output_cost": 0.002538
+            }
+          },
+          "seconds": 1.98,
+          "css_hit": false,
+          "normalized_hit": true,
+          "pass": false
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "variant": "examples",
+          "case": "time",
+          "repeat": 0,
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "arguments": {
+            "y": 645,
+            "x": 375
+          },
+          "usage": {
+            "input_tokens": 6391,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 2355,
+            "output_tokens_details": {
+              "reasoning_tokens": 2335
+            },
+            "total_tokens": 8746,
+            "cost": 0,
+            "is_byok": true,
+            "cost_details": {
+              "upstream_inference_cost": 0.027249,
+              "upstream_inference_input_cost": 0.0095865,
+              "upstream_inference_output_cost": 0.0176625
+            }
+          },
+          "seconds": 20.62,
+          "css_hit": true,
+          "normalized_hit": false,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

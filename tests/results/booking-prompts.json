@@ -1,0 +1,1200 @@
+{
+  "date": "2026-10-07",
+  "task": "Book the 2:00 pm Robotics Lab on October 10 for Alex Chen, alex@example.com. Agree to the terms, confirm the booking, and verify the visible confirmation. Use mouse clicks to select controls and type_text to enter the name and email. Call finish when the booking is verified.",
+  "max_steps": 16,
+  "source_refs": {
+    "css": "79408a8",
+    "normalized": "d431b06"
+  },
+  "note": "One trial excluded and repeated after an audit reload bug. Unfinished runs had no visible status; the scorer now reads the hidden placeholder without waiting. Original verification errors are retained.",
+  "trials": [
+    {
+      "model": "google/gemini-3.7-flash",
+      "variant": "examples",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":472,\"y\":645}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":472,\"y\":702}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":500,\"y\":472}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 3,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":500,\"y\":380}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 4,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"Alex Chen\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 5,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":500,\"y\":472}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 6,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"alex@example.com\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 7,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":450,\"y\":519}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 8,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":454,\"y\":529}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 9,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":447,\"y\":504}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 10,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":688,\"x\":550}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 11,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":688,\"x\":500}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 12,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":560,\"x\":640}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 13,
+          "action": {
+            "name": "scroll",
+            "arguments": "{\"dy\":300,\"dx\":0}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 14,
+          "action": {
+            "name": "finish",
+            "arguments": "{\"message\":\"Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com), agreed to the terms, confirmed the booking, and verified the visible confirmation: 'You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com'.\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com), agreed to the terms, confirmed the booking, and verified the visible confirmation: 'You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com'."
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 472,
+          "y": 645,
+          "control": "2:00 pm \u2013 4:00 pm"
+        },
+        {
+          "x": 472,
+          "y": 702,
+          "control": "Book workshop"
+        },
+        {
+          "x": 500,
+          "y": 472,
+          "control": "email"
+        },
+        {
+          "x": 500,
+          "y": 380,
+          "control": "name"
+        },
+        {
+          "x": 500,
+          "y": 472,
+          "control": "email"
+        },
+        {
+          "x": 450,
+          "y": 519,
+          "control": null
+        },
+        {
+          "x": 454,
+          "y": 529,
+          "control": "Confirm booking"
+        },
+        {
+          "x": 447,
+          "y": 504,
+          "control": "terms"
+        },
+        {
+          "x": 550,
+          "y": 688,
+          "control": null
+        },
+        {
+          "x": 500,
+          "y": 688,
+          "control": null
+        },
+        {
+          "x": 640,
+          "y": 560,
+          "control": "Confirm booking"
+        }
+      ],
+      "answer": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com), agreed to the terms, confirmed the booking, and verified the visible confirmation: 'You're booked. See you Saturday! Robotics Lab \u00b7 October 10 \u00b7 2:00 pm \u00b7 Alex Chen \u00b7 alex@example.com'.",
+      "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
+      "pass": true,
+      "seconds": 131.24,
+      "turns": 15
+    },
+    {
+      "model": "google/gemini-3.5-flash",
+      "variant": "examples",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "scroll",
+            "arguments": "{\"dy\":200,\"dx\":0}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":643,\"x\":367}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":367,\"y\":705}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 4,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":425,\"x\":630}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 5,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":470,\"x\":630}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 6,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":470,\"x\":492}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 7,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Shift+Tab\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 8,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"Alex Chen\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 9,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":575,\"x\":492}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 10,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Tab\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 11,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Tab\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 12,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"alex@example.com\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 14,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":352,\"y\":630}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 15,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":630,\"x\":420}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 367,
+          "y": 643,
+          "control": "2:00 pm \u2013 4:00 pm"
+        },
+        {
+          "x": 367,
+          "y": 705,
+          "control": "Book workshop"
+        },
+        {
+          "x": 630,
+          "y": 425,
+          "control": "Email address"
+        },
+        {
+          "x": 630,
+          "y": 470,
+          "control": "email"
+        },
+        {
+          "x": 492,
+          "y": 470,
+          "control": "email"
+        },
+        {
+          "x": 492,
+          "y": 575,
+          "control": null
+        },
+        {
+          "x": 352,
+          "y": 630,
+          "control": null
+        },
+        {
+          "x": 420,
+          "y": 630,
+          "control": null
+        }
+      ],
+      "answer": "Stopped after 16 model turns; the task is still unfinished.",
+      "seconds": 91.54,
+      "pass": false,
+      "verification_error": "TimeoutError: Locator.inner_text: Timeout 10000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"status\")\n",
+      "turns": 16
+    },
+    {
+      "model": "google/gemini-3.8-flash",
+      "variant": "normalized",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":803,\"x\":340}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":878,\"x\":368}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":415,\"y\":471}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 3,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"Alex Chen\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 4,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":415,\"y\":573}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 5,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"alex@example.com\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 6,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":630,\"x\":353}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 7,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":495,\"y\":688}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 8,
+          "action": {
+            "name": "scroll",
+            "arguments": "{\"dy\":300,\"dx\":0}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 9,
+          "action": {
+            "name": "finish",
+            "arguments": "{\"message\":\"Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation.\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation."
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 435.20001220703125,
+          "y": 642.4000244140625,
+          "control": "2:00 pm \u2013 4:00 pm"
+        },
+        {
+          "x": 471.0400085449219,
+          "y": 702.4000244140625,
+          "control": "Book workshop"
+        },
+        {
+          "x": 531.2000122070312,
+          "y": 376.79998779296875,
+          "control": "name"
+        },
+        {
+          "x": 531.2000122070312,
+          "y": 458.3999938964844,
+          "control": "email"
+        },
+        {
+          "x": 451.8399963378906,
+          "y": 504,
+          "control": "terms"
+        },
+        {
+          "x": 633.5999755859375,
+          "y": 550.4000244140625,
+          "control": "Confirm booking"
+        }
+      ],
+      "answer": "Successfully booked the 2:00 pm Robotics Lab on October 10 for Alex Chen (alex@example.com) and verified the confirmation.",
+      "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
+      "pass": true,
+      "seconds": 38.84,
+      "turns": 10
+    },
+    {
+      "model": "google/gemini-3.7-flash",
+      "variant": "normalized",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":340,\"y\":805}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":367,\"y\":878}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":470,\"x\":450}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 3,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"Alex Chen\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 4,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":570,\"x\":450}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 5,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"alex@example.com\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 6,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":353,\"y\":630}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 7,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":688,\"x\":494}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 8,
+          "action": {
+            "name": "scroll",
+            "arguments": "{\"dx\":0,\"dy\":300}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 9,
+          "action": {
+            "name": "finish",
+            "arguments": "{\"message\":\"The 2:00 pm Robotics Lab workshop on October 10 has been successfully booked for Alex Chen (alex@example.com), and the booking confirmation ('You\\\\'re booked. See you Saturday!') has been verified on the page.\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": "The 2:00 pm Robotics Lab workshop on October 10 has been successfully booked for Alex Chen (alex@example.com), and the booking confirmation ('You\\'re booked. See you Saturday!') has been verified on the page."
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 435.20001220703125,
+          "y": 644,
+          "control": "2:00 pm \u2013 4:00 pm"
+        },
+        {
+          "x": 469.760009765625,
+          "y": 702.4000244140625,
+          "control": "Book workshop"
+        },
+        {
+          "x": 576,
+          "y": 376,
+          "control": "name"
+        },
+        {
+          "x": 576,
+          "y": 456,
+          "control": "email"
+        },
+        {
+          "x": 451.8399963378906,
+          "y": 504,
+          "control": "terms"
+        },
+        {
+          "x": 632.3200073242188,
+          "y": 550.4000244140625,
+          "control": "Confirm booking"
+        }
+      ],
+      "answer": "The 2:00 pm Robotics Lab workshop on October 10 has been successfully booked for Alex Chen (alex@example.com), and the booking confirmation ('You\\'re booked. See you Saturday!') has been verified on the page.",
+      "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
+      "pass": true,
+      "seconds": 28.12,
+      "turns": 10
+    },
+    {
+      "model": "google/gemini-3.5-flash",
+      "variant": "normalized",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":803,\"x\":340}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":878,\"x\":368}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":471,\"x\":494}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 3,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"Alex Chen\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 5,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":573,\"x\":494}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 6,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"alex@example.com\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 7,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":630,\"x\":351}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 8,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":687,\"x\":494}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 9,
+          "action": {
+            "name": "scroll",
+            "arguments": "{\"dy\":400,\"dx\":0}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 11,
+          "action": {
+            "name": "finish",
+            "arguments": "{\"message\":\"Booking confirmed successfully for Alex Chen (alex@example.com) for the Robotics Lab at 2:00 pm on October 10.\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": "Booking confirmed successfully for Alex Chen (alex@example.com) for the Robotics Lab at 2:00 pm on October 10."
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 435.20001220703125,
+          "y": 642.4000244140625,
+          "control": "2:00 pm \u2013 4:00 pm"
+        },
+        {
+          "x": 471.0400085449219,
+          "y": 702.4000244140625,
+          "control": "Book workshop"
+        },
+        {
+          "x": 632.3200073242188,
+          "y": 376.79998779296875,
+          "control": "name"
+        },
+        {
+          "x": 632.3200073242188,
+          "y": 458.3999938964844,
+          "control": "email"
+        },
+        {
+          "x": 449.2799987792969,
+          "y": 504,
+          "control": "terms"
+        },
+        {
+          "x": 632.3200073242188,
+          "y": 549.5999755859375,
+          "control": "Confirm booking"
+        }
+      ],
+      "answer": "Booking confirmed successfully for Alex Chen (alex@example.com) for the Robotics Lab at 2:00 pm on October 10.",
+      "confirmation": "You\u2019re booked. See you Saturday!\n\nRobotics Lab \u00b7 October 10 \u00b7 2:00 pm\n\nAlex Chen \u00b7 alex@example.com",
+      "pass": true,
+      "seconds": 30.58,
+      "turns": 12
+    },
+    {
+      "model": "google/gemini-3.8-flash",
+      "variant": "examples",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":645,\"x\":410}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":470,\"y\":705}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":450,\"y\":465}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 3,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":450,\"y\":375}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 4,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"Alex Chen\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 5,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":450,\"y\":465}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 6,
+          "action": {
+            "name": "type_text",
+            "arguments": "{\"text\":\"alex@example.com\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 7,
+          "action": {
+            "name": "click",
+            "arguments": "{\"x\":353,\"y\":528}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 8,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":540,\"x\":420}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 9,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":530,\"x\":450}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 10,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":630,\"x\":353}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 11,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":515,\"x\":455}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 12,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Tab\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 13,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Tab\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 14,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Tab\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 15,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Space\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 410,
+          "y": 645,
+          "control": "2:00 pm \u2013 4:00 pm"
+        },
+        {
+          "x": 470,
+          "y": 705,
+          "control": "Book workshop"
+        },
+        {
+          "x": 450,
+          "y": 465,
+          "control": "email"
+        },
+        {
+          "x": 450,
+          "y": 375,
+          "control": "name"
+        },
+        {
+          "x": 450,
+          "y": 465,
+          "control": "email"
+        },
+        {
+          "x": 353,
+          "y": 528,
+          "control": null
+        },
+        {
+          "x": 420,
+          "y": 540,
+          "control": null
+        },
+        {
+          "x": 450,
+          "y": 530,
+          "control": "Confirm booking"
+        },
+        {
+          "x": 353,
+          "y": 630,
+          "control": null
+        },
+        {
+          "x": 455,
+          "y": 515,
+          "control": null
+        }
+      ],
+      "answer": "Stopped after 16 model turns; the task is still unfinished.",
+      "seconds": 220.32,
+      "pass": false,
+      "verification_error": "TimeoutError: Locator.inner_text: Timeout 10000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"status\")\n",
+      "turns": 16
+    }
+  ],
+  "excluded_trials": [
+    {
+      "model": "google/gemini-3.8-flash",
+      "variant": "examples",
+      "actions": [
+        {
+          "step": 0,
+          "action": {
+            "name": "click",
+            "arguments": "{\"y\":703,\"x\":368}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 1,
+          "action": {
+            "name": "press_key",
+            "arguments": "{\"key\":\"Escape\"}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        },
+        {
+          "step": 2,
+          "action": {
+            "name": "reload",
+            "arguments": "{}"
+          },
+          "result": {
+            "state": "success",
+            "output": null
+          }
+        }
+      ],
+      "clicks": [
+        {
+          "x": 368,
+          "y": 703,
+          "control": "Book workshop"
+        }
+      ],
+      "error": "Error: Page.evaluate: ReferenceError: auditClicks is not defined\n    at eval (eval at evaluate (:311:30), <anonymous>:1:1)\n    at eval (<anonymous>)\n    at UtilityScript.evaluate (<anonymous>:311:30)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "seconds": 30.3
+    }
+  ]
+}
