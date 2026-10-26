@@ -1,6 +1,6 @@
 [project]
 name = "mini-web-agent"
-version = "0.2.0"
+version = "0.2.1"
 description = "Explore how frontier models use a browser in fewer than 400 lines of Python."
 readme = "README.md"
 requires-python = ">=3.10"
