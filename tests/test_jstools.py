@@ -21,10 +21,12 @@ PAGE = """<a href="#product" style="position:absolute;left:80px;top:80px;width:3
 <optgroup label="France"><option>Paris</option><option>Lyon</option></optgroup>
 <optgroup label="Closed region" disabled><option>Nowhere</option></optgroup>
 <option hidden>Hidden option</option><option>Last</option></select>
+<select id="long" style="position:absolute;left:800px;top:100px">%s</select>
 <div style="height:3000px"></div>
 <script>window.changes = [], window.presses = 0;
 document.addEventListener('change', e => changes.push(e.target.value));
-document.addEventListener('pointerdown', () => presses++, true);</script>"""
+document.addEventListener('pointerdown', () => presses++, true);</script>""" % "".join(
+    f"<option{' selected' if i == 40 else ''}>Country {i}</option>" for i in range(60))
 
 
 class InstallTests(unittest.TestCase):
@@ -109,6 +111,12 @@ class SelectTests(unittest.TestCase):
             self.assertEqual(self.options.count(), 1)
         self.click(self.options.get_by_text("Lyon", exact=True))
         self.assertEqual(self.page.evaluate("changes"), ["Lyon"])
+
+    def test_long_list_shows_the_current_option_at_its_bottom_edge(self):  # as in Chromium
+        self.click(self.page.locator("#long"))
+        chosen = self.options.get_by_text("Country 40", exact=True).bounding_box()
+        bottom = self.options.evaluate("e => e.getBoundingClientRect().bottom - 1")
+        self.assertAlmostEqual(chosen["y"] + chosen["height"], bottom, delta=1)
 
     def test_click_is_sent_when_the_check_fails(self):
         # page.evaluate raises this when a navigation replaces the page during the check.

@@ -80,8 +80,8 @@ SELECT_CLICK = """([x, y]) => {
     list.style.top = `${up ? box.top - list.offsetHeight : box.bottom}px`;
     const width = list.offsetWidth, fits = box.left + width <= innerWidth;
     list.style.left = `${fits ? box.left : Math.max(0, box.right - width)}px`;
-    const chosen = root.querySelector('.selected');  // show it in the middle of the list
-    if (chosen) list.scrollTop = chosen.offsetTop - (list.clientHeight - chosen.offsetHeight) / 2;
+    const chosen = root.querySelector('.selected');  // as in Chromium: in view, at the bottom edge
+    if (chosen) list.scrollTop = chosen.offsetTop + chosen.offsetHeight - list.clientHeight;
     return true;
 }"""
 
