@@ -341,6 +341,26 @@ collects your answer. They default to `print` and `input`; replace them to use y
 
 </details>
 
+<details>
+<summary>Clicks on native selects</summary>
+
+Chromium draws an open `<select>` menu outside the page: screenshots show it, but clicks go
+to the page underneath, so a click on an option misses it. Hosts that run the agent's actions
+can fix this without changing `agent.py`, the prompt from `get_instructions()`, or the tool
+definitions. Call `jstools.install` once, before `get_action_space()`:
+
+```python
+import agent
+import jstools
+
+jstools.install(agent)
+```
+
+A click on a native select then lists its options in the page, and the next click chooses one
+or, as with Chromium's menu, only closes the list. The `mini-web-agent` command does not call it.
+
+</details>
+
 ## Development
 
 If you want to change the loop, start with
