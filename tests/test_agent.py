@@ -349,6 +349,62 @@ class BrowserTests(unittest.TestCase):
                 self.assertEqual(len(changes()), 2)
                 self.assertEqual(page.url, self.url + "/")
 
+    def test_native_select_list_scrolls_groups_and_window_edges(self):
+        page = self.agent.get_page()
+        page.set_content("""<div style="height:3000px">
+            <select id="page" style="position:absolute;left:40px;top:40px;width:160px">
+            <option>One</option><option>Two</option></select>
+            <div id="holder" style="position:absolute;left:300px;top:40px;width:200px;height:120px;
+                overflow:auto"><select id="inner"><option>Red</option><option>Blue</option>
+                </select><div style="height:600px"></div></div>
+            <div id="other" style="position:absolute;left:600px;top:40px;width:200px;height:120px;
+                overflow:auto"><div style="height:600px"></div></div>
+            <select id="groups" style="position:absolute;left:40px;top:300px;width:200px">
+            <option>Pick a city</option>
+            <optgroup label="France"><option>Paris</option><option>Lyon</option></optgroup>
+            <optgroup label="Closed region" disabled><option>Nowhere</option></optgroup>
+            <option hidden>Hidden option</option><option>Last</option></select>
+            <select id="edge" style="position:absolute;right:10px;top:300px;width:90px">
+            <option>Short</option><option>A much longer label than the select is wide</option>
+            </select></div><script>window.changes = [];
+            document.addEventListener('change', e => changes.push(e.target.value));</script>""")
+        options = page.locator("mini-agent-select-list")
+        closed = "!document.querySelector('mini-agent-select-list')"
+        frames = "new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))"
+
+        def open_list(select):
+            self.act("click", **self.point(page.locator(select)))
+            self.assertEqual(options.count(), 1)
+
+        # Scrolling the page, or a box that holds the select, closes the list.
+        open_list("#page")
+        self.act("scroll", dx=0, dy=200)
+        page.wait_for_function(closed)
+        page.evaluate("scrollTo(0, 0)")
+        open_list("#inner")
+        page.evaluate("document.querySelector('#other').scrollTop = 50")
+        page.evaluate(frames)
+        self.assertEqual(options.count(), 1)
+        page.evaluate("document.querySelector('#holder').scrollTop = 50")
+        page.wait_for_function(closed)
+        # Group labels and options in disabled groups cannot be chosen; hidden ones are left out.
+        open_list("#groups")
+        self.assertEqual(options.locator("div").all_inner_texts(),
+                         ["Pick a city", "France", "Paris", "Lyon", "Closed region", "Nowhere",
+                          "Last"])
+        for label in ("France", "Nowhere"):
+            self.act("click", **self.point(options.get_by_text(label, exact=True)))
+            self.assertEqual(options.count(), 1)
+        self.act("click", **self.point(options.get_by_text("Lyon", exact=True)))
+        self.assertEqual(page.evaluate("changes"), ["Lyon"])
+        # A list too wide for the window lines up with the select's right edge.
+        open_list("#edge")
+        listed, select = options.bounding_box(), page.locator("#edge").bounding_box()
+        self.assertGreater(listed["width"], select["width"])
+        right = listed["x"] + listed["width"]
+        self.assertAlmostEqual(right, select["x"] + select["width"], delta=1)
+        self.assertLessEqual(right, page.evaluate("innerWidth"))
+
     def test_click_during_navigation_still_reaches_the_page(self):
         page = self.agent.get_page()
         page.set_content('<a href="/clicked" style="display:block;height:300px">Next</a>')
