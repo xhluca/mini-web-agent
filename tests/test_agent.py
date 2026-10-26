@@ -325,16 +325,26 @@ class BrowserTests(unittest.TestCase):
                 self.assertEqual(select.input_value(), "Price")
                 self.assertEqual(changes(), [["input", "Price"], ["change", "Price"]])
                 self.assertEqual(page.evaluate("document.activeElement.id"), "sort")
-                # Choosing the current option, a second click, or a click elsewhere only closes.
+                # Choosing the current option or a second click on the select only closes.
                 click(select)
                 click(price)
                 self.assertEqual(options.count(), 0)
                 for expected in (1, 0, 1):
                     click(select)
                     self.assertEqual(options.count(), expected)
-                self.act("click", **(dict(x=600, y=500) if coordinates == "css"
-                                     else dict(x=600 * 1000 / 1280, y=500 * 1000 / 800)))
+                self.act("press_key", key="Escape")  # a key press closes it too
                 self.assertEqual(options.count(), 0)
+                click(select)
+                # As with Chromium's popup, a click on the link outside the list only closes it.
+                presses = "events.filter(e => e.type === 'pointerdown').length"
+                count = page.evaluate(presses)
+                for x, y, pressed in ((350, 350, 0), (600, 500, 1)):  # then a normal click
+                    self.act("click", **(dict(x=x, y=y) if coordinates == "css"
+                                         else dict(x=x * 1000 / 1280, y=y * 1000 / 800)))
+                    self.assertEqual(options.count(), 0)
+                    self.assertEqual(page.evaluate(presses), count + pressed)
+                    for actual, target in zip(last("mousemove"), (x, y)):
+                        self.assertAlmostEqual(actual, target, delta=1)
                 self.assertEqual(select.input_value(), "Price")
                 self.assertEqual(len(changes()), 2)
                 self.assertEqual(page.url, self.url + "/")

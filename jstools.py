@@ -8,22 +8,25 @@ without choosing and lands on whatever lies underneath.
 # Runs before a click at (x, y) in CSS pixels and returns true when the click must not be sent.
 # On a single-choice <select>, it focuses the select, lists the options in the page where the
 # popup would be, and returns true. A click on a row chooses that option and fires input and
-# change, as the popup does. A click on the select again closes the list; a click anywhere else
-# closes it and reaches the page as usual.
+# change, as the popup does. As in headed Chromium on Linux, a click anywhere else, including the
+# select, only closes the list and does not reach the page. A key press closes it too.
 SELECT_CLICK = """([x, y]) => {
     const open = document.querySelector('mini-agent-select-list');
     const target = document.elementFromPoint(x, y);
     if (open && target === open) return false;  // a row handles the click
     open?.close();
+    if (open) return true;  // anything else only closes the list
     const select = target?.closest('select');
     if (!select || select.multiple || select.size > 1 || select.matches(':disabled')) return false;
-    if (select === open?.select) return true;  // a second click only closes the list
     select.focus();
     const list = document.createElement('mini-agent-select-list');
+    const types = ['mousedown', 'keydown'];  // keys close the list, then act on the select
     const outside = event => { if (event.target !== list) list.close(); };
-    list.select = select;
-    list.close = () => { list.remove(); removeEventListener('mousedown', outside, true); };
-    addEventListener('mousedown', outside, true);
+    list.close = () => {
+        list.remove();
+        types.forEach(type => removeEventListener(type, outside, true));
+    };
+    types.forEach(type => addEventListener(type, outside, true));
     list.addEventListener('mousedown', event => event.preventDefault());  // keep the focus
     const style = getComputedStyle(select), box = select.getBoundingClientRect();
     list.style.cssText = 'all:initial;position:fixed;z-index:2147483646;overflow-y:auto;' +
