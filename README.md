@@ -23,17 +23,19 @@ model, or add an action. You can follow the run and see how those changes affect
 | --- |
 | ![Gemini uses screenshots and browser actions to book a Robotics Lab workshop](https://raw.githubusercontent.com/xhluca/mini-web-agent/main/demo/demo.gif) |
 
-The browser controls, model loop, and command line entry point all fit in this file:
+The browser controls, model loop, and command line entry point all fit in `agent.py`,
+with a little in-page JavaScript in `jstools.py`:
 
 | Section | What it does | Lines |
 | --- | --- | ---: |
-| [Imports](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L1) | Standard library, OpenAI SDK, and Playwright | 17 |
-| [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L18) | 24 browser and conversation functions | 94 |
-| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L112) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 78 |
-| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L190) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
-| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L312) | Model calls, results, callbacks, history, and recovery | 44 |
-| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L356) | Options, browser setup, model run, and cleanup | 39 |
-| **Total** | | **394** |
+| [Imports](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L1) | Standard library, OpenAI SDK, Playwright, and jstools | 18 |
+| [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L19) | 24 browser and conversation functions | 98 |
+| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L117) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 78 |
+| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L195) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
+| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L317) | Model calls, results, callbacks, history, and recovery | 44 |
+| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L361) | Options, browser setup, model run, and cleanup | 39 |
+| [jstools.py](https://github.com/xhluca/mini-web-agent/blob/main/jstools.py) | In-page option list for clicks on native selects | 60 |
+| **Total** | | **459** |
 
 <details>
 <summary>Record your own demo</summary>
@@ -256,6 +258,10 @@ Scroll distances stay in CSS pixels in both modes.
 The viewport defaults to 1280×800; pass `w` and `h` to `WebAgent` to change it.
 `type_text` types into the focused field with 10 ms between characters. Tab indices come
 from the latest observation and can shift after closing a tab.
+
+Chromium draws an open `<select>` menu outside the page: screenshots show it, but clicks go
+to the page underneath. A click on a native select therefore lists its options in the page,
+where the next click can choose one ([demo](https://github.com/xhluca/mini-web-agent/blob/main/demo/native_select.py)).
 
 </details>
 
