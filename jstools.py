@@ -73,10 +73,14 @@ SELECT_CLICK = """([x, y]) => {
         };
     }
     document.documentElement.appendChild(list);
-    // Open below the select, or above it when the list does not fit and there is more room.
-    // When it is too wide for the window, line it up with the select's right edge instead.
-    const below = innerHeight - box.bottom, up = list.offsetHeight > below && box.top > below;
-    list.style.maxHeight = `${up ? box.top : below}px`;
+    // Place it as Chromium places its popup, with the window as the screen: at most 20 rows,
+    // below the select unless it does not fit there and there is more room above, and no
+    // taller than the room on that side. A list too wide for the window lines up with the
+    // select's right edge instead.
+    const twentieth = root.querySelectorAll('div')[19];
+    const height = twentieth ? twentieth.offsetTop + twentieth.offsetHeight + 2 : list.offsetHeight;
+    const below = innerHeight - box.bottom, up = height > below && box.top > below;
+    list.style.height = `${Math.min(height, up ? box.top : below)}px`;
     list.style.top = `${up ? box.top - list.offsetHeight : box.bottom}px`;
     const width = list.offsetWidth, fits = box.left + width <= innerWidth;
     list.style.left = `${fits ? box.left : Math.max(0, box.right - width)}px`;

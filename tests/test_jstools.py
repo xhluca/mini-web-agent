@@ -112,11 +112,17 @@ class SelectTests(unittest.TestCase):
         self.click(self.options.get_by_text("Lyon", exact=True))
         self.assertEqual(self.page.evaluate("changes"), ["Lyon"])
 
-    def test_long_list_shows_the_current_option_at_its_bottom_edge(self):  # as in Chromium
-        self.click(self.page.locator("#long"))
+    def test_lists_show_at_most_20_rows_like_chromium(self):
+        self.click(self.page.locator("#sort"))
+        row = self.options.locator("div").first.bounding_box()["height"]
+        self.assertAlmostEqual(self.options.bounding_box()["height"], 3 * row + 2, delta=1)
+        self.click(self.page.locator("#sort"))
+        self.click(self.page.locator("#long"))  # the current option sits at the bottom edge
+        listed = self.options.bounding_box()
+        self.assertAlmostEqual(listed["height"], 20 * row + 2, delta=1)
         chosen = self.options.get_by_text("Country 40", exact=True).bounding_box()
-        bottom = self.options.evaluate("e => e.getBoundingClientRect().bottom - 1")
-        self.assertAlmostEqual(chosen["y"] + chosen["height"], bottom, delta=1)
+        self.assertAlmostEqual(chosen["y"] + chosen["height"], listed["y"] + listed["height"] - 1,
+                               delta=1)
 
     def test_click_is_sent_when_the_check_fails(self):
         # page.evaluate raises this when a navigation replaces the page during the check.
