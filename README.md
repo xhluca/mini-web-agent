@@ -29,13 +29,13 @@ with a little in-page JavaScript in `jstools.py`:
 | Section | What it does | Lines |
 | --- | --- | ---: |
 | [Imports](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L1) | Standard library, OpenAI SDK, Playwright, and jstools | 18 |
-| [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L19) | 24 browser and conversation functions | 98 |
-| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L117) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 78 |
-| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L195) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
-| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L317) | Model calls, results, callbacks, history, and recovery | 44 |
-| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L361) | Options, browser setup, model run, and cleanup | 39 |
-| [jstools.py](https://github.com/xhluca/mini-web-agent/blob/main/jstools.py) | In-page option list for clicks on native selects | 60 |
-| **Total** | | **459** |
+| [Actions](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L19) | 24 browser and conversation functions | 102 |
+| [Helpers](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L121) | Prompts, browser setup, coordinates, tool schemas, and screenshots | 78 |
+| [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L199) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
+| [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L321) | Model calls, results, callbacks, history, and recovery | 44 |
+| [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L365) | Options, browser setup, model run, and cleanup | 39 |
+| [jstools.py](https://github.com/xhluca/mini-web-agent/blob/main/jstools.py) | In-page option list for clicks on native selects | 63 |
+| **Total** | | **466** |
 
 <details>
 <summary>Record your own demo</summary>
@@ -260,8 +260,9 @@ The viewport defaults to 1280×800; pass `w` and `h` to `WebAgent` to change it.
 from the latest observation and can shift after closing a tab.
 
 Chromium draws an open `<select>` menu outside the page: screenshots show it, but clicks go
-to the page underneath. A click on a native select therefore lists its options in the page,
-where the next click can choose one ([demo](https://github.com/xhluca/mini-web-agent/blob/main/demo/native_select.py)).
+to the page underneath. A click on a native select therefore lists its options in the page.
+As with the menu, the next click either chooses an option or only closes the list
+([demo](https://github.com/xhluca/mini-web-agent/blob/main/demo/native_select.py)).
 
 </details>
 
