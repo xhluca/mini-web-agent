@@ -14,6 +14,7 @@ from urllib.request import urlopen
 
 from openai import OpenAI
 from playwright.sync_api import Browser, BrowserContext, Error, Page, Playwright, sync_playwright
+import jstools
 
 class Actions:
     def navigate(page: Page, url: str) -> None:
@@ -29,7 +30,11 @@ class Actions:
         page.reload(wait_until="domcontentloaded")
 
     def click(page: Page, x: float, y: float) -> None:
-        page.mouse.click(*pixel_point(page, x, y))
+        x, y = pixel_point(page, x, y)
+        if page.evaluate(jstools.SELECT_CLICK, [x, y]):  # a native <select>; see jstools.py
+            page.mouse.move(x, y)
+        else:
+            page.mouse.click(x, y)
 
     def double_click(page: Page, x: float, y: float) -> None:
         page.mouse.dblclick(*pixel_point(page, x, y))
