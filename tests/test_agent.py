@@ -366,8 +366,11 @@ class BrowserTests(unittest.TestCase):
             <option hidden>Hidden option</option><option>Last</option></select>
             <select id="edge" style="position:absolute;right:10px;top:300px;width:90px">
             <option>Short</option><option>A much longer label than the select is wide</option>
-            </select></div><script>window.changes = [];
-            document.addEventListener('change', e => changes.push(e.target.value));</script>""")
+            </select><select id="long" style="position:absolute;left:300px;top:300px">
+            ${options}</select></div><script>window.changes = [];
+            document.addEventListener('change', e => changes.push(e.target.value));</script>"""
+            .replace("${options}", "".join(f"<option>Country {i}</option>" for i in range(60))
+                     .replace("<option>Country 40", "<option selected>Country 40")))
         options = page.locator("mini-agent-select-list")
         closed = "!document.querySelector('mini-agent-select-list')"
         frames = "new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))"
@@ -404,6 +407,13 @@ class BrowserTests(unittest.TestCase):
         right = listed["x"] + listed["width"]
         self.assertAlmostEqual(right, select["x"] + select["width"], delta=1)
         self.assertLessEqual(right, page.evaluate("innerWidth"))
+        # As in Chromium, a long list scrolls the current option into view at its bottom edge.
+        page.keyboard.press("Escape")
+        open_list("#long")
+        chosen = options.get_by_text("Country 40", exact=True).bounding_box()
+        self.assertAlmostEqual(chosen["y"] + chosen["height"],
+                               options.evaluate("e => e.getBoundingClientRect().bottom - 1"),
+                               delta=1)
 
     def test_click_during_navigation_still_reaches_the_page(self):
         page = self.agent.get_page()
