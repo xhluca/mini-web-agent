@@ -257,6 +257,84 @@ class BrowserTests(unittest.TestCase):
                     finally:
                         agent.shutdown()
 
+    def test_native_select_clicks_choose_from_options_in_page(self):
+        from callbacks.cursor import show_cursor
+        page = self.agent.get_page()
+        for coordinates in ("css", "normalized"):
+            with self.subTest(coordinates=coordinates):
+                self.agent.coordinates = coordinates
+                page.set_content("""<a href="/product" style="position:absolute;left:80px;
+                    top:80px;width:300px;height:300px;background:#ddd">Product</a>
+                    <select id="sort" style="position:absolute;left:100px;top:100px;width:160px">
+                    <option>Position</option><option disabled>Rating</option><option>Price</option>
+                    </select><script>window.events = [];
+                    for (const type of ['input', 'change', 'mousemove', 'pointerdown'])
+                        document.addEventListener(type, e => events.push({type,
+                            x: e.clientX, y: e.clientY, value: e.target.value}), true);</script>""")
+                select, options = page.locator("#sort"), page.locator("mini-agent-select-list")
+                price = options.get_by_text("Price", exact=True)
+
+                def click(locator):
+                    box = locator.bounding_box()
+                    center = [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2]
+                    point = self.point(locator)
+                    show_cursor(self.agent, 0, dict(name="click", arguments=point), None)
+                    self.act("click", **point)
+                    tip = page.locator("mini-agent-cursor").evaluate("""e => {
+                        const path = e.shadowRoot.querySelector('path');
+                        const point = new DOMPoint(4,2).matrixTransform(path.getScreenCTM());
+                        return [point.x, point.y];
+                    }""")
+                    for actual, target in zip(tip, center):
+                        self.assertAlmostEqual(actual, target, delta=0.1)
+                    return center
+
+                def last(kind):
+                    event = page.evaluate("type => events.findLast(e => e.type === type)", kind)
+                    return [event["x"], event["y"]]
+
+                def changes():
+                    return page.evaluate("""events.filter(e => ['input', 'change']
+                        .includes(e.type)).map(e => [e.type, e.value])""")
+
+                # The click opens the list instead of the popup and moves the pointer there.
+                for actual, target in zip(click(select), last("mousemove")):
+                    self.assertAlmostEqual(actual, target, delta=1)
+                self.assertEqual(options.count(), 1)
+                self.assertEqual(page.evaluate("document.activeElement.id"), "sort")
+                listed, box = options.bounding_box(), select.bounding_box()
+                self.assertEqual([listed["x"], listed["y"]], [box["x"], box["y"] + box["height"]])
+                self.assertGreaterEqual(listed["width"], box["width"])
+                self.assertEqual(options.evaluate("e => getComputedStyle(e).font"),
+                                 select.evaluate("e => getComputedStyle(e).font"))
+                # A click on Price would go through to the link without the list.
+                row = price.bounding_box()
+                self.assertEqual(page.evaluate(
+                    "([x, y]) => document.elementsFromPoint(x, y).map(e => e.localName)",
+                    [row["x"] + row["width"] / 2, row["y"] + row["height"] / 2])[:2],
+                    ["mini-agent-select-list", "a"])
+                click(options.get_by_text("Rating", exact=True))
+                self.assertEqual(options.count(), 1)
+                for actual, target in zip(click(price), last("pointerdown")):
+                    self.assertAlmostEqual(actual, target, delta=1)
+                self.assertEqual(options.count(), 0)
+                self.assertEqual(select.input_value(), "Price")
+                self.assertEqual(changes(), [["input", "Price"], ["change", "Price"]])
+                self.assertEqual(page.evaluate("document.activeElement.id"), "sort")
+                # Choosing the current option, a second click, or a click elsewhere only closes.
+                click(select)
+                click(price)
+                self.assertEqual(options.count(), 0)
+                for expected in (1, 0, 1):
+                    click(select)
+                    self.assertEqual(options.count(), expected)
+                self.act("click", **(dict(x=600, y=500) if coordinates == "css"
+                                     else dict(x=600 * 1000 / 1280, y=500 * 1000 / 800)))
+                self.assertEqual(options.count(), 0)
+                self.assertEqual(select.input_value(), "Price")
+                self.assertEqual(len(changes()), 2)
+                self.assertEqual(page.url, self.url + "/")
+
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
         from callbacks.cursor import show_cursor
         page = self.agent.get_page()
