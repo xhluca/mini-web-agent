@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search results for: 'ugreen'</title>
+<style>
+  body { margin: 0; font: 14px/20px "Open Sans", "Helvetica Neue", Arial, sans-serif; color: #333; }
+  main { width: 760px; padding: 20px; }
+  h1 { margin: 0 0 20px; font-size: 30px; line-height: 44px; font-weight: 300; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; height: 32px; }
+  select { width: 140px; height: 32px; margin-left: 8px; padding: 0 6px; font: inherit; }
+  .results { position: relative; margin-top: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .product { color: #006bb4; text-decoration: none; }
+  .product span { display: block; height: 140px; margin-bottom: 8px; border-radius: 4px; }
+  .product em { font-style: normal; }
+  .product b { display: block; margin-top: 4px; color: #333; }
+  #product { position: absolute; inset: 0; display: none; padding: 24px; background: #fff;
+             border: 1px solid #ccc; }
+  #product:target { display: block; }
+  #product h2 { margin: 4px 0; font-size: 22px; font-weight: 400; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Search results for: 'ugreen'</h1>
+  <div class="toolbar">
+    <span>Items 1-4 of 4</span>
+    <label>Sort By<select id="sorter">
+      <option value="position">Position</option>
+      <option value="name">Product Name</option>
+      <option value="price">Price</option>
+    </select></label>
+  </div>
+  <div class="results">
+    <div class="grid" id="grid">
+      <a class="product" href="#product" data-position="1" data-price="24.99">
+        <span style="background: #6ab04c"></span><em>UGREEN HDMI Cable 4K, 3 Pack</em>
+        <b>$24.99</b></a>
+      <a class="product" href="#product" data-position="2" data-price="9.99">
+        <span style="background: #7f8fa6"></span><em>UGREEN RJ45 Coupler, 2 Pack</em>
+        <b>$9.99</b></a>
+      <a class="product" href="#product" data-position="3" data-price="11.99">
+        <span style="background: #00a8ff"></span><em>UGREEN Screen Protector for Switch</em>
+        <b>$11.99</b></a>
+      <a class="product" href="#product" data-position="4" data-price="7.99">
+        <span style="background: #485460"></span><em>UGREEN Metal Plate for Magnet Holder</em>
+        <b>$7.99</b></a>
+    </div>
+    <section id="product">Product page<h2></h2><b></b></section>
+  </div>
+</main>
+<script>
+  const grid = document.querySelector('#grid'), product = document.querySelector('#product');
+  grid.addEventListener('click', event => {
+    const link = event.target.closest('a');
+    product.querySelector('h2').textContent = link.querySelector('em').textContent;
+    product.querySelector('b').textContent = link.querySelector('b').textContent;
+  });
+  // Sort in place, as the store does after a new "Sort By" choice.
+  document.querySelector('#sorter').addEventListener('change', event => {
+    const key = event.target.value;
+    const value = item => key === 'name' ? item.querySelector('em').textContent
+                                         : Number(item.dataset[key]);
+    [...grid.children].sort((a, b) => value(a) < value(b) ? -1 : value(a) > value(b) ? 1 : 0)
+      .forEach(item => grid.append(item));
+  });
+</script>
+</body>
+</html>
