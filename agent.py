@@ -31,7 +31,11 @@ class Actions:
 
     def click(page: Page, x: float, y: float) -> None:
         x, y = pixel_point(page, x, y)
-        if page.evaluate(jstools.SELECT_CLICK, [x, y]):  # a native <select>; see jstools.py
+        try:  # clicks on a native <select> are handled in the page; see jstools.py
+            handled = page.evaluate(jstools.SELECT_CLICK, [x, y])
+        except Error:  # e.g. the page is navigating: send the click as before
+            handled = False
+        if handled:
             page.mouse.move(x, y)
         else:
             page.mouse.click(x, y)

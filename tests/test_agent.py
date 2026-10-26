@@ -39,11 +39,15 @@ HTML = """<!doctype html><html><body>
 class Fixture(BaseHTTPRequestHandler):
     requests = []
     replies = []
+    hold = threading.Event()
 
     def log_message(self, *args):
         pass
 
     def do_GET(self):
+        if self.path == "/hold":  # a navigation that stays pending until the test releases it
+            self.hold.wait(10)
+            return
         body = b"downloaded" if self.path == "/download" else HTML.encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/plain" if self.path == "/download" else "text/html")
@@ -334,6 +338,21 @@ class BrowserTests(unittest.TestCase):
                 self.assertEqual(select.input_value(), "Price")
                 self.assertEqual(len(changes()), 2)
                 self.assertEqual(page.url, self.url + "/")
+
+    def test_click_during_navigation_still_reaches_the_page(self):
+        page = self.agent.get_page()
+        page.set_content('<a href="/clicked" style="display:block;height:300px">Next</a>')
+        point = self.point(page.get_by_role("link"))
+        Fixture.hold.clear()  # /hold answers only at the end, so the navigation stays pending
+        try:
+            page.evaluate("location.href = '/hold'")
+            # page.evaluate raises this when a navigation replaces the page during the check.
+            with patch.object(page, "evaluate", side_effect=Error(
+                    "Execution context was destroyed, most likely because of a navigation")):
+                self.act("click", **point)
+            page.wait_for_url(self.url + "/clicked")
+        finally:
+            Fixture.hold.set()
 
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
         from callbacks.cursor import show_cursor
