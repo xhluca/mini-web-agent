@@ -34,8 +34,8 @@ with a little in-page JavaScript in `jstools.py`:
 | [WebAgent](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L199) | Chrome lifecycle, tabs, actions, and screenshots | 122 |
 | [run()](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L321) | Model calls, results, callbacks, history, and recovery | 44 |
 | [CLI](https://github.com/xhluca/mini-web-agent/blob/main/agent.py#L365) | Options, browser setup, model run, and cleanup | 39 |
-| [jstools.py](https://github.com/xhluca/mini-web-agent/blob/main/jstools.py) | In-page option list for clicks on native selects | 63 |
-| **Total** | | **466** |
+| [jstools.py](https://github.com/xhluca/mini-web-agent/blob/main/jstools.py) | In-page option list for clicks on native selects | 83 |
+| **Total** | | **486** |
 
 <details>
 <summary>Record your own demo</summary>
