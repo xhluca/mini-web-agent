@@ -39,11 +39,15 @@ HTML = """<!doctype html><html><body>
 class Fixture(BaseHTTPRequestHandler):
     requests = []
     replies = []
+    hold = threading.Event()
 
     def log_message(self, *args):
         pass
 
     def do_GET(self):
+        if self.path == "/hold":  # a navigation that stays pending until the test releases it
+            self.hold.wait(10)
+            return
         body = b"downloaded" if self.path == "/download" else HTML.encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/plain" if self.path == "/download" else "text/html")
@@ -256,6 +260,178 @@ class BrowserTests(unittest.TestCase):
                                          "Registered: native@example.com / Robotics")
                     finally:
                         agent.shutdown()
+
+    def test_native_select_clicks_choose_from_options_in_page(self):
+        from callbacks.cursor import show_cursor
+        page = self.agent.get_page()
+        for coordinates in ("css", "normalized"):
+            with self.subTest(coordinates=coordinates):
+                self.agent.coordinates = coordinates
+                page.set_content("""<a href="/product" style="position:absolute;left:80px;
+                    top:80px;width:300px;height:300px;background:#ddd">Product</a>
+                    <select id="sort" style="position:absolute;left:100px;top:100px;width:160px">
+                    <option>Position</option><option disabled>Rating</option><option>Price</option>
+                    </select><script>window.events = [];
+                    for (const type of ['input', 'change', 'mousemove', 'pointerdown'])
+                        document.addEventListener(type, e => events.push({type,
+                            x: e.clientX, y: e.clientY, value: e.target.value}), true);</script>""")
+                select, options = page.locator("#sort"), page.locator("mini-agent-select-list")
+                price = options.get_by_text("Price", exact=True)
+
+                def click(locator):
+                    box = locator.bounding_box()
+                    center = [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2]
+                    point = self.point(locator)
+                    show_cursor(self.agent, 0, dict(name="click", arguments=point), None)
+                    self.act("click", **point)
+                    tip = page.locator("mini-agent-cursor").evaluate("""e => {
+                        const path = e.shadowRoot.querySelector('path');
+                        const point = new DOMPoint(4,2).matrixTransform(path.getScreenCTM());
+                        return [point.x, point.y];
+                    }""")
+                    for actual, target in zip(tip, center):
+                        self.assertAlmostEqual(actual, target, delta=0.1)
+                    return center
+
+                def last(kind):
+                    event = page.evaluate("type => events.findLast(e => e.type === type)", kind)
+                    return [event["x"], event["y"]]
+
+                def changes():
+                    return page.evaluate("""events.filter(e => ['input', 'change']
+                        .includes(e.type)).map(e => [e.type, e.value])""")
+
+                # The click opens the list instead of the popup and moves the pointer there.
+                for actual, target in zip(click(select), last("mousemove")):
+                    self.assertAlmostEqual(actual, target, delta=1)
+                self.assertEqual(options.count(), 1)
+                self.assertEqual(page.evaluate("document.activeElement.id"), "sort")
+                listed, box = options.bounding_box(), select.bounding_box()
+                self.assertEqual([listed["x"], listed["y"]], [box["x"], box["y"] + box["height"]])
+                self.assertGreaterEqual(listed["width"], box["width"])
+                self.assertEqual(options.evaluate("e => getComputedStyle(e).font"),
+                                 select.evaluate("e => getComputedStyle(e).font"))
+                # A click on Price would go through to the link without the list.
+                row = price.bounding_box()
+                self.assertEqual(page.evaluate(
+                    "([x, y]) => document.elementsFromPoint(x, y).map(e => e.localName)",
+                    [row["x"] + row["width"] / 2, row["y"] + row["height"] / 2])[:2],
+                    ["mini-agent-select-list", "a"])
+                click(options.get_by_text("Rating", exact=True))
+                self.assertEqual(options.count(), 1)
+                for actual, target in zip(click(price), last("pointerdown")):
+                    self.assertAlmostEqual(actual, target, delta=1)
+                self.assertEqual(options.count(), 0)
+                self.assertEqual(select.input_value(), "Price")
+                self.assertEqual(changes(), [["input", "Price"], ["change", "Price"]])
+                self.assertEqual(page.evaluate("document.activeElement.id"), "sort")
+                # Choosing the current option or a second click on the select only closes.
+                click(select)
+                click(price)
+                self.assertEqual(options.count(), 0)
+                for expected in (1, 0, 1):
+                    click(select)
+                    self.assertEqual(options.count(), expected)
+                self.act("press_key", key="Escape")  # a key press closes it too
+                self.assertEqual(options.count(), 0)
+                click(select)
+                # As with Chromium's popup, a click on the link outside the list only closes it.
+                presses = "events.filter(e => e.type === 'pointerdown').length"
+                count = page.evaluate(presses)
+                for x, y, pressed in ((350, 350, 0), (600, 500, 1)):  # then a normal click
+                    self.act("click", **(dict(x=x, y=y) if coordinates == "css"
+                                         else dict(x=x * 1000 / 1280, y=y * 1000 / 800)))
+                    self.assertEqual(options.count(), 0)
+                    self.assertEqual(page.evaluate(presses), count + pressed)
+                    for actual, target in zip(last("mousemove"), (x, y)):
+                        self.assertAlmostEqual(actual, target, delta=1)
+                self.assertEqual(select.input_value(), "Price")
+                self.assertEqual(len(changes()), 2)
+                self.assertEqual(page.url, self.url + "/")
+
+    def test_native_select_list_scrolls_groups_and_window_edges(self):
+        page = self.agent.get_page()
+        page.set_content("""<div style="height:3000px">
+            <select id="page" style="position:absolute;left:40px;top:40px;width:160px">
+            <option>One</option><option>Two</option></select>
+            <div id="holder" style="position:absolute;left:300px;top:40px;width:200px;height:120px;
+                overflow:auto"><select id="inner"><option>Red</option><option>Blue</option>
+                </select><div style="height:600px"></div></div>
+            <div id="other" style="position:absolute;left:600px;top:40px;width:200px;height:120px;
+                overflow:auto"><div style="height:600px"></div></div>
+            <select id="groups" style="position:absolute;left:40px;top:300px;width:200px">
+            <option>Pick a city</option>
+            <optgroup label="France"><option>Paris</option><option>Lyon</option></optgroup>
+            <optgroup label="Closed region" disabled><option>Nowhere</option></optgroup>
+            <option hidden>Hidden option</option><option>Last</option></select>
+            <select id="edge" style="position:absolute;right:10px;top:300px;width:90px">
+            <option>Short</option><option>A much longer label than the select is wide</option>
+            </select><select id="long" style="position:absolute;left:900px;top:40px">
+            ${options}</select></div><script>window.changes = [];
+            document.addEventListener('change', e => changes.push(e.target.value));</script>"""
+            .replace("${options}", "".join(f"<option>Country {i}</option>" for i in range(60))
+                     .replace("<option>Country 40", "<option selected>Country 40")))
+        options = page.locator("mini-agent-select-list")
+        closed = "!document.querySelector('mini-agent-select-list')"
+        frames = "new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))"
+
+        def open_list(select):
+            self.act("click", **self.point(page.locator(select)))
+            self.assertEqual(options.count(), 1)
+
+        # Scrolling the page, or a box that holds the select, closes the list.
+        open_list("#page")
+        self.act("scroll", dx=0, dy=200)
+        page.wait_for_function(closed)
+        page.evaluate("scrollTo(0, 0)")
+        open_list("#inner")
+        page.evaluate("document.querySelector('#other').scrollTop = 50")
+        page.evaluate(frames)
+        self.assertEqual(options.count(), 1)
+        page.evaluate("document.querySelector('#holder').scrollTop = 50")
+        page.wait_for_function(closed)
+        # Group labels and options in disabled groups cannot be chosen; hidden ones are left out.
+        open_list("#groups")
+        self.assertEqual(options.locator("div").all_inner_texts(),
+                         ["Pick a city", "France", "Paris", "Lyon", "Closed region", "Nowhere",
+                          "Last"])
+        for label in ("France", "Nowhere"):
+            self.act("click", **self.point(options.get_by_text(label, exact=True)))
+            self.assertEqual(options.count(), 1)
+        self.act("click", **self.point(options.get_by_text("Lyon", exact=True)))
+        self.assertEqual(page.evaluate("changes"), ["Lyon"])
+        # A list too wide for the window lines up with the select's right edge.
+        open_list("#edge")
+        listed, select = options.bounding_box(), page.locator("#edge").bounding_box()
+        self.assertGreater(listed["width"], select["width"])
+        right = listed["x"] + listed["width"]
+        self.assertAlmostEqual(right, select["x"] + select["width"], delta=1)
+        self.assertLessEqual(right, page.evaluate("innerWidth"))
+        row = options.locator("div").first.bounding_box()["height"]
+        self.assertAlmostEqual(listed["height"], 2 * row + 2, delta=1)  # short lists: every row
+        # As in Chromium, a long list shows 20 rows, with the current option at the bottom edge.
+        page.keyboard.press("Escape")
+        open_list("#long")
+        listed = options.bounding_box()
+        self.assertAlmostEqual(listed["height"], 20 * row + 2, delta=1)
+        chosen = options.get_by_text("Country 40", exact=True).bounding_box()
+        self.assertAlmostEqual(chosen["y"] + chosen["height"], listed["y"] + listed["height"] - 1,
+                               delta=1)
+
+    def test_click_during_navigation_still_reaches_the_page(self):
+        page = self.agent.get_page()
+        page.set_content('<a href="/clicked" style="display:block;height:300px">Next</a>')
+        point = self.point(page.get_by_role("link"))
+        Fixture.hold.clear()  # /hold answers only at the end, so the navigation stays pending
+        try:
+            page.evaluate("location.href = '/hold'")
+            # page.evaluate raises this when a navigation replaces the page during the check.
+            with patch.object(page, "evaluate", side_effect=Error(
+                    "Execution context was destroyed, most likely because of a navigation")):
+                self.act("click", **point)
+            page.wait_for_url(self.url + "/clicked")
+        finally:
+            Fixture.hold.set()
 
     def test_cursor_tracks_pointer_actions_without_blocking_clicks(self):
         from callbacks.cursor import show_cursor
